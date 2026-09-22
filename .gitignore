@@ -1,0 +1,15 @@
+node_modules
+dist
+.sites-runtime
+coverage
+*.local
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+
+# Environment/tooling metadata, not part of the app
+.openai/
+
+# Intermediate source images (unused by production code, kept locally only)
+public/img/personal-color/*/both.png
+public/img/example/

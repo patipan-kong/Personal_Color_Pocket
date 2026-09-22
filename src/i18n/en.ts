@@ -1,0 +1,242 @@
+import type { LocaleCopy } from './types'
+
+export const en: LocaleCopy = {
+  language: 'en',
+  languageName: 'English',
+  switcherLabel: 'Choose language',
+  header: { homeLabel: 'Personal Color Pocket home', edition: 'Your color guide', presentationSwitcherLabel: 'Style examples' },
+  presentation: {
+    eyebrow: 'Just one quick thing',
+    title: 'Personalize your style examples',
+    helper: 'Pick the clothing examples you would like to see through the quiz and your palette.',
+    women: 'Women',
+    men: 'Men',
+    note: 'Used only to personalize clothing and styling examples. It does not affect your Personal Color result.',
+    changeLater: 'You can change this anytime from the header.',
+  },
+  welcome: {
+    eyebrow: 'A 3-minute guided quiz',
+    titleBefore: 'Find colors that feel like',
+    titleEmphasis: 'you.',
+    lede: 'Notice what lights you up, save a personal palette, and check any color before it enters your wardrobe.',
+    start: 'Find my colors',
+    continue: 'Continue my quiz',
+    privacy: 'No photos. No account. Your answers stay on this device.',
+    imageAlt: 'Colorful folded fabrics with gold and silver earrings',
+    profileCount: 'thoughtful color profiles',
+    howItWorks: 'How it works',
+    steps: ['Answer eleven visual questions', 'Meet your closest color season', 'Keep a palette in your pocket'],
+  },
+  quiz: {
+    progressLabel: 'Color cues',
+    progressAria: (current, total) => `Question ${current} of ${total}`,
+    questionLabel: (current) => `Question ${current}`,
+    back: 'Back', next: 'Next', finish: 'See My Colors',
+    reassurance: 'No single answer decides your result.',
+    visualGuideLabel: 'Color examples for this question',
+  },
+  quizVisualLabels: {
+    ivory: 'Ivory', softWhite: 'Soft white', pureWhite: 'Pure white',
+    camel: 'Camel', terracotta: 'Terracotta', olive: 'Olive', warmBrown: 'Warm brown',
+    coolBlue: 'Cool blue', berryPink: 'Berry pink', blueRed: 'Blue-based red', coolNavy: 'Cool navy',
+    mutedCoral: 'Muted coral', mediumCoral: 'Medium coral', clearCoral: 'Clear coral',
+    mutedGreen: 'Muted green', mediumGreen: 'Medium green', clearGreen: 'Clear green',
+    softCoral: 'Soft coral', freshCoral: 'Fresh coral', softGreen: 'Soft green', freshGreen: 'Fresh green',
+    lightBlue: 'Light blue', mediumBlue: 'Medium blue', deepBlue: 'Deep blue',
+    lightGreen: 'Light green', deepGreen: 'Deep green',
+  },
+  result: {
+    eyebrow: 'Your personal color', secondaryNameLabel: 'International name',
+    visualLabel: 'Style example', visualHeading: 'See it in real clothes',
+    whyLabel: 'Why this result', whyHeading: 'Your answers painted a consistent story.',
+    previewLabel: 'A first look', previewHeading: 'Colors to reach for',
+    previewCopy: 'These shades share the qualities that stood out in your answers.',
+    previewAria: 'Recommended color preview', paletteCta: 'Explore My Palette', retake: 'Retake quiz',
+    disclaimer: 'This is a guided estimate based on your answers, not a diagnosis. Real-world color draping may lead to a different result—and your favorite colors are always yours to wear.',
+  },
+  palette: {
+    eyebrow: (name) => `Your ${name} edit`, title: 'My Palette',
+    intro: 'A practical collection to make color decisions feel lighter.', selected: 'Selected color',
+    selectAria: (color) => `Select ${color}`,
+    sections: {
+      best: { title: 'Best Colors', description: 'Easy, face-brightening colors for tops, dresses, and layers.' },
+      neutrals: { title: 'Neutrals', description: 'Wardrobe foundations that support rather than overpower.' },
+      accents: { title: 'Accent Colors', description: 'Lively notes for accessories, details, and confident color.' },
+      harder: { title: 'More Considered', description: 'These may take a little more styling close to your face. They are choices to balance, not colors to avoid.' },
+      metals: { title: 'Metals', description: "Finishes that echo your palette's overall temperature and clarity." },
+    },
+    tabs: { palette: 'Palette', examples: 'Examples' },
+    tabsAria: 'My Palette sections',
+    summaryHeading: 'Your color DNA',
+    harderTips: [
+      'Keep it farther from your face -- a bottom, bag, or shoe works better than a top.',
+      'Use it in a smaller area, like a trim, print, or accessory.',
+      'Pair it with one of your best colors to bring it back into balance.',
+      'None of these are forbidden -- they just take a little more thought to wear well.',
+    ],
+  },
+  styleExamples: {
+    heading: 'Style examples', intro: 'See your season on a real outfit, then build your own from the exact palette above.',
+    inspirationHeading: 'Use this as inspiration',
+    inspirationBody: 'Look at the overall color relationships -- how tops, bottoms, and accessories sit together, and how much contrast and depth feel right. The exact colors stay in your Palette tab; this image is a styling mood, not a color reference.',
+    imageAlt: (name, preference) => `${name} clothing and outfit examples for ${preference === 'men' ? 'men' : 'women'}`,
+    viewLarger: 'View larger image', viewerClose: 'Close',
+    viewerLabel: (name) => `${name} style example, enlarged`,
+    categoriesHeading: 'Shop your palette by category',
+    categories: {
+      tops: 'Tops', bottoms: 'Bottoms', outerwear: 'Outerwear', dresses: 'Dresses',
+      jacketsCardigans: 'Jackets & Cardigans', shoes: 'Shoes', bags: 'Bags', accessories: 'Accessories',
+    },
+    garments: {
+      shirt: 'Shirt', polo: 'Polo', trousers: 'Trousers', chinos: 'Chinos', loafers: 'Loafers', sneakers: 'Sneakers', jacket: 'Jacket',
+      top: 'Top', blouse: 'Blouse', skirt: 'Skirt', dress: 'Dress', bag: 'Bag', accessory: 'Accessory',
+    },
+    combinationsHeading: 'Outfit combinations',
+    teaserTitle: 'Try these colors on me', teaserBadge: 'Coming later',
+  },
+  checker: {
+    eyebrow: (name) => `Your ${name} lens`, title: 'Does this color suit me?',
+    intro: 'Pick any color and see how it relates to your saved palette.', choose: 'Choose a color',
+    hexLabel: 'Or enter a HEX value', check: 'Check', hexError: 'Enter 3 or 6 HEX characters.',
+    hexExample: 'Example: D98463', fit: (percent) => `${percent}% palette fit`,
+    estimate: 'An app estimate—not a scientific probability.', outfitLabel: 'Build an outfit', pairHeading: 'Try it with',
+  },
+  nav: { aria: 'Main navigation', colors: 'My Colors', palette: 'Palette', checker: 'Color Checker' },
+  dialog: {
+    title: 'Start with a fresh palette?',
+    body: 'Your saved result and quiz answers will be replaced after you complete the quiz again.',
+    cancel: 'Keep my result', confirm: 'Retake quiz',
+  },
+  confidence: { 'Strong match': 'Strong match', 'Likely match': 'Likely match', 'Possible match': 'Possible match' },
+  ratings: { 'Great Match': 'Great Match', 'Good Match': 'Good Match', Wearable: 'Wearable', Tricky: 'Tricky' },
+  reasonText: {
+    temperature: {
+      high: { strong: 'Your answers consistently favored golden, warmer colors.', moderate: 'Your answers leaned toward golden, warmer colors.' },
+      low: { strong: 'Your answers consistently favored cooler, blue-based colors.', moderate: 'Cooler, blue-based colors appeared more harmonious.' },
+    },
+    value: {
+      high: { strong: 'Lighter colors strongly echoed your natural coloring.', moderate: 'Lighter colors echoed your natural coloring.' },
+      low: { strong: 'Deeper shades strongly matched the depth in your features.', moderate: 'Deeper shades matched the depth in your features.' },
+    },
+    chroma: {
+      high: { strong: 'Clear, saturated colors consistently gave you presence.', moderate: 'Clearer, more saturated colors gave you presence.' },
+      low: { strong: 'Softened, nuanced colors consistently felt most balanced.', moderate: 'Softened, nuanced colors felt more balanced.' },
+    },
+    contrast: {
+      high: { strong: 'Distinct light-to-dark contrast strongly supported your features.', moderate: 'Distinct light-to-dark contrast supported your features.' },
+      low: { strong: 'A blended, low-contrast effect consistently looked most natural.', moderate: 'A blended, low-contrast effect looked most natural.' },
+    },
+  },
+  matchReason: {
+    'Great Match': (color) => `It sits beautifully close to ${color}, one of your strongest palette colors.`,
+    'Good Match': (color) => `It shares a similar color quality with ${color} and should feel harmonious.`,
+    Wearable: () => 'It is a little outside your core palette, but pairing it thoughtfully can bring it into balance.',
+    Tricky: (color) => `It is closer to ${color}, a color that may feel less effortless near your face.`,
+  },
+  subtypes: {
+    'light-spring': { name: 'Light Spring', secondaryName: '', characteristics: ['Warm', 'Light', 'Fresh'], summary: 'Sunlit warmth with a light, buoyant quality.' },
+    'warm-spring': { name: 'Warm Spring', secondaryName: '', characteristics: ['Warm', 'Fresh', 'Clear'], summary: 'Golden warmth balanced by lively, clear color.' },
+    'clear-spring': { name: 'Clear Spring', secondaryName: '', characteristics: ['Bright', 'Warm', 'Contrasting'], summary: 'Crisp, sparkling color with a touch of warmth.' },
+    'light-summer': { name: 'Light Summer', secondaryName: '', characteristics: ['Cool', 'Light', 'Airy'], summary: 'Delicate coolness in softly illuminated colors.' },
+    'cool-summer': { name: 'Cool Summer', secondaryName: '', characteristics: ['Cool', 'Calm', 'Refined'], summary: 'Blue-based colors with graceful, moderate softness.' },
+    'soft-summer': { name: 'Soft Summer', secondaryName: '', characteristics: ['Muted', 'Cool', 'Blended'], summary: 'Smoky cool color with gentle, low contrast.' },
+    'soft-autumn': { name: 'Soft Autumn', secondaryName: '', characteristics: ['Muted', 'Warm', 'Earthy'], summary: 'Quiet earth tones softened by a warm haze.' },
+    'warm-autumn': { name: 'Warm Autumn', secondaryName: '', characteristics: ['Golden', 'Rich', 'Earthy'], summary: 'Spiced warmth in grounded, medium-depth color.' },
+    'deep-autumn': { name: 'Deep Autumn', secondaryName: '', characteristics: ['Deep', 'Warm', 'Rich'], summary: 'Dark, enveloping color with burnished warmth.' },
+    'deep-winter': { name: 'Deep Winter', secondaryName: '', characteristics: ['Deep', 'Cool', 'Dramatic'], summary: 'Dark jewel tones with a cool, dramatic edge.' },
+    'cool-winter': { name: 'Cool Winter', secondaryName: '', characteristics: ['Cool', 'Crisp', 'Bold'], summary: 'Decisively cool colors with clean contrast.' },
+    'clear-winter': { name: 'Clear Winter', secondaryName: '', characteristics: ['Bright', 'Cool', 'Vivid'], summary: 'Electric clarity balanced by cool, sharp contrast.' },
+  },
+  quizQuestions: {
+    undertone: {
+      prompt: 'In natural daylight, what does your skin seem to echo?', helper: 'Think overall impression—not a single vein or freckle.',
+      options: {
+        golden: { label: 'Golden or peachy', hint: 'A warm, sunlit cast' },
+        rosy: { label: 'Rosy or bluish', hint: 'A cool, pink-toned cast' },
+        neutral: { label: 'A balanced mix', hint: 'Neither stands out clearly' },
+      },
+    },
+    metal: {
+      prompt: 'Which metal tends to look most at home near your face?', helper: 'Choose the one that makes your skin look most even.',
+      options: {
+        gold: { label: 'Yellow or champagne gold', hint: 'Warm shine feels harmonious' },
+        silver: { label: 'Silver or white gold', hint: 'Cool shine feels crisp' },
+        both: { label: 'Both work about equally', hint: 'Metal temperature is flexible' },
+      },
+    },
+    white: {
+      prompt: 'Your most flattering light neutral is usually…', helper: 'Compare these whites, then picture each one held directly below your face.',
+      options: {
+        ivory: { label: 'Creamy ivory', hint: 'Soft warmth brings balance' },
+        optic: { label: 'Crisp pure white', hint: 'Clean brightness brings definition' },
+        'soft-white': { label: 'Soft white', hint: 'Gentle and slightly greyed' },
+      },
+    },
+    earth: {
+      prompt: 'What happens when you wear camel, rust, or olive?', helper: 'Use this warm, earthy family as a guide. Notice your face before judging whether you like the color.',
+      options: {
+        glow: { label: 'My complexion looks alive', hint: 'Earthy warmth feels easy' },
+        heavy: { label: 'They can look heavy or dull', hint: 'Warm earth tones compete' },
+        mixed: { label: 'Some work, especially softened ones', hint: 'Muted earthiness is helpful' },
+      },
+    },
+    'cool-color': {
+      prompt: 'How do cool blues, berry pinks, and blue-reds behave?', helper: 'Use these cool examples as a guide, then choose the pattern you notice most often near your face.',
+      options: {
+        clear: { label: 'They sharpen and brighten me', hint: 'Cool color adds clarity' },
+        drain: { label: 'They can drain my warmth', hint: 'Blue-based color feels separate' },
+        'soft-best': { label: 'They work when smoky or soft', hint: 'Gentle coolness is best' },
+      },
+    },
+    hair: {
+      prompt: 'How deep is your natural hair color?', helper: 'Use your natural root color, not highlights or dye.',
+      options: {
+        light: { label: 'Light', hint: 'Blonde to light brown' },
+        medium: { label: 'Medium', hint: 'Medium brown or balanced depth' },
+        deep: { label: 'Deep', hint: 'Dark brown to black' },
+      },
+    },
+    eyes: {
+      prompt: 'What is the overall impression of your natural eye color?', helper: 'Focus on depth and clarity rather than the exact hue.',
+      options: {
+        'light-clear': { label: 'Light or sparkling', hint: 'Easy-to-see detail and brightness' },
+        'soft-mixed': { label: 'Soft or blended', hint: 'Heathered, hazy, or mixed' },
+        'deep-clear': { label: 'Deep or defined', hint: 'Strong depth or a distinct rim' },
+      },
+    },
+    contrast: {
+      prompt: 'How much natural contrast do you see among hair, skin, and eyes?', helper: 'Imagine your portrait converted to black and white.',
+      options: {
+        low: { label: 'Low and blended', hint: 'Features share similar depth' },
+        medium: { label: 'Moderate', hint: 'Some definition, not extreme' },
+        high: { label: 'High and distinct', hint: 'Light and dark are clearly separated' },
+      },
+    },
+    intensity: {
+      prompt: 'Which color intensity makes you look most present?', helper: 'Compare each row from muted to clear. The hue stays similar so you can focus on color intensity.',
+      options: {
+        muted: { label: 'Muted and complex', hint: 'Dusty, smoky, softened color' },
+        balanced: { label: 'Balanced and medium', hint: 'Neither dusty nor electric' },
+        bright: { label: 'Bright and clear', hint: 'Clear color holds its own — not necessarily the boldest option' },
+      },
+    },
+    clarity: {
+      prompt: 'Which color quality makes your face look more alive?',
+      helper: 'Compare softly muted colors with fresh, clear colors. Choose what usually happens when colors like these are near your face — not the color you personally like best.',
+      options: {
+        muted: { label: 'Soft, muted colors suit me better', hint: 'My face looks balanced, not upstaged by the color' },
+        balanced: { label: 'Somewhere in between', hint: 'Both families work about equally well' },
+        clear: { label: 'Fresh, clear colors suit me better', hint: 'My face looks brighter and clearer, not muddied' },
+      },
+    },
+    depth: {
+      prompt: 'Do lighter or deeper colors suit you better near the face?',
+      helper: 'Compare colors in matched families that differ mainly in lightness. Choose what makes your face look most balanced and alive — this is about clothing color, not your natural hair or eye color.',
+      options: {
+        light: { label: 'Lighter colors', hint: 'Light, airy color brightens my face' },
+        medium: { label: 'Medium depth', hint: 'Very light or very deep both feel less flattering than the middle' },
+        deep: { label: 'Deeper colors', hint: 'Deep, rich color makes my face look sharp and balanced' },
+      },
+    },
+  },
+}
