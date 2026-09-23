@@ -622,6 +622,11 @@ already answers "does this color suit me?", and a photo is simply another way to
 - Consider renaming the nav label *Color Checker* → *Checker* only if TH text overflows.
   Not required.
 
+**Implemented in Slice 5a** ([record](V1_2_SLICE_5A_PHOTO_PANEL.md)):
+- The tabs are labelled *Manual / Photo*, and Manual is selected every time the checker opens. The mode is not persisted.
+- Leaving Photo mode unmounts the photo panel. That aborts any preparation and discards the photo, the marker and the result. The manual color is untouched.
+- Keyboard: the photo is focusable. Enter/Space checks the marker, placing it at the center first if there is none. Arrows move it by one sample radius in working-image px, and Shift moves 5×.
+
 ---
 
 ## 16. Proposed Architecture
@@ -746,7 +751,7 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **2. Match engine** — **done** (see the Slice 2 note). The manual checker is frozen by `colorMatch.regression.test.ts`, and `placement.ts` moves to Slice 5. | `photoMatch.ts`, `placement.ts`, export `pairingSuggestions` | unit: per-subtype table, lighting robustness, `checkColor` regression snapshot | – | All 12 subtypes pass the table and robustness tests. Manual checker is byte-identical. | copy |
 | **3. Image service** — **done** (see the Slice 3 note). The contract is simplified to `PixelSource`, and `AbortSignal` is supported. | `services/photoImage.ts`, `photoImageHeader.ts` | mocked-global unit tests | – | Caps, error codes, cleanup verified | UI |
 | **4. Integration core + coordinates** — **done** (see the Slice 4 note). Pure geometry and tap → sample → match glue, with no UI. The panel and surface below move to Slice 5. | `coordinates.ts`, `inspect.ts` | unit + synthetic end-to-end | geometry, DPR, boundaries, warnings | Bundle unchanged | UI |
-| **5a. Panel + surface** (was 4) | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |
+| **5a. Panel + surface** (was 4) — **done** (see the Slice 5a note). It shows compact feedback only (swatch, HEX, category, warnings); the result card is 5b. | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |
 | **5b. Result card + copy** | `PhotoResultCard.tsx`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
 | **6. Hardening** | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
 | **7. Capacitor readiness check** (when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |

@@ -13,12 +13,14 @@ import { getStyleGuide } from './domain/personalColor/styleGuide'
 import type { PaletteColor, PersonalColorResult, QuizAnswers, Subtype } from './domain/personalColor/types'
 import { colorDisplayName, detectLanguage, getCopy, metalDisplayNote, persistLanguage } from './i18n'
 import type { Language, LocaleCopy } from './i18n'
+import { PhotoCheckerPanel } from './photoChecker/PhotoCheckerPanel'
 import { adService } from './services/ads'
 import { clearState, loadState, saveState } from './services/persistence'
 import { loadPresentationPreference, savePresentationPreference } from './services/presentationPreference'
 import type { PresentationPreference } from './services/presentationPreference'
 
 type View = 'home' | 'presentation' | 'quiz' | 'result' | 'palette' | 'checker'
+type CheckerMode = 'manual' | 'photo'
 
 const Icon = ({ name }: { name: 'colors' | 'palette' | 'checker' }) => {
   if (name === 'colors') return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg>
@@ -584,8 +586,17 @@ function CheckerView({ copy, language, result }: { copy: LocaleCopy; language: L
   const match = useMemo(() => checkColor(submitted, result.subtype), [submitted, result.subtype])
   const submit = (event: React.FormEvent) => { event.preventDefault(); if (normalized) { setInput(normalized); setPicker(normalized); setSubmitted(normalized) } }
   const referenceName = match?.reason.referenceColor ? colorDisplayName(language, match.reason.referenceColor) : undefined
+  // Manual is the default every time the checker opens. Photo state lives only inside the photo
+  // panel, so switching back to Manual discards it and never touches the manual color above.
+  const [mode, setMode] = useState<CheckerMode>('manual')
+  const modes = [['manual', copy.photoChecker.modes.manual], ['photo', copy.photoChecker.modes.photo]] as const
   return <main className="checker-page page-enter">
     <section className="page-heading"><p className="eyebrow">{copy.checker.eyebrow(definition.name)}</p><h1>{copy.checker.title}</h1><p>{copy.checker.intro}</p></section>
+    <div className="palette-tabs checker-modes" role="tablist" aria-label={copy.photoChecker.modeAria}>
+      {modes.map(([key, label]) => <button key={key} type="button" role="tab" id={`checker-tab-${key}`} aria-selected={mode === key} aria-controls={`checker-tabpanel-${key}`} className={mode === key ? 'active' : ''} onClick={() => setMode(key)}>{label}</button>)}
+    </div>
+    {mode === 'photo' && <div id="checker-tabpanel-photo" role="tabpanel" aria-labelledby="checker-tab-photo"><PhotoCheckerPanel copy={copy.photoChecker} subtype={result.subtype} /></div>}
+    {mode === 'manual' && <div id="checker-tabpanel-manual" role="tabpanel" aria-labelledby="checker-tab-manual">
     <section className="checker-workspace">
       <form className="color-form" onSubmit={submit}>
         <label className="picker-field" style={{ background: picker }}><span>{copy.checker.choose}</span><input type="color" value={picker} onChange={(event) => { const value = event.target.value.toUpperCase(); setPicker(value); setInput(value) }} aria-label={copy.checker.choose} /></label>
@@ -597,6 +608,7 @@ function CheckerView({ copy, language, result }: { copy: LocaleCopy; language: L
       </article>}
     </section>
     {match && <section className="pairings content-card"><p className="section-number">{copy.checker.outfitLabel}</p><h2>{copy.checker.pairHeading}</h2><div className="pairing-grid">{match.pairWith.map((color) => <article key={color.id}><span style={{ background: color.hex }} /><strong title={colorDisplayName(language, color)}>{colorDisplayName(language, color)}</strong><small>{color.hex}</small></article>)}</div></section>}
+    </div>}
   </main>
 }
 

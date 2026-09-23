@@ -1,6 +1,8 @@
 import type { ConfidenceLabel, DimensionKey, MatchRating, QuizOptionIds, QuizQuestionId, Subtype } from '../domain/personalColor/types'
 import type { QuizVisualLabelKey } from '../domain/personalColor/quizVisuals'
 import type { GarmentNounKey, StyleCategoryKey } from '../domain/personalColor/styleGuide'
+import type { PhotoMatchCategory, SampleFlag, SampleUnavailableReason } from '../domain/photoColor/types'
+import type { PhotoImageErrorCode } from '../services/photoImage'
 
 export type Language = 'en' | 'th'
 
@@ -125,6 +127,23 @@ export interface LocaleCopy {
     estimate: string
     outfitLabel: string
     pairHeading: string
+  }
+  photoChecker: {
+    modeAria: string
+    modes: { manual: string; photo: string }
+    choose: string
+    change: string
+    privacy: string
+    preparing: string
+    instruction: string
+    surfaceLabel: string
+    keyboardHint: string
+    pending: string
+    sampleLabel: string
+    categories: Record<PhotoMatchCategory, string>
+    warnings: Record<SampleFlag, string>
+    unavailable: Record<SampleUnavailableReason, string>
+    errors: Record<Exclude<PhotoImageErrorCode, 'aborted'>, string>
   }
   nav: { aria: string; colors: string; palette: string; checker: string }
   dialog: { title: string; body: string; cancel: string; confirm: string }

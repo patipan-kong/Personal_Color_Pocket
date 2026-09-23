@@ -107,6 +107,36 @@ export const en: LocaleCopy = {
     hexExample: 'Example: D98463', fit: (percent) => `${percent}% palette fit`,
     estimate: 'An app estimate—not a scientific probability.', outfitLabel: 'Build an outfit', pairHeading: 'Try it with',
   },
+  photoChecker: {
+    modeAria: 'How to check a color', modes: { manual: 'Manual', photo: 'Photo' },
+    choose: 'Choose a photo', change: 'Choose another photo', privacy: 'Your photo stays on this device.',
+    preparing: 'Preparing photo…', instruction: 'Tap the main color of the garment.', surfaceLabel: 'Photo to check',
+    keyboardHint: 'Keyboard: press Enter to check the center, use the arrow keys to move the marker (hold Shift to move further), then press Enter to check.',
+    pending: 'Press Enter to check this spot.', sampleLabel: 'Color at this spot',
+    categories: {
+      'near-face': 'Great near your face', 'neutral-base': 'Easy neutral', related: 'Works with care',
+      'away-from-face': 'Better away from your face', outside: 'Outside your palette',
+    },
+    warnings: {
+      mixed: 'Mixed colors here. Try a solid area.',
+      highlight: 'Bright glare here. The color may look lighter.',
+      shadow: 'Deep shadow here. The color may look darker.',
+    },
+    unavailable: {
+      transparent: 'This spot is transparent. Tap a visible part of the photo.',
+      'insufficient-pixels': 'Too little of the photo here. Tap nearer the middle.',
+      'outside-image': 'Tap inside the photo.',
+    },
+    errors: {
+      'file-too-large': 'This photo is larger than 30 MB. Choose a smaller photo.',
+      'image-too-large': 'This photo is over 60 megapixels, too large to open here. Choose a smaller version.',
+      'invalid-image': 'This file looks damaged or incomplete. Choose another photo.',
+      'unsupported-format': "This browser can't open this file. Choose a JPEG, PNG or WebP photo.",
+      'unsupported-heic': "This browser can't read this HEIC/HEIF photo. Choose or export a JPEG, PNG or WebP copy.",
+      'decode-failed': "This photo couldn't be opened. Try another photo.",
+      'canvas-failed': "This device couldn't prepare the photo. Try again, or choose a smaller photo.",
+    },
+  },
   nav: { aria: 'Main navigation', colors: 'My Colors', palette: 'Palette', checker: 'Color Checker' },
   dialog: {
     title: 'Start with a fresh palette?',
