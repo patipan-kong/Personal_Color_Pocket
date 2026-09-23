@@ -5,6 +5,7 @@ const w = (temperature = 0, value = 0, chroma = 0, contrast = 0) => ({ temperatu
 export const quizQuestions: QuizQuestion[] = [
   {
     id: 'undertone',
+    visualId: 'undertone-comparison',
     options: [
       { id: 'golden', weights: w(2.3, .2, .2, 0) },
       { id: 'rosy', weights: w(-2.3, .1, 0, 0) },
@@ -13,6 +14,7 @@ export const quizQuestions: QuizQuestion[] = [
   },
   {
     id: 'metal',
+    visualId: 'metal-comparison',
     options: [
       { id: 'gold', weights: w(1.7, .1, .1, 0) },
       { id: 'silver', weights: w(-1.7, .1, .2, .2) },
@@ -48,6 +50,7 @@ export const quizQuestions: QuizQuestion[] = [
   },
   {
     id: 'hair',
+    visualId: 'hair-depth',
     options: [
       { id: 'light', weights: w(0, 2, .1, -.7) },
       { id: 'medium', weights: w(0, .1, 0, 0) },
@@ -56,6 +59,7 @@ export const quizQuestions: QuizQuestion[] = [
   },
   {
     id: 'eyes',
+    visualId: 'eye-impression',
     options: [
       { id: 'light-clear', weights: w(0, 1.2, 1, .2) },
       { id: 'soft-mixed', weights: w(0, .2, -1.5, -.7) },
@@ -64,6 +68,7 @@ export const quizQuestions: QuizQuestion[] = [
   },
   {
     id: 'contrast',
+    visualId: 'contrast-reference',
     options: [
       { id: 'low', weights: w(0, .2, -1, -2.2) },
       { id: 'medium', weights: w(0, 0, 0, 0) },

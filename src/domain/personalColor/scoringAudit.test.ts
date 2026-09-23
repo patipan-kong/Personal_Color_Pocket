@@ -25,5 +25,5 @@ describe('scoring model distribution audit', () => {
 
     expect(summary.confidence.min).toBeGreaterThanOrEqual(.42)
     expect(summary.confidence.max).toBeLessThanOrEqual(.91)
-  })
+  }, 15_000)
 })

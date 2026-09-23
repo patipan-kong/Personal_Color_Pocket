@@ -11,6 +11,8 @@ export const en: LocaleCopy = {
     helper: 'Pick the clothing examples you would like to see through the quiz and your palette.',
     women: 'Women',
     men: 'Men',
+    womenImageAlt: "Women's clothing style examples",
+    menImageAlt: "Men's clothing style examples",
     note: 'Used only to personalize clothing and styling examples. It does not affect your Personal Color result.',
     changeLater: 'You can change this anytime from the header.',
   },
@@ -33,7 +35,11 @@ export const en: LocaleCopy = {
     questionLabel: (current) => `Question ${current}`,
     back: 'Back', next: 'Next', finish: 'See My Colors',
     reassurance: 'No single answer decides your result.',
-    visualGuideLabel: 'Color examples for this question',
+    visualGuideLabel: 'Visual choices for this question',
+    visualInstruction: 'Look → compare → choose',
+    visualExampleNote: 'Use the example to notice the effect—not to match the person shown.',
+    visualImageAlt: (option) => `Controlled visual example for: ${option}`,
+    enlargeVisual: (option) => `View ${option} example larger`,
   },
   quizVisualLabels: {
     ivory: 'Ivory', softWhite: 'Soft white', pureWhite: 'Pure white',
@@ -149,7 +155,7 @@ export const en: LocaleCopy = {
   },
   quizQuestions: {
     undertone: {
-      prompt: 'In natural daylight, what does your skin seem to echo?', helper: 'Think overall impression—not a single vein or freckle.',
+      prompt: 'In natural daylight, what does your skin seem to echo?', helper: 'Compare how warm and cool colors affect your own face. Do not try to match the example model’s skin shade.',
       options: {
         golden: { label: 'Golden or peachy', hint: 'A warm, sunlit cast' },
         rosy: { label: 'Rosy or bluish', hint: 'A cool, pink-toned cast' },
@@ -189,7 +195,7 @@ export const en: LocaleCopy = {
       },
     },
     hair: {
-      prompt: 'How deep is your natural hair color?', helper: 'Use your natural root color, not highlights or dye.',
+      prompt: 'How deep is your natural hair color?', helper: 'Use your natural root color, not highlights or dye. The references show depth levels, not ethnicity.',
       options: {
         light: { label: 'Light', hint: 'Blonde to light brown' },
         medium: { label: 'Medium', hint: 'Medium brown or balanced depth' },
@@ -197,7 +203,7 @@ export const en: LocaleCopy = {
       },
     },
     eyes: {
-      prompt: 'What is the overall impression of your natural eye color?', helper: 'Focus on depth and clarity rather than the exact hue.',
+      prompt: 'What is the overall impression of your natural eye color?', helper: 'Focus on depth and clarity rather than matching an exact eye color or person.',
       options: {
         'light-clear': { label: 'Light or sparkling', hint: 'Easy-to-see detail and brightness' },
         'soft-mixed': { label: 'Soft or blended', hint: 'Heathered, hazy, or mixed' },
@@ -205,7 +211,7 @@ export const en: LocaleCopy = {
       },
     },
     contrast: {
-      prompt: 'How much natural contrast do you see among hair, skin, and eyes?', helper: 'Imagine your portrait converted to black and white.',
+      prompt: 'How much natural contrast do you see among hair, skin, and eyes?', helper: 'Compare the relative difference among skin, hair, eyes, and brows—not how light or dark one feature is by itself.',
       options: {
         low: { label: 'Low and blended', hint: 'Features share similar depth' },
         medium: { label: 'Moderate', hint: 'Some definition, not extreme' },

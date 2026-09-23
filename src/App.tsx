@@ -3,8 +3,8 @@ import { checkColor } from './domain/personalColor/colorMatch'
 import { normalizeHex, readableTextColor } from './domain/personalColor/colorUtils'
 import { getPalette } from './domain/personalColor/palettes'
 import { quizQuestions } from './domain/personalColor/quiz'
-import { garmentKindFor, quizVisuals } from './domain/personalColor/quizVisuals'
-import type { GarmentKind, QuizVisual, QuizVisualSwatch } from './domain/personalColor/quizVisuals'
+import { getQuizVisualAsset, quizVisuals } from './domain/personalColor/quizVisuals'
+import type { QuizVisual, QuizVisualVariant } from './domain/personalColor/quizVisuals'
 import { analyzeQuiz } from './domain/personalColor/scoring'
 import { buildDiagnosticReport } from './domain/personalColor/diagnostics'
 import type { DiagnosticReport } from './domain/personalColor/diagnostics'
@@ -65,24 +65,31 @@ function AppHeader({ copy, language, onLanguage, onHome, presentationPreference,
 }
 
 function PresentationOnboarding({ copy, onChoose }: { copy: LocaleCopy; onChoose: (preference: PresentationPreference) => void }) {
+  const options = [
+    { id: 'women' as const, label: copy.presentation.women, alt: copy.presentation.womenImageAlt, src: '/img/presentation/women.webp' },
+    { id: 'men' as const, label: copy.presentation.men, alt: copy.presentation.menImageAlt, src: '/img/presentation/men.webp' },
+  ]
   return <main className="presentation-page page-enter">
     <section className="presentation-card">
       <p className="eyebrow">{copy.presentation.eyebrow}</p>
       <h1>{copy.presentation.title}</h1>
       <p className="question-helper">{copy.presentation.helper}</p>
       <div className="presentation-options">
-        <button type="button" className="presentation-option" onClick={() => onChoose('women')}>
-          <GarmentSwatch hex="#C45F3C" label={copy.presentation.women} kind="blouse" />
-          <strong>{copy.presentation.women}</strong>
-        </button>
-        <button type="button" className="presentation-option" onClick={() => onChoose('men')}>
-          <GarmentSwatch hex="#7C803D" label={copy.presentation.men} kind="shirt" />
-          <strong>{copy.presentation.men}</strong>
-        </button>
+        {options.map((option) => <button type="button" className="presentation-option" key={option.id} data-presentation-choice={option.id} aria-label={option.label} onClick={() => onChoose(option.id)}>
+          <PresentationOptionImage src={option.src} alt={option.alt} fallback={option.label} />
+          <span className="presentation-option-label"><strong>{option.label}</strong><span aria-hidden="true">→</span></span>
+        </button>)}
       </div>
       <p className="privacy-note">{copy.presentation.note}<br />{copy.presentation.changeLater}</p>
     </section>
   </main>
+}
+
+function PresentationOptionImage({ src, alt, fallback }: { src: string; alt: string; fallback: string }) {
+  const [failed, setFailed] = useState(false)
+  return failed
+    ? <span className="presentation-option-fallback" role="img" aria-label={alt}>{fallback}</span>
+    : <img className="presentation-option-image" src={src} alt={alt} loading="eager" onError={() => setFailed(true)} />
 }
 
 function Welcome({ copy, hasProgress, onStart }: { copy: LocaleCopy; hasProgress: boolean; onStart: () => void }) {
@@ -106,93 +113,59 @@ function Welcome({ copy, hasProgress, onStart }: { copy: LocaleCopy; hasProgress
   </main>
 }
 
-// Garment outlines are simple straight-edge polygons on a shared 100x120 grid so every
-// silhouette lines up (shoulders, armholes, hem) regardless of neckline/sleeve style.
-// Fill is always the swatch's exact canonical hex -- only a low-opacity highlight/shadow
-// overlay is layered on top for a touch of depth (see Part E: never let shading shift the
-// color the user is meant to identify).
-const NECKLINES: Record<string, string> = {
-  v: '45,24 50,38 55,24',
-  shallowV: '45,24 50,33 55,24',
-  crew: '45,24 46,29 50,31 54,29 55,24',
-  polo: '45,24 42,30 50,27 58,30 55,24',
-  straight: '45,24 55,24',
+function QuizVisualFallback({ variant }: { variant: QuizVisualVariant }) {
+  return <span className={`quiz-visual-fallback fallback-${variant.fallbackKind}`} aria-hidden="true">
+    {variant.fallbackSwatches.map((hex, index) => <i key={`${hex}-${index}`} style={{ background: hex }} data-quiz-visual-hex={hex} />)}
+  </span>
 }
 
-function garmentGeometry(kind: GarmentKind) {
-  const long = kind === 'knit' || kind === 'jacket' || kind === 'cardigan' || kind === 'blouse'
-  const open = kind === 'jacket' || kind === 'cardigan'
-  const dress = kind === 'dress'
-  const neckline = kind === 'shirt' ? NECKLINES.v
-    : kind === 'blouse' ? NECKLINES.shallowV
-    : kind === 'knit' || kind === 'top' ? NECKLINES.crew
-    : kind === 'polo' ? NECKLINES.polo
-    : NECKLINES.straight
-
-  const body = dress
-    ? `34,24 ${neckline} 66,24 76,36 71,46 67,70 84,116 16,116 33,70 29,46 24,36`
-    : `34,24 ${neckline} 66,24 76,36 71,46 75,108 25,108 29,46 24,36`
-
-  const sleeves = long ? [
-    '24,36 14,42 16,68 27,62 29,46',
-    '76,36 86,42 84,68 73,62 71,46',
-  ] : []
-
-  return { body, sleeves, open, kind }
-}
-
-function GarmentSwatch({ hex, label, kind }: { hex: `#${string}`; label: string; kind: GarmentKind }) {
-  const geometry = garmentGeometry(kind)
-  // Detail lines/buttons need to stay visible against any canonical swatch color,
-  // from pale ivory to deep navy, so their stroke follows the fill's own contrast.
-  const detailColor = readableTextColor(hex) === '#24181E' ? 'rgba(20,12,16,.32)' : 'rgba(255,255,255,.55)'
-  return <svg className="garment-swatch" viewBox="0 0 100 120" aria-hidden="true" data-quiz-visual-hex={hex} data-garment-kind={kind}>
-    <polygon points={geometry.body} fill={hex} />
-    {geometry.sleeves.map((points, index) => <polygon key={index} points={points} fill={hex} />)}
-    {geometry.open && <polygon points="50,24 46,110 54,110" fill="var(--paper)" opacity=".92" />}
-    {geometry.kind === 'jacket' && <>
-      <polygon points="45,24 36,32 46,37" fill={hex} />
-      <polygon points="55,24 64,32 54,37" fill={hex} />
-    </>}
-    {geometry.kind === 'shirt' && <line x1="50" y1="34" x2="50" y2="106" stroke={detailColor} strokeWidth="1" />}
-    {geometry.kind === 'cardigan' && <>
-      <circle cx="46" cy="46" r="1.6" fill={detailColor} />
-      <circle cx="46" cy="66" r="1.6" fill={detailColor} />
-      <circle cx="46" cy="86" r="1.6" fill={detailColor} />
-    </>}
-    {geometry.kind === 'knit' && <>
-      <line x1="27" y1="104" x2="73" y2="104" stroke={detailColor} strokeWidth="1" />
-      <line x1="17" y1="66" x2="25" y2="64" stroke={detailColor} strokeWidth="1" />
-      <line x1="83" y1="66" x2="75" y2="64" stroke={detailColor} strokeWidth="1" />
-    </>}
-    {geometry.kind === 'blouse' && <circle cx="50" cy="29" r="2.6" fill="none" stroke={detailColor} strokeWidth="1" />}
-    {geometry.kind === 'dress' && <line x1="33" y1="70" x2="67" y2="70" stroke={detailColor} strokeWidth="1" />}
-    {/* Subtle highlight/shadow only, sized well inside every silhouette -- never a hue
-        shift, so the swatch color a user is judging still reads accurately. */}
-    <polygon points="40,28 60,28 56,42 44,42" fill="#fff" opacity=".14" />
-    <polygon points="35,90 65,90 60,100 40,100" fill="#000" opacity=".1" />
-  </svg>
-}
-
-function QuizVisualGuide({ copy, visual, presentationPreference }: { copy: LocaleCopy; visual: QuizVisual; presentationPreference: PresentationPreference }) {
-  const renderSwatch = (swatch: QuizVisualSwatch, index: number) => {
-    const label = copy.quizVisualLabels[swatch.labelKey]
-    const kind = garmentKindFor(presentationPreference, index)
-    return <div className="quiz-visual-item" role="listitem" key={swatch.id} aria-label={label} data-visual-id={swatch.id}>
-      <GarmentSwatch hex={swatch.hex} label={label} kind={kind} />
-      <span>{label}</span>
-    </div>
+function QuizVisualComparison({ copy, visual, localized, selected, presentationPreference, onSelect }: {
+  copy: LocaleCopy
+  visual: QuizVisual
+  localized: { prompt: string; helper: string; options: Record<string, { label: string; hint: string }> }
+  selected: string | undefined
+  presentationPreference: PresentationPreference
+  onSelect: (answerId: string) => void
+}) {
+  const [failedAssets, setFailedAssets] = useState<Set<string>>(() => new Set())
+  const [viewer, setViewer] = useState<{ src: string; alt: string } | null>(null)
+  const moveSelection = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return
+    event.preventDefault()
+    const delta = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1
+    const nextIndex = (index + delta + visual.variants.length) % visual.variants.length
+    const next = visual.variants[nextIndex]
+    onSelect(next.answerId)
+    const group = event.currentTarget.closest('[role="radiogroup"]')
+    ;(group?.querySelector(`[data-visual-answer="${next.answerId}"]`) as HTMLButtonElement | null)?.focus()
   }
 
-  if (visual.type === 'chroma-scale' || visual.type === 'clarity-pair' || visual.type === 'value-scale') {
-    return <section className={`quiz-visual quiz-chroma-scale quiz-${visual.type}`} aria-label={copy.quiz.visualGuideLabel}>
-      {visual.rows.map((row) => <div className={`quiz-chroma-row row-${row.items.length}`} role="list" key={row.id}>{row.items.map(renderSwatch)}</div>)}
+  return <>
+    <section className={`quiz-visual quiz-visual-${visual.visualType}`} data-quiz-question={visual.questionId} aria-label={copy.quiz.visualGuideLabel}>
+      <p className="quiz-visual-instruction">{copy.quiz.visualInstruction}</p>
+      <div className="quiz-visual-grid" role="radiogroup" aria-label={localized.prompt}>
+        {visual.variants.map((variant, index) => {
+          const optionCopy = localized.options[variant.answerId]
+          const asset = getQuizVisualAsset(variant, presentationPreference)
+          const showAsset = asset && !failedAssets.has(asset)
+          const alt = copy.quiz.visualImageAlt(optionCopy.label)
+          return <div className={`quiz-visual-choice ${selected === variant.answerId ? 'selected' : ''}`} key={variant.answerId} data-visual-id={visual.id}>
+            <button type="button" role="radio" aria-checked={selected === variant.answerId} className="quiz-visual-select" data-visual-answer={variant.answerId}
+              onClick={() => onSelect(variant.answerId)} onKeyDown={(event) => moveSelection(event, index)}>
+              {showAsset
+                ? <img src={asset} alt={alt} loading="lazy" onError={() => setFailedAssets((current) => new Set(current).add(asset))} />
+                : <QuizVisualFallback variant={variant} />}
+              <span className="quiz-visual-label">{optionCopy.label}</span>
+              <span className="quiz-visual-check" aria-hidden="true">✓</span>
+            </button>
+            {showAsset && <button type="button" className="quiz-visual-enlarge" aria-label={copy.quiz.enlargeVisual(optionCopy.label)} onClick={() => setViewer({ src: asset, alt })}>⤢</button>}
+          </div>
+        })}
+      </div>
+      <p className="quiz-visual-note">{copy.quiz.visualExampleNote}</p>
     </section>
-  }
-
-  return <section className={`quiz-visual quiz-swatch-group items-${visual.items.length}`} role="list" aria-label={copy.quiz.visualGuideLabel}>
-    {visual.items.map(renderSwatch)}
-  </section>
+    <ImageViewerDialog open={viewer !== null} onClose={() => setViewer(null)} src={viewer?.src ?? null} alt={viewer?.alt ?? ''} label={viewer?.alt ?? copy.quiz.visualGuideLabel} closeLabel={copy.styleExamples.viewerClose} />
+  </>
 }
 
 function Quiz({ copy, answers, step, presentationPreference, onAnswer, onStep, onComplete }: {
@@ -214,10 +187,10 @@ function Quiz({ copy, answers, step, presentationPreference, onAnswer, onStep, o
       <div className="progress-track"><span style={{ width: `${((step + 1) / quizQuestions.length) * 100}%` }} /></div>
     </section>
     <section className="quiz-card" key={question.id}>
-      {visual && <QuizVisualGuide copy={copy} visual={visual} presentationPreference={presentationPreference} />}
       <p className="question-kicker">{copy.quiz.questionLabel(step + 1)}</p>
       <h2>{localized.prompt}</h2>
       <p className="question-helper">{localized.helper}</p>
+      {visual && <QuizVisualComparison copy={copy} visual={visual} localized={localized} selected={selected} presentationPreference={presentationPreference} onSelect={(answerId) => onAnswer(question.id, answerId)} />}
       <div className="answer-list" role="radiogroup" aria-label={localized.prompt}>
         {question.options.map((option, index) => {
           const optionCopy = localized.options[option.id]

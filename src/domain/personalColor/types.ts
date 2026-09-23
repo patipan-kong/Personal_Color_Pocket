@@ -12,7 +12,18 @@ export type QuizAnswers = Record<string, string>
 
 export type QuizQuestionId = 'undertone' | 'metal' | 'white' | 'earth' | 'cool-color' | 'hair' | 'eyes' | 'contrast' | 'intensity' | 'clarity' | 'depth'
 
-export type QuizVisualId = 'white-comparison' | 'warm-earthy' | 'cool-colors' | 'chroma-comparison' | 'clarity-comparison' | 'value-comparison'
+export type QuizVisualId =
+  | 'undertone-comparison'
+  | 'metal-comparison'
+  | 'white-comparison'
+  | 'warm-earthy'
+  | 'cool-colors'
+  | 'hair-depth'
+  | 'eye-impression'
+  | 'contrast-reference'
+  | 'chroma-comparison'
+  | 'clarity-comparison'
+  | 'value-comparison'
 
 export interface QuizOptionIds {
   undertone: 'golden' | 'rosy' | 'neutral'

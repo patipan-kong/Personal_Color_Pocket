@@ -65,6 +65,22 @@ describe('Model V2 -- quiz structure', () => {
     ])
   })
 
+  it('locks every V1.0 question ID, answer ID, order, and scoring vector during the visual-only pass', () => {
+    expect(quizQuestions.map((question) => [question.id, question.options.map((option) => [option.id, option.weights])])).toEqual([
+      ['undertone', [['golden', { temperature: 2.3, value: .2, chroma: .2, contrast: 0 }], ['rosy', { temperature: -2.3, value: .1, chroma: 0, contrast: 0 }], ['neutral', { temperature: 0, value: 0, chroma: -.2, contrast: -.2 }]]],
+      ['metal', [['gold', { temperature: 1.7, value: .1, chroma: .1, contrast: 0 }], ['silver', { temperature: -1.7, value: .1, chroma: .2, contrast: .2 }], ['both', { temperature: 0, value: 0, chroma: -.1, contrast: -.2 }]]],
+      ['white', [['ivory', { temperature: 1.4, value: .5, chroma: -.1, contrast: -.3 }], ['optic', { temperature: -.8, value: .5, chroma: 1, contrast: 1 }], ['soft-white', { temperature: -.3, value: .8, chroma: -.7, contrast: -.5 }]]],
+      ['earth', [['glow', { temperature: 1.8, value: -.5, chroma: -.1, contrast: .1 }], ['heavy', { temperature: -1.1, value: .5, chroma: .4, contrast: .2 }], ['mixed', { temperature: .5, value: 0, chroma: -1.2, contrast: -.5 }]]],
+      ['cool-color', [['clear', { temperature: -1.7, value: .1, chroma: .7, contrast: .6 }], ['drain', { temperature: 1.5, value: 0, chroma: -.1, contrast: 0 }], ['soft-best', { temperature: -.7, value: .1, chroma: -1.5, contrast: -.7 }]]],
+      ['hair', [['light', { temperature: 0, value: 2, chroma: .1, contrast: -.7 }], ['medium', { temperature: 0, value: .1, chroma: 0, contrast: 0 }], ['deep', { temperature: 0, value: -2, chroma: .2, contrast: .8 }]]],
+      ['eyes', [['light-clear', { temperature: 0, value: 1.2, chroma: 1, contrast: .2 }], ['soft-mixed', { temperature: 0, value: .2, chroma: -1.5, contrast: -.7 }], ['deep-clear', { temperature: 0, value: -1.3, chroma: .6, contrast: .9 }]]],
+      ['contrast', [['low', { temperature: 0, value: .2, chroma: -1, contrast: -2.2 }], ['medium', { temperature: 0, value: 0, chroma: 0, contrast: 0 }], ['high', { temperature: 0, value: -.1, chroma: .8, contrast: 2.2 }]]],
+      ['intensity', [['muted', { temperature: 0, value: 0, chroma: -2.4, contrast: -1 }], ['balanced', { temperature: 0, value: 0, chroma: 0, contrast: 0 }], ['bright', { temperature: 0, value: 0, chroma: 2.4, contrast: 1.2 }]]],
+      ['clarity', [['muted', { temperature: 0, value: 0, chroma: -1.8, contrast: -.5 }], ['balanced', { temperature: 0, value: 0, chroma: 0, contrast: 0 }], ['clear', { temperature: 0, value: 0, chroma: 1.8, contrast: .5 }]]],
+      ['depth', [['light', { temperature: 0, value: 2.2, chroma: 0, contrast: 0 }], ['medium', { temperature: 0, value: 0, chroma: 0, contrast: 0 }], ['deep', { temperature: 0, value: -2.2, chroma: 0, contrast: 0 }]]],
+    ])
+  })
+
   it('classification distance weights are unchanged', () => {
     expect(classify({}).values).toBeDefined() // smoke: classify still works with the default weights
   })

@@ -30,6 +30,8 @@ export interface LocaleCopy {
     helper: string
     women: string
     men: string
+    womenImageAlt: string
+    menImageAlt: string
     note: string
     changeLater: string
   }
@@ -55,6 +57,10 @@ export interface LocaleCopy {
     finish: string
     reassurance: string
     visualGuideLabel: string
+    visualInstruction: string
+    visualExampleNote: string
+    visualImageAlt: (option: string) => string
+    enlargeVisual: (option: string) => string
   }
   quizVisualLabels: Record<QuizVisualLabelKey, string>
   result: {
