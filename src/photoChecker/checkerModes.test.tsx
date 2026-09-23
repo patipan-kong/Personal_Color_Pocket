@@ -2,11 +2,14 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
+import { getManualSuitability } from '../colorChecker/manualResult'
+import { checkColor } from '../domain/personalColor/colorMatch'
 import { hexToRgb } from '../domain/personalColor/colorUtils'
 import { getPalette } from '../domain/personalColor/palettes'
 import { analyzeQuiz } from '../domain/personalColor/scoring'
 import { inspectPhotoTap } from '../domain/photoColor/inspect'
 import type { PixelSource } from '../domain/photoColor/types'
+import { en } from '../i18n/en'
 import { openPhoto } from '../services/photoImage'
 import { saveState, STORAGE_KEY } from '../services/persistence'
 
@@ -69,7 +72,7 @@ const manualTab = () => screen.getByRole('tab', { name: 'Manual' })
 const photoTab = () => screen.getByRole('tab', { name: 'Photo' })
 
 describe('Color Checker modes', () => {
-  it('opens in Manual mode with the unchanged manual checker', async () => {
+  it('opens in Manual mode with the manual input and the shared result card', async () => {
     await openChecker()
     expect(screen.getByRole('tablist', { name: 'How to check a color' })).toBeInTheDocument()
     expect(manualTab()).toHaveAttribute('aria-selected', 'true')
@@ -77,8 +80,11 @@ describe('Color Checker modes', () => {
     expect(screen.getByRole('tabpanel')).toHaveAttribute('id', 'checker-tabpanel-manual')
     expect(screen.getByRole('heading', { name: /does this color suit me/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/or enter a hex value/i)).toBeInTheDocument()
-    expect(screen.getByText(/palette fit/i)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Try it with' })).toBeInTheDocument()
+    // The default colour is the first Best colour: a Great Match, shown as the strong verdict.
+    expect(document.querySelector('.check-verdict')).toHaveTextContent(en.colorResult.verdicts.strong)
+    expect(screen.getByRole('heading', { name: en.colorResult.placementHeading.positive })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: en.colorResult.pairing.around.heading })).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/%|palette fit/)
     expect(screen.queryByLabelText('Choose a photo')).toBeNull()
   })
 
@@ -89,7 +95,10 @@ describe('Color Checker modes', () => {
     await user.type(input, 'D98463')
     await user.click(screen.getByRole('button', { name: 'Check' }))
     expect(screen.getByText('#D98463')).toBeInTheDocument()
-    expect(screen.getByText(/palette fit/i)).toBeInTheDocument()
+    const rating = checkColor('#D98463', result.subtype)!.rating
+    expect(document.querySelector('.check-verdict')).toHaveTextContent(en.colorResult.verdicts[getManualSuitability(rating)])
+    expect(document.querySelector('.check-category')).toHaveTextContent(en.ratings[rating])
+    expect(document.body.textContent).not.toMatch(/%|palette fit/)
   })
 
   it('switches to Photo and back without touching the manual color', async () => {
@@ -156,13 +165,13 @@ describe('Color Checker modes', () => {
     await user.upload(screen.getByLabelText('Choose a photo'), new File(['x'], 'a.jpg', { type: 'image/jpeg' }))
     await act(async () => {})
     fireEvent.pointerUp(document.querySelector('.photo-stage')!, { clientX: 200, clientY: 150, isPrimary: true, pointerType: 'touch' })
-    const heading = document.querySelector('.photo-placement h2')!.textContent!
+    const heading = document.querySelector('.check-placement h2')!.textContent!
     expect(['Where it works best', 'How to make it work', 'If you still want to wear it']).toContain(heading)
     expect(screen.getByRole('region', { name: heading })).toBeInTheDocument()
-    expect(document.querySelector('.photo-verdict')!.textContent!.length).toBeGreaterThan(10)
-    expect(document.querySelector('.photo-placement')!.textContent).not.toMatch(/Dress|Skirt|Blouse/)
-    expect(document.querySelector('.photo-action')!.textContent).not.toMatch(/dress|skirt|blouse/i)
-    expect(document.querySelector('.photo-placement')!.textContent).toMatch(/Shirt|T-shirt|Trousers/)
+    expect(document.querySelector('.check-verdict')!.textContent!.length).toBeGreaterThan(10)
+    expect(document.querySelector('.check-placement')!.textContent).not.toMatch(/Dress|Skirt|Blouse/)
+    expect(document.querySelector('.check-action')!.textContent).not.toMatch(/dress|skirt|blouse/i)
+    expect(document.querySelector('.check-placement')!.textContent).toMatch(/Shirt|T-shirt|Trousers/)
     expect(screen.getByText('Based on how the color appears in this photo.')).toBeInTheDocument()
     expect({ ...localStorage }).toEqual(before)
   })

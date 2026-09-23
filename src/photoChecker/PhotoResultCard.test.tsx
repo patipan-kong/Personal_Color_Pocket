@@ -14,7 +14,9 @@ import { th } from '../i18n/th'
 import type { PresentationPreference } from '../services/presentationPreference'
 import { PhotoFeedback } from './PhotoResultCard'
 import type { PhotoSelection } from './photoPanelState'
+import sharedCardSource from '../colorChecker/ColorResultCard.tsx?raw'
 import cardSource from './PhotoResultCard.tsx?raw'
+import adapterSource from './photoResult.ts?raw'
 
 afterEach(cleanup)
 
@@ -23,7 +25,7 @@ const locales = { en, th } as const
 
 function renderCard(selection: PhotoSelection | null, { language = 'en', presentation = 'women' }: { language?: Language; presentation?: PresentationPreference } = {}) {
   const locale = locales[language]
-  return render(<PhotoFeedback copy={locale.photoChecker} garments={locale.styleExamples.garments} language={language} presentation={presentation} selection={selection} />)
+  return render(<PhotoFeedback copy={locale.photoChecker} resultCopy={locale.colorResult} garments={locale.styleExamples.garments} language={language} presentation={presentation} selection={selection} />)
 }
 
 const real = (subtype: Subtype, category: PhotoMatchCategory, where?: (matched: PhotoPointMatched) => boolean) => realMatchFor(subtype, category, where)!
@@ -34,7 +36,7 @@ const $ = (selector: string) => document.querySelector<HTMLElement>(selector)
 const text = (selector: string) => $(selector)?.textContent ?? ''
 const chipNames = (selector: string) => [...document.querySelectorAll(`${selector} .color-chip`)].map((chip) => chip.textContent)
 const before = (first: string, second: string) => Boolean($(first)!.compareDocumentPosition($(second)!) & Node.DOCUMENT_POSITION_FOLLOWING)
-const verdictText = () => text('.photo-verdict > span:last-child')
+const verdictText = () => text('.check-verdict > span:last-child')
 // A real match of this category that also resembles a Harder colour, from any subtype.
 const realWithResemblance = (category: PhotoMatchCategory) => {
   for (const subtype of subtypeOrder) {
@@ -48,28 +50,28 @@ describe('result card hierarchy', () => {
   it('orders swatch/HEX → verdict → category → why → action → nearest → placement → pairings → details → caveat', () => {
     const matched = real('warm-autumn', 'away-from-face')
     renderCard(selected(matched))
-    expect(text('.photo-summary')).toBe(`${en.photoChecker.sampleLabel}${matched.sample.hex}△${en.photoChecker.verdicts.weak}${en.photoChecker.categories['away-from-face']}`)
-    const order = ['.photo-hex', '.photo-verdict', '.photo-category', '.photo-reason', '.photo-action', '.photo-reference', '.photo-placement', '.photo-pairing', '.photo-details', '.photo-caveat']
+    expect(text('.photo-summary')).toBe(`${en.photoChecker.sampleLabel}${matched.sample.hex}△${en.colorResult.verdicts.weak}${en.photoChecker.categories['away-from-face']}`)
+    const order = ['.check-hex', '.check-verdict', '.check-category', '.check-reason', '.check-action', '.check-reference', '.check-placement', '.check-pairing', '.check-details', '.check-caveat']
     order.slice(1).forEach((selector, index) => expect(before(order[index], selector), `${order[index]} before ${selector}`).toBe(true))
   })
 
   it('the verdict is the headline; the category is a smaller secondary label', () => {
     const matched = real('cool-summer', 'near-face')
     renderCard(selected(matched))
-    expect(verdictText()).toBe(en.photoChecker.verdicts.strong)
-    expect($('.photo-category')).toHaveClass('rating')
-    expect($('.photo-verdict')!.contains($('.photo-category'))).toBe(false)
-    expect($('.photo-hex')!.tagName).toBe('STRONG')
-    expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([en.photoChecker.placementHeading.positive, en.photoChecker.pairing.around.heading])
+    expect(verdictText()).toBe(en.colorResult.verdicts.strong)
+    expect($('.check-category')).toHaveClass('rating')
+    expect($('.check-verdict')!.contains($('.check-category'))).toBe(false)
+    expect($('.check-hex')!.tagName).toBe('STRONG')
+    expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([en.colorResult.placementHeading.positive, en.colorResult.pairing.around.heading])
   })
 
   it('always shows the photo caveat', () => {
     for (const category of CATEGORIES) {
       renderCard(selected(real('soft-autumn', category)))
-      expect(text('.photo-caveat')).toBe('Based on how the color appears in this photo.')
+      expect(text('.check-caveat')).toBe('Based on how the color appears in this photo.')
       cleanup()
       renderCard(selected(real('soft-autumn', category)), { language: 'th' })
-      expect(text('.photo-caveat')).toBe('คำแนะนำนี้อ้างอิงจากสีที่เห็นในภาพนี้')
+      expect(text('.check-caveat')).toBe('คำแนะนำนี้อ้างอิงจากสีที่เห็นในภาพนี้')
       cleanup()
     }
   })
@@ -90,12 +92,12 @@ describe('placement guidance in the card', () => {
     const matched = real('light-spring', category)
     renderCard(selected(matched))
     const placement = getColorPlacement(matched.match, 'women')
-    const rows = [...document.querySelectorAll('.photo-place')]
+    const rows = [...document.querySelectorAll('.check-place')]
     expect(rows).toHaveLength(placement.rows.length)
     placement.rows.forEach((row, index) => {
-      expect(rows[index]).toHaveClass(`photo-place-${row.tier}`)
-      expect(rows[index].querySelector('strong')!.textContent).toBe(en.photoChecker.tiers[row.tier])
-      expect(rows[index].querySelector('span')!.textContent).toBe(row.areas.map((area) => en.photoChecker.areas[area]).join(' · '))
+      expect(rows[index]).toHaveClass(`check-place-${row.tier}`)
+      expect(rows[index].querySelector('strong')!.textContent).toBe(en.colorResult.tiers[row.tier])
+      expect(rows[index].querySelector('span')!.textContent).toBe(row.areas.map((area) => en.colorResult.areas[area]).join(' · '))
       expect(rows[index].querySelector('small')!.textContent).toBe(row.examples.map((example) => en.styleExamples.garments[example]).join(' · '))
     })
   })
@@ -105,20 +107,20 @@ describe('placement guidance in the card', () => {
   it('Not ideal near your face: says so first, then easiest below the face and palette colours to move closer', () => {
     renderCard(selected(real('warm-autumn', 'away-from-face')))
     expect(verdictText()).toBe('Not ideal near your face')
-    expect(text('.photo-placement h2')).toBe('If you still want to wear it')
-    expect(text('.photo-place-easiest')).toContain('Below the face')
-    expect(text('.photo-place-care')).toContain('Less ideal')
-    expect(text('.photo-place-care')).toContain('Near your face')
-    expect(text('.photo-pairing h2')).toBe('If you like it, keep one of these near your face')
-    expect(before('.photo-verdict', '.photo-placement')).toBe(true)
+    expect(text('.check-placement h2')).toBe('If you still want to wear it')
+    expect(text('.check-place-easiest')).toContain('Below the face')
+    expect(text('.check-place-care')).toContain('Less ideal')
+    expect(text('.check-place-care')).toContain('Near your face')
+    expect(text('.check-pairing h2')).toBe('If you like it, keep one of these near your face')
+    expect(before('.check-verdict', '.check-placement')).toBe(true)
   })
 
   it('Outside your palette: a clear "not recommended", then how to still use it', () => {
     renderCard(selected(real('clear-spring', 'outside')))
     expect(verdictText()).toBe('This color is not recommended for your Personal Color')
-    expect(text('.photo-action')).toMatch(/^If you still love it, use it away from your face: /)
-    expect(text('.photo-place-easiest')).toContain('Accessories and small accents')
-    expect(text('.photo-pairing h2')).toBe('If you like it, keep one of these near your face')
+    expect(text('.check-action')).toMatch(/^If you still love it, use it away from your face: /)
+    expect(text('.check-place-easiest')).toContain('Accessories and small accents')
+    expect(text('.check-pairing h2')).toBe('If you like it, keep one of these near your face')
   })
 
   it('negative verdicts stay clear but never harsh', () => {
@@ -134,21 +136,21 @@ describe('placement guidance in the card', () => {
   it('Women and Men see the same guidance with different example pieces', () => {
     const matched = real('deep-autumn', 'neutral-base')
     renderCard(selected(matched), { presentation: 'women' })
-    const women = { tiers: text('.photo-placement ul').replace(/·/g, ''), examples: [...document.querySelectorAll('.photo-place small')].map((node) => node.textContent) }
-    const womenAreas = [...document.querySelectorAll('.photo-place span')].map((node) => node.textContent)
+    const women = { tiers: text('.check-placement ul').replace(/·/g, ''), examples: [...document.querySelectorAll('.check-place small')].map((node) => node.textContent) }
+    const womenAreas = [...document.querySelectorAll('.check-place span')].map((node) => node.textContent)
     cleanup()
     renderCard(selected(matched), { presentation: 'men' })
-    const menAreas = [...document.querySelectorAll('.photo-place span')].map((node) => node.textContent)
-    const menExamples = [...document.querySelectorAll('.photo-place small')].map((node) => node.textContent)
+    const menAreas = [...document.querySelectorAll('.check-place span')].map((node) => node.textContent)
+    const menExamples = [...document.querySelectorAll('.check-place small')].map((node) => node.textContent)
     expect(menAreas).toEqual(womenAreas)
     expect(menExamples).not.toEqual(women.examples)
-    expect(text('.photo-category')).toBe(en.photoChecker.categories['neutral-base'])
+    expect(text('.check-category')).toBe(en.photoChecker.categories['neutral-base'])
   })
 
   it('Men never see dress or skirt examples in any category', () => {
     for (const category of CATEGORIES) {
       renderCard(selected(real('cool-winter', category)), { presentation: 'men' })
-      expect(text('.photo-placement')).not.toMatch(/Dress|Skirt|Blouse/)
+      expect(text('.check-placement')).not.toMatch(/Dress|Skirt|Blouse/)
       cleanup()
     }
   })
@@ -160,10 +162,11 @@ describe('nearest colour, resemblance, direction and descriptors', () => {
     const { color, group } = matched.match.nearest
     for (const language of ['en', 'th'] as const) {
       renderCard(selected(matched), { language })
-      expect(chipNames('.photo-reference')).toEqual([colorDisplayName(language, color)])
-      expect(text('.photo-reference')).toContain(locales[language].photoChecker.reference.match)
-      expect(text('.photo-reference')).toContain(locales[language].photoChecker.groups[group])
-      expect($('.photo-reference .color-chip i')!.style.background).not.toBe('')
+      expect(chipNames('.check-reference')).toEqual([colorDisplayName(language, color)])
+      expect(text('.check-reference')).toContain(locales[language].colorResult.reference.similar)
+      expect(text('.check-reference')).toContain(locales[language].colorResult.groups[group])
+      expect(text('.check-reference')).not.toContain(locales[language].colorResult.reference.compare)
+      expect($('.check-reference .color-chip i')!.style.background).not.toBe('')
       expect(document.body.textContent).not.toContain(color.id)
       cleanup()
     }
@@ -173,29 +176,29 @@ describe('nearest colour, resemblance, direction and descriptors', () => {
     const matched = realWithResemblance('related')
     const harder = matched.match.resembles!.color
     renderCard(selected(matched))
-    const sentence = text('.photo-resembles')
+    const sentence = text('.check-note')
     expect(sentence).toBe(`In this photo it is also close to ${harder.name}, a color that suits you better away from your face.`)
     expect(sentence).not.toMatch(new RegExp(`\\bis ${harder.name}`))
     expect(document.body.textContent).not.toContain(harder.id)
     cleanup()
     renderCard(selected(matched), { language: 'th' })
-    expect(text('.photo-resembles')).toContain(colorDisplayName('th', harder))
-    expect(text('.photo-resembles')).toContain('ใกล้กับ')
+    expect(text('.check-note')).toContain(colorDisplayName('th', harder))
+    expect(text('.check-note')).toContain('ใกล้กับ')
   })
 
   it('for "not ideal near your face" the reason names the Harder colour instead of a separate line', () => {
     const matched = real('warm-autumn', 'away-from-face')
     const harder = matched.match.resembles!.color
     renderCard(selected(matched))
-    expect(text('.photo-reason')).toBe(`It is closer to ${harder.name}, a color that suits you better away from your face.`)
-    expect($('.photo-resembles')).toBeNull()
+    expect(text('.check-reason')).toBe(`It is closer to ${harder.name}, a color that suits you better away from your face.`)
+    expect($('.check-note')).toBeNull()
     expect(document.body.textContent).not.toMatch(new RegExp(`\\bis ${harder.name}`))
   })
 
   it('omits the resemblance line when the match has none', () => {
     const matched = real('light-spring', 'near-face', (candidate) => candidate.match.resembles === null)
     renderCard(selected(matched))
-    expect($('.photo-resembles')).toBeNull()
+    expect($('.check-note')).toBeNull()
   })
 
   it('translates match.direction without recomputing it, and hides it when empty', () => {
@@ -203,20 +206,20 @@ describe('nearest colour, resemblance, direction and descriptors', () => {
     renderCard(selected(withDirection))
     const nearest = withDirection.match.nearest.color.name
     const parts = withDirection.match.direction.map((direction) => en.photoChecker.directions[direction])
-    expect(text('.photo-details')).toContain(`A little ${parts.join(' and ')} than ${nearest}.`)
+    expect(text('.check-details')).toContain(`A little ${parts.join(' and ')} than ${nearest}.`)
     expect(withDirection.match.direction.length).toBeLessThanOrEqual(2)
     cleanup()
     const close = real('light-spring', 'near-face')
     expect(close.match.direction).toEqual([])
     renderCard(selected(close))
-    expect(text('.photo-details')).not.toMatch(/A little/)
+    expect(text('.check-details')).not.toMatch(/A little/)
   })
 
   it('shows the engine descriptors as supporting text', () => {
     const matched = real('deep-autumn', 'near-face')
     renderCard(selected(matched))
     const { value, clarity } = matched.match.descriptors
-    expect(text('.photo-details')).toContain(`Color character: ${en.photoChecker.descriptors.value[value]} · ${en.photoChecker.descriptors.clarity[clarity]}`)
+    expect(text('.check-details')).toContain(`Color character: ${en.photoChecker.descriptors.value[value]} · ${en.photoChecker.descriptors.clarity[clarity]}`)
   })
 })
 
@@ -226,8 +229,8 @@ describe('pairings', () => {
       for (const category of CATEGORIES) {
         const matched = real(subtype, category)
         renderCard(selected(matched), { language: 'th' })
-        expect(chipNames('.photo-pairs')).toEqual(matched.match.pairWith.map((color) => colorDisplayName('th', color)))
-        document.querySelectorAll('.photo-pairs .color-chip').forEach((chip, index) => expect(chip.getAttribute('title')).toContain(matched.match.pairWith[index].hex))
+        expect(chipNames('.check-pairs')).toEqual(matched.match.pairWith.map((color) => colorDisplayName('th', color)))
+        document.querySelectorAll('.check-pairs .color-chip').forEach((chip, index) => expect(chip.getAttribute('title')).toContain(matched.match.pairWith[index].hex))
         matched.match.pairWith.forEach((color) => expect(document.body.textContent).not.toContain(color.id))
         cleanup()
       }
@@ -238,26 +241,28 @@ describe('pairings', () => {
     const framing: Record<PhotoMatchCategory, string> = { 'near-face': 'around', 'neutral-base': 'around', related: 'near-face', 'away-from-face': 'near-face', outside: 'near-face' }
     for (const category of CATEGORIES) {
       renderCard(selected(real('clear-winter', category)))
-      const advice = en.photoChecker.pairing[framing[category] as 'around' | 'near-face']
-      expect(text('.photo-pairing h2')).toBe(advice.heading)
-      expect(text('.photo-pairing p')).toBe(advice.body)
+      const advice = en.colorResult.pairing[framing[category] as 'around' | 'near-face']
+      expect(text('.check-pairing h2')).toBe(advice.heading)
+      expect(text('.check-pairing p')).toBe(advice.body)
       cleanup()
     }
   })
 
   it('the card does not compute pairings itself', () => {
-    const code = cardSource.replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    const code = [cardSource, adapterSource, sharedCardSource].join('\n').replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
     for (const forbidden of ['pairingSuggestions', 'getPalette', 'matchPhotoColor', 'samplePhotoRegion', 'hexToOklab', 'rgbToOklab', 'Distance', 'localStorage', 'fetch', 'XMLHttpRequest', 'console']) {
       expect(code, forbidden).not.toMatch(new RegExp(`\\b${forbidden}`))
     }
-    expect(code).toMatch(/match\.pairWith\.map/)
+    // The adapter passes pairWith through untouched; the shared card only turns it into chips.
+    expect(adapterSource).toMatch(/pairWith: match\.pairWith,/)
+    expect(sharedCardSource).toMatch(/view\.pairWith\.map/)
   })
 
   it('palette chip names come from colorDisplayName (TH differs from the English data name)', () => {
     const matched = real('warm-autumn', 'near-face')
     renderCard(selected(matched), { language: 'th' })
-    expect(chipNames('.photo-reference')[0]).toBe(colorDisplayName('th', matched.match.nearest.color))
-    expect(chipNames('.photo-reference')[0]).toMatch(/[ก-๙]/)
+    expect(chipNames('.check-reference')[0]).toBe(colorDisplayName('th', matched.match.nearest.color))
+    expect(chipNames('.check-reference')[0]).toMatch(/[ก-๙]/)
   })
 })
 
@@ -265,24 +270,24 @@ describe('warnings stay advisory', () => {
   it.each(['mixed', 'highlight', 'shadow'] as SampleFlag[])('%s keeps category, placement and pairings', (flag) => {
     const matched = withWarnings(real('soft-autumn', 'related'), [flag])
     renderCard(selected(matched))
-    expect(text('.photo-category')).toBe(en.photoChecker.categories.related)
-    expect(document.querySelectorAll('.photo-place').length).toBeGreaterThan(0)
-    expect(chipNames('.photo-pairs').length).toBe(matched.match.pairWith.length)
-    expect(text('.photo-warnings')).toBe(en.photoChecker.warnings[flag])
-    expect(before('.photo-placement', '.photo-warnings')).toBe(true)
+    expect(text('.check-category')).toBe(en.photoChecker.categories.related)
+    expect(document.querySelectorAll('.check-place').length).toBeGreaterThan(0)
+    expect(chipNames('.check-pairs').length).toBe(matched.match.pairWith.length)
+    expect(text('.check-warnings')).toBe(en.photoChecker.warnings[flag])
+    expect(before('.check-placement', '.check-warnings')).toBe(true)
     // Announced once, with the summary; the visible list is not read a second time.
     expect(text('.photo-summary')).toContain(en.photoChecker.warnings[flag])
-    expect($('.photo-warnings')).toHaveAttribute('aria-hidden', 'true')
+    expect($('.check-warnings')).toHaveAttribute('aria-hidden', 'true')
     // The verdict is never replaced by uncertainty.
-    expect(verdictText()).toBe(en.photoChecker.verdicts.conditional)
-    expect(before('.photo-verdict', '.photo-warnings')).toBe(true)
+    expect(verdictText()).toBe(en.colorResult.verdicts.conditional)
+    expect(before('.check-verdict', '.check-warnings')).toBe(true)
   })
 
   it('shows all three together without dropping the guidance', () => {
     renderCard(selected(withWarnings(real('cool-summer', 'outside'), ['mixed', 'highlight', 'shadow'])))
-    expect(document.querySelectorAll('.photo-warnings li')).toHaveLength(3)
-    expect($('.photo-placement')).not.toBeNull()
-    expect($('.photo-pairing')).not.toBeNull()
+    expect(document.querySelectorAll('.check-warnings li')).toHaveLength(3)
+    expect($('.check-placement')).not.toBeNull()
+    expect($('.check-pairing')).not.toBeNull()
   })
 
   it('warning copy says the photo may affect the result and how to double-check', () => {
@@ -299,17 +304,17 @@ describe('states without a colour', () => {
   it('shows the instruction, then "press Enter" for a moved marker, with no guidance', () => {
     renderCard(null)
     expect(text('.photo-summary')).toBe(en.photoChecker.instruction)
-    expect($('.photo-guidance')).toBeNull()
+    expect($('.check-guidance')).toBeNull()
     cleanup()
     renderCard({ point: { x: 3, y: 3 }, inspection: null })
     expect(text('.photo-summary')).toBe(en.photoChecker.pending)
-    expect($('.photo-guidance')).toBeNull()
+    expect($('.check-guidance')).toBeNull()
   })
 
   it.each(['transparent', 'insufficient-pixels', 'outside-image'] as const)('unavailable (%s) shows its reason and no manufactured match', (reason) => {
     renderCard({ point: { x: 1, y: 1 }, inspection: { kind: 'unavailable', point: { x: 1, y: 1 }, radius: 3, reason } })
     expect(text('.photo-summary')).toBe(en.photoChecker.unavailable[reason])
-    for (const selector of ['.photo-guidance', '.photo-category', '.photo-placement', '.photo-pairing', '.photo-caveat', '.photo-hex']) expect($(selector)).toBeNull()
+    for (const selector of ['.check-guidance', '.check-category', '.check-placement', '.check-pairing', '.check-caveat', '.check-hex']) expect($(selector)).toBeNull()
   })
 })
 
@@ -318,21 +323,21 @@ describe('accessibility', () => {
     renderCard(selected(real('light-summer', 'related')))
     const live = [...document.querySelectorAll('[role="status"], [aria-live]')]
     expect(live).toEqual([$('.photo-summary')])
-    expect($('.photo-guidance')!.closest('[role="status"]')).toBeNull()
+    expect($('.check-guidance')!.closest('[role="status"]')).toBeNull()
   })
 
   it('never relies on colour alone: every swatch has an adjacent name or the HEX', () => {
     renderCard(selected(real('warm-spring', 'away-from-face')))
     document.querySelectorAll('.color-chip').forEach((chip) => expect(chip.textContent!.trim().length).toBeGreaterThan(0))
-    expect(text('.photo-sample')).toContain(real('warm-spring', 'away-from-face').sample.hex)
-    expect(text('.photo-reason').length).toBeGreaterThan(0)
-    document.querySelectorAll('.photo-place').forEach((row) => expect(row.querySelector('strong')!.textContent!.length).toBeGreaterThan(0))
+    expect(text('.check-sample')).toContain(real('warm-spring', 'away-from-face').sample.hex)
+    expect(text('.check-reason').length).toBeGreaterThan(0)
+    document.querySelectorAll('.check-place').forEach((row) => expect(row.querySelector('strong')!.textContent!.length).toBeGreaterThan(0))
   })
 
   it('headings name the placement and pairing sections', () => {
     renderCard(selected(real('clear-spring', 'related')))
-    expect(screen.getByRole('region', { name: en.photoChecker.placementHeading.middle })).toBe($('.photo-placement'))
-    expect(screen.getByRole('region', { name: en.photoChecker.pairing['near-face'].heading })).toBe($('.photo-pairing'))
+    expect(screen.getByRole('region', { name: en.colorResult.placementHeading.middle })).toBe($('.check-placement'))
+    expect(screen.getByRole('region', { name: en.colorResult.pairing['near-face'].heading })).toBe($('.check-pairing'))
   })
 })
 
@@ -340,15 +345,16 @@ describe('localization', () => {
   it('has complete, parallel EN/TH copy for the card', () => {
     for (const locale of [en, th]) {
       const copy = locale.photoChecker
-      const strings = [copy.reference.match, copy.reference.compare, ...Object.values(copy.placementHeading), copy.descriptorsLabel, copy.caveat, copy.resembles('X'), copy.direction('X', ['a', 'b']),
-        ...Object.values(copy.groups), ...Object.values(copy.tiers), ...Object.values(copy.areas), ...Object.values(copy.directions),
-        ...Object.values(copy.pairing).flatMap((advice) => [advice.heading, advice.body]),
+      const shared = locale.colorResult
+      const strings = [shared.reference.similar, shared.reference.nearestBest, shared.reference.compare, ...Object.values(shared.placementHeading), copy.descriptorsLabel, copy.caveat, copy.resembles('X'), copy.direction('X', ['a', 'b']),
+        ...Object.values(shared.groups), ...Object.values(shared.tiers), ...Object.values(shared.areas), ...Object.values(copy.directions),
+        ...Object.values(shared.pairing).flatMap((advice) => [advice.heading, advice.body]),
         ...Object.values(copy.descriptors.value), ...Object.values(copy.descriptors.clarity)]
       strings.forEach((value) => expect(value.trim().length).toBeGreaterThan(0))
-      expect(Object.keys(copy.tiers).sort()).toEqual(['best', 'care', 'easiest', 'good'])
+      expect(Object.keys(shared.tiers).sort()).toEqual(['best', 'care', 'easiest', 'good'])
       expect(Object.keys(copy.directions).sort()).toEqual(['brighter', 'cooler', 'deeper', 'lighter', 'muted', 'warmer'])
     }
-    ;[th.photoChecker.caveat, ...Object.values(th.photoChecker.placementHeading), ...Object.values(th.photoChecker.tiers), ...Object.values(th.photoChecker.areas)].forEach((value) => expect(value).toMatch(/[ก-๙]/))
+    ;[th.photoChecker.caveat, ...Object.values(th.colorResult.placementHeading), ...Object.values(th.colorResult.tiers), ...Object.values(th.colorResult.areas)].forEach((value) => expect(value).toMatch(/[ก-๙]/))
   })
 
   it('uses the agreed Thai category wording', () => {
@@ -361,10 +367,10 @@ describe('localization', () => {
   it('renders the whole card in Thai', () => {
     const matched = real('soft-summer', 'away-from-face')
     renderCard(selected(matched), { language: 'th' })
-    expect(text('.photo-category')).toBe(th.photoChecker.categories['away-from-face'])
-    expect(text('.photo-placement h2')).toBe(th.photoChecker.placementHeading.negative)
-    expect(text('.photo-pairing h2')).toBe(th.photoChecker.pairing['near-face'].heading)
-    expect(text('.photo-place-easiest small')).toMatch(/[ก-๙]/)
+    expect(text('.check-category')).toBe(th.photoChecker.categories['away-from-face'])
+    expect(text('.check-placement h2')).toBe(th.colorResult.placementHeading.negative)
+    expect(text('.check-pairing h2')).toBe(th.colorResult.pairing['near-face'].heading)
+    expect(text('.check-place-easiest small')).toMatch(/[ก-๙]/)
     expect(getPalette('soft-summer').harder.some((color) => color.id === matched.match.resembles?.color.id)).toBe(true)
   })
 })
@@ -400,7 +406,7 @@ describe('Slice 5c: verdict first', () => {
       const verdicts = CATEGORIES.map((category) => VERDICTS[language][category])
       expect(new Set(verdicts).size).toBe(5)
       for (let index = 1; index < verdicts.length; index++) expect(verdicts[index], `${CATEGORIES[index - 1]} vs ${CATEGORIES[index]}`).not.toBe(verdicts[index - 1])
-      const marks = CATEGORIES.map((category) => { renderCard(selected(real('light-summer', category)), { language }); const mark = text('.photo-verdict-mark'); cleanup(); return mark })
+      const marks = CATEGORIES.map((category) => { renderCard(selected(real('light-summer', category)), { language }); const mark = text('.check-verdict-mark'); cleanup(); return mark })
       expect(marks).toEqual(['✨', '✓', '△', '△', '✕'])
     }
   })
@@ -431,8 +437,8 @@ describe('Slice 5c: verdict first', () => {
     const tones: Record<PhotoMatchCategory, string> = { 'near-face': 'positive', 'neutral-base': 'positive', related: 'middle', 'away-from-face': 'negative', outside: 'negative' }
     for (const category of CATEGORIES) {
       renderCard(selected(real('deep-winter', category)))
-      expect($('.photo-result')).toHaveClass(`photo-tone-${tones[category]}`)
-      expect($('.photo-verdict')).toHaveClass(`photo-verdict-${getSuitability(category)}`)
+      expect($('.check-result')).toHaveClass(`check-tone-${tones[category]}`)
+      expect($('.check-verdict')).toHaveClass(`check-verdict-${getSuitability(category)}`)
       expect(verdictText().length).toBeGreaterThan(10)
       cleanup()
     }
@@ -443,7 +449,7 @@ describe('Slice 5c: verdict first', () => {
       const matched = real(subtype, category)
       expect(matched.match.category).toBe(category)
       renderCard(selected(matched), { language: 'th' })
-      expect(verdictText()).toBe(th.photoChecker.verdicts[getSuitability(matched.match.category)])
+      expect(verdictText()).toBe(th.colorResult.verdicts[getSuitability(matched.match.category)])
       cleanup()
     }
   })
@@ -472,43 +478,44 @@ describe('Slice 5c: verdict first', () => {
     const nearest = matched.match.nearest.color
     renderCard(selected(matched))
     expect(verdictText()).toMatch(/Excellent/)
-    expect(text('.photo-reason')).toBe(`This photo color is very close to ${nearest.name} in your palette, so it works beautifully near your face.`)
-    expect(text('.photo-reason')).not.toMatch(/exactly|\bis ${nearest.name}/)
-    expect(text('.photo-action')).toBe('Go ahead and wear it as a top, blouse or scarf.')
+    expect(text('.check-reason')).toBe(`This photo color is very close to ${nearest.name} in your palette, so it works beautifully near your face.`)
+    expect(text('.check-reason')).not.toMatch(/exactly|\bis ${nearest.name}/)
+    expect(text('.check-action')).toBe('Go ahead and wear it as a top, blouse or scarf.')
     cleanup()
     renderCard(selected(matched), { language: 'th', presentation: 'men' })
     expect(verdictText()).toContain('เหมาะกับ Personal Color ของคุณมาก')
-    expect(text('.photo-reason')).toContain(colorDisplayName('th', nearest))
-    expect(text('.photo-action')).toBe('ใส่เป็นเชิ้ต เสื้อยืด หรือโปโลได้เลย')
+    expect(text('.check-reason')).toContain(colorDisplayName('th', nearest))
+    expect(text('.check-action')).toBe('ใส่เป็นเชิ้ต เสื้อยืด หรือโปโลได้เลย')
   })
 
   it('neutral-base is positive and names the neutral it is close to', () => {
     const matched = real('soft-autumn', 'neutral-base')
     renderCard(selected(matched), { language: 'th' })
-    expect(text('.photo-reason')).toBe(`ใกล้เคียงกับสี “${colorDisplayName('th', matched.match.nearest.color)}” ซึ่งเป็นสีกลางในพาเลตต์ของคุณ ใช้ง่ายและใส่ได้หลายแบบ`)
-    expect(text('.photo-action')).toMatch(/^ใช้เป็นชิ้นหลักของชุดได้สบาย เช่น /)
-    expect(text('.photo-reference')).toContain(th.photoChecker.reference.match)
+    expect(text('.check-reason')).toBe(`ใกล้เคียงกับสี “${colorDisplayName('th', matched.match.nearest.color)}” ซึ่งเป็นสีกลางในพาเลตต์ของคุณ ใช้ง่ายและใส่ได้หลายแบบ`)
+    expect(text('.check-action')).toMatch(/^ใช้เป็นชิ้นหลักของชุดได้สบาย เช่น /)
+    expect(text('.check-reference')).toContain(th.colorResult.reference.similar)
+    expect(text('.check-reference')).toContain(th.colorResult.groups.neutrals)
   })
 
   it('related reads as middle: usable, not strongest, with how to improve it', () => {
     const matched = real('cool-summer', 'related')
     renderCard(selected(matched))
     expect(verdictText()).toBe('Wearable, but not one of your strongest colors')
-    expect(text('.photo-reason')).toBe('Its tone sits near your palette, but other palette colors flatter you more.')
-    expect(text('.photo-action')).toContain(`Keep ${matched.match.pairWith[0].name} near your face.`)
-    expect(text('.photo-placement h2')).toBe('How to make it work')
-    expect(text('.photo-category')).not.toBe(verdictText())
+    expect(text('.check-reason')).toBe('Its tone sits near your palette, but other palette colors flatter you more.')
+    expect(text('.check-action')).toContain(`Keep ${matched.match.pairWith[0].name} near your face.`)
+    expect(text('.check-placement h2')).toBe('How to make it work')
+    expect(text('.check-category')).not.toBe(verdictText())
   })
 
-  it('weaker results never call the nearest palette colour "yours" or recommended', () => {
+  it('weaker results mark the similar palette colour as a comparison, never as a recommendation', () => {
     for (const category of ['related', 'away-from-face', 'outside'] as const) {
       for (const language of ['en', 'th'] as const) {
         const matched = real('light-spring', category)
         renderCard(selected(matched), { language })
-        const copy = locales[language].photoChecker
-        expect(text('.photo-reference')).toContain(copy.reference.compare)
-        expect(text('.photo-reference')).not.toContain(copy.reference.match)
-        Object.values(copy.groups).forEach((group) => expect(text('.photo-reference')).not.toContain(group))
+        const copy = locales[language].colorResult
+        expect(text('.check-reference')).toContain(copy.reference.similar)
+        expect(text('.check-reference')).toContain(copy.reference.compare)
+        Object.values(copy.groups).forEach((group) => expect(text('.check-reference')).not.toContain(group))
         cleanup()
       }
     }
@@ -520,7 +527,7 @@ describe('Slice 5c: verdict first', () => {
         for (const language of ['en', 'th'] as const) {
           const matched = real('clear-winter', category)
           renderCard(selected(matched), { language, presentation })
-          const action = text('.photo-action')
+          const action = text('.check-action')
           const locale = locales[language]
           const firstPiece = locale.styleExamples.garments[getColorPlacement(matched.match, presentation).rows[0].examples[0]]
           expect(action.toLowerCase()).toContain(firstPiece.toLowerCase())
@@ -535,23 +542,23 @@ describe('Slice 5c: verdict first', () => {
   it('away-from-face rescue moves the colour below the face and a palette colour to the face', () => {
     const matched = real('deep-autumn', 'away-from-face')
     renderCard(selected(matched), { language: 'th', presentation: 'men' })
-    expect(text('.photo-action')).toBe(`ถ้าชอบสีนี้ ยังใช้ได้ ลองย้ายไปไว้กับกางเกงขายาว เข็มขัด หรือรองเท้าแทน แล้วใช้สี “${colorDisplayName('th', matched.match.pairWith[0])}” ใกล้ใบหน้า จะเข้ากับคุณมากกว่า`)
-    expect(text('.photo-pairing h2')).toBe('ถ้าชอบสีนี้ ลองให้สีเหล่านี้อยู่ใกล้ใบหน้า')
+    expect(text('.check-action')).toBe(`ถ้าชอบสีนี้ ยังใช้ได้ ลองย้ายไปไว้กับกางเกงขายาว เข็มขัด หรือรองเท้าแทน แล้วใช้สี “${colorDisplayName('th', matched.match.pairWith[0])}” ใกล้ใบหน้า จะเข้ากับคุณมากกว่า`)
+    expect(text('.check-pairing h2')).toBe('ถ้าชอบสีนี้ ลองให้สีเหล่านี้อยู่ใกล้ใบหน้า')
   })
 
   it('outside rescue in Thai keeps the colour away from the face and balances it', () => {
     const matched = real('deep-autumn', 'outside')
     renderCard(selected(matched), { language: 'th' })
     expect(verdictText()).toContain('ไม่ใช่สีที่แนะนำ')
-    expect(text('.photo-reason')).toBe('สีนี้อยู่นอกกลุ่มสีหลักที่แนะนำสำหรับคุณ')
-    expect(text('.photo-action')).toMatch(/^ถ้าชอบสีนี้ ไม่ต้องเลิกใช้ ลองใช้กับชิ้นที่อยู่ห่างจากใบหน้า เช่น กระเป๋า รองเท้า หรือเครื่องประดับ ถ้าใส่เป็นเสื้อ ลองมีสี “/)
+    expect(text('.check-reason')).toBe('สีนี้อยู่นอกกลุ่มสีหลักที่แนะนำสำหรับคุณ')
+    expect(text('.check-action')).toMatch(/^ถ้าชอบสีนี้ ไม่ต้องเลิกใช้ ลองใช้กับชิ้นที่อยู่ห่างจากใบหน้า เช่น กระเป๋า รองเท้า หรือเครื่องประดับ ถ้าใส่เป็นเสื้อ ลองมีสี “/)
   })
 
   it('uses one small cue per result, hidden from screen readers, with the verdict in text', () => {
     for (const category of CATEGORIES) {
       renderCard(selected(real('warm-spring', category)))
-      expect(document.querySelectorAll('.photo-verdict-mark')).toHaveLength(1)
-      expect($('.photo-verdict-mark')).toHaveAttribute('aria-hidden', 'true')
+      expect(document.querySelectorAll('.check-verdict-mark')).toHaveLength(1)
+      expect($('.check-verdict-mark')).toHaveAttribute('aria-hidden', 'true')
       expect(document.body.textContent!.match(/\p{Extended_Pictographic}/gu) ?? []).toHaveLength(category === 'near-face' ? 1 : 0)
       expect(text('.photo-summary')).toContain(verdictText())
       cleanup()
@@ -560,14 +567,13 @@ describe('Slice 5c: verdict first', () => {
 
   it('the verdict is announced with the summary, the reason is not', () => {
     renderCard(selected(real('light-summer', 'outside')))
-    expect($('.photo-verdict')!.closest('[role="status"]')).toBe($('.photo-summary'))
-    expect($('.photo-reason')!.closest('[role="status"]')).toBeNull()
+    expect($('.check-verdict')!.closest('[role="status"]')).toBe($('.photo-summary'))
+    expect($('.check-reason')!.closest('[role="status"]')).toBeNull()
   })
 
   it('the card only relabels the engine category; the verdict layer calculates nothing', () => {
-    const code = cardSource.replace(/\/\/.*$/gm, '')
-    expect(code).toMatch(/getSuitability\(category\)/)
-    expect(code).toMatch(/getSuitability\(match\.category\)/)
-    expect(code).not.toMatch(/\.distance|PHOTO_CLOSE|PHOTO_RELATED/)
+    const code = [cardSource, adapterSource, sharedCardSource].join('\n').replace(/\/\/.*$/gm, '')
+    expect(adapterSource).toMatch(/const suitability = getSuitability\(match\.category\)/)
+    expect(code).not.toMatch(/\.distance|PHOTO_CLOSE|PHOTO_RELATED|\.score\b/)
   })
 })

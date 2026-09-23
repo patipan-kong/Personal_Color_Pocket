@@ -161,11 +161,12 @@ describe('placement guidance for all 12 subtypes, from real photo matches', () =
       const placement = getColorPlacement(match, 'women')
       for (const [language, locale] of [['en', en], ['th', th]] as const) {
         const copy = locale.photoChecker
+        const shared = locale.colorResult
         const names = [match.nearest.color, ...match.pairWith, ...(match.resembles ? [match.resembles.color] : [])].map((color) => colorDisplayName(language, color))
         names.forEach((name) => expect(name.trim(), `${subtype} ${category} ${language}`).toBeTruthy())
         expect(match.pairWith.length).toBeGreaterThan(0)
-        const labels = [copy.categories[category], copy.groups[match.nearest.group], copy.pairing[placement.pairing].heading, copy.pairing[placement.pairing].body,
-          ...placement.rows.flatMap((row) => [copy.tiers[row.tier], ...row.areas.map((area) => copy.areas[area]), ...row.examples.map((example) => locale.styleExamples.garments[example])]),
+        const labels = [copy.categories[category], shared.groups[match.nearest.group], shared.pairing[placement.pairing].heading, shared.pairing[placement.pairing].body,
+          ...placement.rows.flatMap((row) => [shared.tiers[row.tier], ...row.areas.map((area) => shared.areas[area]), ...row.examples.map((example) => locale.styleExamples.garments[example])]),
           ...match.direction.map((direction) => copy.directions[direction]),
           copy.descriptors.value[match.descriptors.value], copy.descriptors.clarity[match.descriptors.clarity], copy.caveat]
         labels.forEach((label) => expect(typeof label === 'string' && label.trim().length > 0, `${subtype} ${category} ${language}`).toBe(true))

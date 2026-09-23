@@ -13,6 +13,8 @@ import { getStyleGuide } from './domain/personalColor/styleGuide'
 import type { PaletteColor, PersonalColorResult, QuizAnswers, Subtype } from './domain/personalColor/types'
 import { colorDisplayName, detectLanguage, getCopy, metalDisplayNote, persistLanguage } from './i18n'
 import type { Language, LocaleCopy } from './i18n'
+import { ColorResultCard } from './colorChecker/ColorResultCard'
+import { toManualResultView } from './colorChecker/manualResult'
 import { PhotoCheckerPanel } from './photoChecker/PhotoCheckerPanel'
 import { adService } from './services/ads'
 import { clearState, loadState, saveState } from './services/persistence'
@@ -585,7 +587,8 @@ function CheckerView({ copy, language, result, presentationPreference }: { copy:
   const normalized = normalizeHex(input)
   const match = useMemo(() => checkColor(submitted, result.subtype), [submitted, result.subtype])
   const submit = (event: React.FormEvent) => { event.preventDefault(); if (normalized) { setInput(normalized); setPicker(normalized); setSubmitted(normalized) } }
-  const referenceName = match?.reason.referenceColor ? colorDisplayName(language, match.reason.referenceColor) : undefined
+  // Slice 5d: the same result card as Photo, adapted from the unchanged checkColor() result.
+  const view = useMemo(() => match ? toManualResultView(match, copy, presentationPreference) : null, [match, copy, presentationPreference])
   // Manual is the default every time the checker opens. Photo state lives only inside the photo
   // panel, so switching back to Manual discards it and never touches the manual color above.
   const [mode, setMode] = useState<CheckerMode>('manual')
@@ -595,19 +598,15 @@ function CheckerView({ copy, language, result, presentationPreference }: { copy:
     <div className="palette-tabs checker-modes" role="tablist" aria-label={copy.photoChecker.modeAria}>
       {modes.map(([key, label]) => <button key={key} type="button" role="tab" id={`checker-tab-${key}`} aria-selected={mode === key} aria-controls={`checker-tabpanel-${key}`} className={mode === key ? 'active' : ''} onClick={() => setMode(key)}>{label}</button>)}
     </div>
-    {mode === 'photo' && <div id="checker-tabpanel-photo" role="tabpanel" aria-labelledby="checker-tab-photo"><PhotoCheckerPanel copy={copy.photoChecker} garments={copy.styleExamples.garments} language={language} presentation={presentationPreference} subtype={result.subtype} /></div>}
+    {mode === 'photo' && <div id="checker-tabpanel-photo" role="tabpanel" aria-labelledby="checker-tab-photo"><PhotoCheckerPanel copy={copy.photoChecker} resultCopy={copy.colorResult} garments={copy.styleExamples.garments} language={language} presentation={presentationPreference} subtype={result.subtype} /></div>}
     {mode === 'manual' && <div id="checker-tabpanel-manual" role="tabpanel" aria-labelledby="checker-tab-manual">
     <section className="checker-workspace">
       <form className="color-form" onSubmit={submit}>
         <label className="picker-field" style={{ background: picker }}><span>{copy.checker.choose}</span><input type="color" value={picker} onChange={(event) => { const value = event.target.value.toUpperCase(); setPicker(value); setInput(value) }} aria-label={copy.checker.choose} /></label>
         <label className="hex-field"><span>{copy.checker.hexLabel}</span><div><span>#</span><input aria-label={copy.checker.hexLabel} value={input.replace('#', '')} onChange={(event) => setInput(event.target.value)} inputMode="text" maxLength={6} aria-describedby="hex-help" /><button type="submit" disabled={!normalized}>{copy.checker.check}</button></div><small id="hex-help" className={!normalized && input.length > 0 ? 'error' : ''}>{!normalized && input.length > 0 ? copy.checker.hexError : copy.checker.hexExample}</small></label>
       </form>
-      {match && <article className="match-result" aria-live="polite">
-        <div className="match-color" style={{ background: match.normalizedHex, color: readableTextColor(match.normalizedHex) }}><span>{match.normalizedHex}</span></div>
-        <div className="match-content"><p className={`rating rating-${match.rating.toLowerCase().replace(' ', '-')}`}><span aria-hidden="true">✦</span>{copy.ratings[match.rating]}</p><h2>{copy.checker.fit(Math.round(match.score * 100))}</h2><p>{copy.matchReason[match.reason.type](referenceName)}</p><small>{copy.checker.estimate}</small></div>
-      </article>}
+      {view && <div className="manual-result"><ColorResultCard copy={copy.colorResult} garments={copy.styleExamples.garments} language={language} view={view} /></div>}
     </section>
-    {match && <section className="pairings content-card"><p className="section-number">{copy.checker.outfitLabel}</p><h2>{copy.checker.pairHeading}</h2><div className="pairing-grid">{match.pairWith.map((color) => <article key={color.id}><span style={{ background: color.hex }} /><strong title={colorDisplayName(language, color)}>{colorDisplayName(language, color)}</strong><small>{color.hex}</small></article>)}</div></section>}
     </div>}
   </main>
 }

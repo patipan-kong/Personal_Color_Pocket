@@ -125,10 +125,11 @@ export interface LocaleCopy {
     check: string
     hexError: string
     hexExample: string
-    fit: (percent: number) => string
-    estimate: string
-    outfitLabel: string
-    pairHeading: string
+    // Slice 5d: the manual result uses the shared colorResult card. These are the manual-only parts.
+    sampleLabel: string
+    // One reason per existing manual rating, reworded from the V1.1 matchReason. No colour is named:
+    // the engine's reference colours (nearest Best, or a Harder colour for Tricky) are not always close.
+    why: Record<MatchRating, string>
   }
   photoChecker: {
     modeAria: string
@@ -146,32 +147,36 @@ export interface LocaleCopy {
     warnings: Record<SampleFlag, string>
     unavailable: Record<SampleUnavailableReason, string>
     errors: Record<Exclude<PhotoImageErrorCode, 'aborted'>, string>
-    // Slice 5c verdict: the first answer on the card ("is this colour good for me?"), then why,
-    // then one thing to do. Colour and garment names come from colorDisplayName / styleExamples.garments.
-    verdicts: Record<Suitability, string>
+    // Photo-specific reasons (Slice 5c): they speak about "this photo color". Shared result wording is in colorResult.
     why: Record<Suitability, (names: { nearest: string; harder: string | null }) => string>
-    action: Record<Suitability, (pieces: string[], pair: string | null) => string>
-    // Slice 5b result card. 'match' for positive verdicts; 'compare' when the nearest palette
-    // colour is only a reference and the photo colour is not one of the recommended ones.
-    reference: { match: string; compare: string }
-    groups: Record<PositivePaletteGroup, string>
     resembles: (colorName: string) => string
-    placementHeading: Record<SuitabilityTone, string>
-    tiers: Record<PlacementTier, string>
-    areas: Record<PlacementArea, string>
-    pairing: Record<PairingAdvice, { heading: string; body: string }>
     direction: (colorName: string, parts: string[]) => string
     directions: Record<PhotoMatchDirection, string>
     descriptorsLabel: string
     descriptors: { value: Record<PhotoMatchDescriptors['value'], string>; clarity: Record<PhotoMatchDescriptors['clarity'], string> }
     caveat: string
   }
+  // Slice 5d: the one Color Checker result, shared by Manual and Photo. The verdict answers
+  // "is this colour good for me?", the action says what to do. Colour and garment names come from
+  // colorDisplayName / styleExamples.garments.
+  colorResult: {
+    verdicts: Record<Suitability, string>
+    action: Record<Suitability, (pieces: string[], pair: string | null) => string>
+    // The palette colour to compare with. 'similar': the photo engine's nearest palette colour.
+    // 'nearestBest': the manual engine only reports the nearest Best colours. 'compare' is added when
+    // the result is not positive, so the reference never reads as a recommendation.
+    reference: { similar: string; nearestBest: string; compare: string }
+    groups: Record<PositivePaletteGroup, string>
+    placementHeading: Record<SuitabilityTone, string>
+    tiers: Record<PlacementTier, string>
+    areas: Record<PlacementArea, string>
+    pairing: Record<PairingAdvice, { heading: string; body: string }>
+  }
   nav: { aria: string; colors: string; palette: string; checker: string }
   dialog: { title: string; body: string; cancel: string; confirm: string }
   confidence: Record<ConfidenceLabel, string>
   ratings: Record<MatchRating, string>
   reasonText: Record<DimensionKey, Record<'high' | 'low', Record<'strong' | 'moderate', string>>>
-  matchReason: Record<MatchRating, (colorName?: string) => string>
   subtypes: Record<Subtype, SubtypeCopy>
   quizQuestions: QuizCopy
 }

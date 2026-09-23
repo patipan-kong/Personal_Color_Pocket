@@ -1,25 +1,15 @@
-import { useId } from 'react'
-import { readableTextColor } from '../domain/personalColor/colorUtils'
-import type { PaletteColor } from '../domain/personalColor/types'
-import { getColorPlacement } from '../domain/photoColor/placement'
-import { getSuitability, suitabilityTone } from '../domain/photoColor/suitability'
-import type { Suitability } from '../domain/photoColor/suitability'
-import type { PhotoPointMatched } from '../domain/photoColor/types'
-import { colorDisplayName } from '../i18n'
+import { ColorResultGuidance, ColorResultSummary } from '../colorChecker/ColorResultCard'
 import type { Language, LocaleCopy } from '../i18n'
 import type { PresentationPreference } from '../services/presentationPreference'
+import { toPhotoResultView } from './photoResult'
 import type { PhotoSelection } from './photoPanelState'
-
-type PhotoCopy = LocaleCopy['photoChecker']
-
-// One small cue per verdict. Decorative only: the verdict text is always there and authoritative.
-const VERDICT_MARKS: Record<Suitability, string> = { strong: '✨', good: '✓', conditional: '△', weak: '△', outside: '✕' }
 
 // The result area beside / below the photo. Only the short summary (colour, HEX, verdict,
 // category and any warning) is a live region, so moving the marker or tapping again announces one line
-// instead of the whole card.
-export function PhotoFeedback({ copy, garments, language, presentation, selection }: {
-  copy: PhotoCopy
+// instead of the whole card. The result itself is the shared Color Checker card (Slice 5d).
+export function PhotoFeedback({ copy, resultCopy, garments, language, presentation, selection }: {
+  copy: LocaleCopy['photoChecker']
+  resultCopy: LocaleCopy['colorResult']
   garments: LocaleCopy['styleExamples']['garments']
   language: Language
   presentation: PresentationPreference
@@ -27,111 +17,15 @@ export function PhotoFeedback({ copy, garments, language, presentation, selectio
 }) {
   const inspection = selection?.inspection
   const matched = inspection?.kind === 'matched' ? inspection : null
+  const view = matched ? toPhotoResultView(matched, copy, language, presentation) : null
   return <div className="photo-feedback">
     <div className="photo-summary" role="status">
       {!selection && <p className="photo-instruction">{copy.instruction}</p>}
       {selection && !inspection && <p className="photo-instruction">{copy.pending}</p>}
       {inspection?.kind === 'unavailable' && <p className="photo-unavailable">{copy.unavailable[inspection.reason]}</p>}
-      {matched && <SampleSummary copy={copy} matched={matched} />}
+      {view && <ColorResultSummary copy={resultCopy} view={view} />}
     </div>
     {/* Keyed by the checked point, so a new check replaces the card instead of morphing it. */}
-    {matched && <PhotoGuidance key={`${matched.point.x},${matched.point.y}`} copy={copy} garments={garments} language={language} presentation={presentation} matched={matched} />}
+    {view && matched && <ColorResultGuidance key={`${matched.point.x},${matched.point.y}`} copy={resultCopy} garments={garments} language={language} view={view} />}
   </div>
-}
-
-function SampleSummary({ copy, matched }: { copy: PhotoCopy; matched: PhotoPointMatched }) {
-  const { hex } = matched.sample
-  const { category, warnings } = matched.match
-  const suitability = getSuitability(category)
-  return <div className={`photo-result photo-tone-${suitabilityTone(suitability)}`}>
-    <div className="photo-sample">
-      <span className="photo-swatch" style={{ background: hex, color: readableTextColor(hex) }} aria-hidden="true" />
-      <div>
-        <small>{copy.sampleLabel}</small>
-        <strong className="photo-hex">{hex}</strong>
-      </div>
-    </div>
-    {/* The answer to "is this colour good for me?", before anything about how to wear it. */}
-    <p className={`photo-verdict photo-verdict-${suitability}`}>
-      <span className="photo-verdict-mark" aria-hidden="true">{VERDICT_MARKS[suitability]}</span>
-      <span>{copy.verdicts[suitability]}</span>
-    </p>
-    <p className={`rating photo-category photo-category-${category}`}>{copy.categories[category]}</p>
-    {/* Announced with the summary; shown visually further down the card. */}
-    {warnings.length > 0 && <span className="photo-sr-only">{warnings.map((flag) => copy.warnings[flag]).join(' ')}</span>}
-  </div>
-}
-
-function PhotoGuidance({ copy, garments, language, presentation, matched }: {
-  copy: PhotoCopy
-  garments: LocaleCopy['styleExamples']['garments']
-  language: Language
-  presentation: PresentationPreference
-  matched: PhotoPointMatched
-}) {
-  const { match } = matched
-  const placement = getColorPlacement(match, presentation)
-  const suitability = getSuitability(match.category)
-  const tone = suitabilityTone(suitability)
-  const placementId = useId()
-  const pairingId = useId()
-  const nearestName = colorDisplayName(language, match.nearest.color)
-  const harderName = match.resembles ? colorDisplayName(language, match.resembles.color) : null
-  const pairing = copy.pairing[placement.pairing]
-  // The first placement row is where the colour is easiest to use; its first examples make the action.
-  const pieces = placement.rows[0].examples.slice(0, 3).map((example) => garments[example])
-  const firstPair = match.pairWith[0] ? colorDisplayName(language, match.pairWith[0]) : null
-  return <div className="photo-guidance">
-    <div className="photo-why">
-      <p className="photo-reason">{copy.why[suitability]({ nearest: nearestName, harder: harderName })}</p>
-      <p className="photo-action">{copy.action[suitability](pieces, firstPair)}</p>
-    </div>
-    {/* Only a positive verdict calls the nearest colour "yours"; otherwise it is a reference. */}
-    <p className="photo-reference">
-      <span>{tone === 'positive' ? copy.reference.match : copy.reference.compare}</span>
-      <PaletteChip color={match.nearest.color} language={language} />
-      {tone === 'positive' && <small>{copy.groups[match.nearest.group]}</small>}
-    </p>
-    {/* For "not ideal near your face" the reason already names the Harder colour. */}
-    {match.resembles && suitability !== 'weak' && <p className="photo-resembles">
-      <i style={{ background: match.resembles.color.hex }} aria-hidden="true" />
-      {copy.resembles(colorDisplayName(language, match.resembles.color))}
-    </p>}
-
-    <section className="photo-placement" aria-labelledby={placementId}>
-      <h2 id={placementId}>{copy.placementHeading[tone]}</h2>
-      <ul>
-        {placement.rows.map((row) => <li key={row.tier} className={`photo-place photo-place-${row.tier}`}>
-          <strong>{copy.tiers[row.tier]}</strong>
-          <span>{row.areas.map((area) => copy.areas[area]).join(' · ')}</span>
-          <small>{row.examples.map((example) => garments[example]).join(' · ')}</small>
-        </li>)}
-      </ul>
-    </section>
-
-    {match.pairWith.length > 0 && <section className="photo-pairing" aria-labelledby={pairingId}>
-      <h2 id={pairingId}>{pairing.heading}</h2>
-      <p>{pairing.body}</p>
-      <div className="photo-pairs">{match.pairWith.map((color) => <PaletteChip key={color.id} color={color} language={language} />)}</div>
-    </section>}
-
-    <p className="photo-details">
-      {match.direction.length > 0 && <span>{copy.direction(nearestName, match.direction.map((direction) => copy.directions[direction]))}</span>}
-      <span>{copy.descriptorsLabel}: {copy.descriptors.value[match.descriptors.value]} · {copy.descriptors.clarity[match.descriptors.clarity]}</span>
-    </p>
-
-    {/* Advisory only: the category and guidance above stay. Announced via the summary. */}
-    {match.warnings.length > 0 && <ul className="photo-warnings" aria-hidden="true">
-      {match.warnings.map((flag) => <li key={flag}>{copy.warnings[flag]}</li>)}
-    </ul>}
-    <p className="photo-caveat">{copy.caveat}</p>
-  </div>
-}
-
-// Same look as the palette's colour chips: swatch + display name, HEX in the tooltip only.
-function PaletteChip({ color, language }: { color: PaletteColor; language: Language }) {
-  const name = colorDisplayName(language, color)
-  return <span className="color-chip" title={`${name} ${color.hex}`}>
-    <i style={{ background: color.hex }} aria-hidden="true" />{name}
-  </span>
 }

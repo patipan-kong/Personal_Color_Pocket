@@ -4,6 +4,12 @@ Status: **done in automated and headless-browser checks. Real-phone QA and a Tha
 review are still open.** This is a UX and copy correction to [Slice 5b](V1_2_SLICE_5B_PLACEMENT_GUIDANCE.md).
 It changes interpretation and presentation only.
 
+> **Extended by [Slice 5d](V1_2_SLICE_5D_UNIFIED_RESULT_DISPLAY.md):**
+> - This card is now the shared Color Checker result for Manual and Photo.
+> - Its classes are renamed from `photo-*` to `check-*`.
+> - The shared copy moved to `colorResult`.
+> - The nearest-colour label is now "Similar color in your palette". It adds "For comparison only" for results that are not positive.
+
 Files:
 - [suitability.ts](../src/domain/photoColor/suitability.ts) (new): the 1:1 category → verdict level map.
 - [PhotoResultCard.tsx](../src/photoChecker/PhotoResultCard.tsx): verdict, reason and action come first.

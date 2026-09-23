@@ -112,8 +112,13 @@ export const en: LocaleCopy = {
     eyebrow: (name) => `Your ${name} lens`, title: 'Does this color suit me?',
     intro: 'Pick any color and see how it relates to your saved palette.', choose: 'Choose a color',
     hexLabel: 'Or enter a HEX value', check: 'Check', hexError: 'Enter 3 or 6 HEX characters.',
-    hexExample: 'Example: D98463', fit: (percent) => `${percent}% palette fit`,
-    estimate: 'An app estimate—not a scientific probability.', outfitLabel: 'Build an outfit', pairHeading: 'Try it with',
+    hexExample: 'Example: D98463', sampleLabel: 'Selected color',
+    why: {
+      'Great Match': 'It sits right among the colors recommended for you, so it works beautifully near your face.',
+      'Good Match': 'It has a similar feel to the colors in your palette, so it should look harmonious on you.',
+      Wearable: 'It is a little outside your core palette, but the right pairing can bring it into balance.',
+      Tricky: 'It sits away from the colors that suit you best, so it may feel less effortless near your face.',
+    },
   },
   photoChecker: {
     modeAria: 'How to check a color', modes: { manual: 'Manual', photo: 'Photo' },
@@ -144,13 +149,6 @@ export const en: LocaleCopy = {
       'decode-failed': "This photo couldn't be opened. Try another photo.",
       'canvas-failed': "This device couldn't prepare the photo. Try again, or choose a smaller photo.",
     },
-    verdicts: {
-      strong: 'Yes! Excellent for your Personal Color',
-      good: 'This color works well for your Personal Color',
-      conditional: 'Wearable, but not one of your strongest colors',
-      weak: 'Not ideal near your face',
-      outside: 'This color is not recommended for your Personal Color',
-    },
     why: {
       strong: ({ nearest }) => `This photo color is very close to ${nearest} in your palette, so it works beautifully near your face.`,
       good: ({ nearest }) => `This photo color is very close to ${nearest}, a neutral in your palette. Easy to wear in lots of ways.`,
@@ -160,6 +158,21 @@ export const en: LocaleCopy = {
         : 'It is closer to the colors that suit you better away from your face.',
       outside: () => 'It sits outside the main colors recommended for you.',
     },
+    resembles: (name) => `In this photo it is also close to ${name}, a color that suits you better away from your face.`,
+    direction: (name, parts) => `A little ${parts.join(' and ')} than ${name}.`,
+    directions: { lighter: 'lighter', deeper: 'deeper', brighter: 'brighter', muted: 'more muted', warmer: 'warmer', cooler: 'cooler' },
+    descriptorsLabel: 'Color character',
+    descriptors: { value: { light: 'Light', medium: 'Medium', deep: 'Deep' }, clarity: { soft: 'Soft', moderate: 'Moderate', clear: 'Clear' } },
+    caveat: 'Based on how the color appears in this photo.',
+  },
+  colorResult: {
+    verdicts: {
+      strong: 'Yes! Excellent for your Personal Color',
+      good: 'This color works well for your Personal Color',
+      conditional: 'Wearable, but not one of your strongest colors',
+      weak: 'Not ideal near your face',
+      outside: 'This color is not recommended for your Personal Color',
+    },
     action: {
       strong: (pieces) => `Go ahead and wear it as a ${orList(pieces)}.`,
       good: (pieces) => `Easy as a main piece of your outfit: ${orList(pieces)}.`,
@@ -167,9 +180,8 @@ export const en: LocaleCopy = {
       weak: (pieces, pair) => `If you like it, move it away from your face: ${orList(pieces)}.${pair ? ` Keep ${pair} near your face instead.` : ''}`,
       outside: (pieces, pair) => `If you still love it, use it away from your face: ${orList(pieces)}.${pair ? ` If it's a top, keep ${pair} near your face to balance it.` : ''}`,
     },
-    reference: { match: 'In your palette', compare: 'Nearest palette color, for comparison' },
+    reference: { similar: 'Similar color in your palette', nearestBest: 'Nearest of your Best colors', compare: 'For comparison only' },
     groups: { best: 'Best color', accents: 'Accent color', neutrals: 'Neutral' },
-    resembles: (name) => `In this photo it is also close to ${name}, a color that suits you better away from your face.`,
     placementHeading: { positive: 'Where it works best', middle: 'How to make it work', negative: 'If you still want to wear it' },
     tiers: { best: 'Wear it here', good: 'Also works', easiest: 'Easiest here', care: 'Less ideal' },
     areas: {
@@ -180,11 +192,6 @@ export const en: LocaleCopy = {
       around: { heading: 'Goes well with', body: 'Palette colors that pair nicely with it.' },
       'near-face': { heading: 'If you like it, keep one of these near your face', body: 'A color from your palette closer to your face will suit you better.' },
     },
-    direction: (name, parts) => `A little ${parts.join(' and ')} than ${name}.`,
-    directions: { lighter: 'lighter', deeper: 'deeper', brighter: 'brighter', muted: 'more muted', warmer: 'warmer', cooler: 'cooler' },
-    descriptorsLabel: 'Color character',
-    descriptors: { value: { light: 'Light', medium: 'Medium', deep: 'Deep' }, clarity: { soft: 'Soft', moderate: 'Moderate', clear: 'Clear' } },
-    caveat: 'Based on how the color appears in this photo.',
   },
   nav: { aria: 'Main navigation', colors: 'My Colors', palette: 'Palette', checker: 'Color Checker' },
   dialog: {
@@ -211,12 +218,6 @@ export const en: LocaleCopy = {
       high: { strong: 'Distinct light-to-dark contrast strongly supported your features.', moderate: 'Distinct light-to-dark contrast supported your features.' },
       low: { strong: 'A blended, low-contrast effect consistently looked most natural.', moderate: 'A blended, low-contrast effect looked most natural.' },
     },
-  },
-  matchReason: {
-    'Great Match': (color) => `It sits beautifully close to ${color}, one of your strongest palette colors.`,
-    'Good Match': (color) => `It shares a similar color quality with ${color} and should feel harmonious.`,
-    Wearable: () => 'It is a little outside your core palette, but pairing it thoughtfully can bring it into balance.',
-    Tricky: (color) => `It is closer to ${color}, a color that may feel less effortless near your face.`,
   },
   subtypes: {
     'light-spring': { name: 'Light Spring', secondaryName: '', characteristics: ['Warm', 'Light', 'Fresh'], summary: 'Sunlit warmth with a light, buoyant quality.' },

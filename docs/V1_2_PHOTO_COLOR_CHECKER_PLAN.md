@@ -505,6 +505,24 @@ Durable clarifications:
 - **Every result has one action sentence** built from the placement examples and the first `pairWith` colour.
 - **The live region now also reads the verdict.**
 
+**Unified result in Slice 5d** ([record](V1_2_SLICE_5D_UNIFIED_RESULT_DISPLAY.md)). Durable decision:
+**Manual and Photo are two input methods for one Color Checker result experience.**
+- **One shared card:** `colorChecker/ColorResultCard.tsx` renders a `ColorResultView`. Each input method has an adapter: `toManualResultView` (from the unchanged `checkColor`) and `toPhotoResultView` (from the unchanged photo match).
+- **The engines stay separate.** Neither calls the other, and the two can disagree on the same HEX. That disagreement is documented, not hidden.
+- **Manual verdicts are a 1:1 relabelling of its four existing ratings:**
+
+  | Manual rating | Verdict level |
+  |---|---|
+  | Great Match | strong |
+  | Good Match | good |
+  | Wearable | conditional |
+  | Tricky | weak |
+
+  The score is not read, and the manual checker never shows "outside".
+- **The manual "% palette fit" is gone from the UI** (this answers Q4). `score` stays in the domain model and its tests.
+- **Placement is keyed by intent.** Photo categories map to intents 1:1, with byte-identical output. Manual ratings map to face / harmonious / second-color / below-face.
+- **Shared result copy lives in `colorResult`.** Only source-specific copy stays in `checker` / `photoChecker`.
+
 ### 11.2 No percentage
 The existing manual checker shows `"{n}% palette fit"` from `exp(-7.2·d)`. That number is a
 monotone transform of a distance, **not calibrated against any observation**. For photo input it
@@ -787,7 +805,8 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **4. Integration core + coordinates** — **done** (see the Slice 4 note). Pure geometry and tap → sample → match glue, with no UI. The panel and surface below move to Slice 5. | `coordinates.ts`, `inspect.ts` | unit + synthetic end-to-end | geometry, DPR, boundaries, warnings | Bundle unchanged | UI |
 | **5a. Panel + surface** (was 4) — **done** (see the Slice 5a note). It shows compact feedback only (swatch, HEX, category, warnings); the result card is 5b. | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |
 | **5b. Result card + copy** — **done** (see the Slice 5b note in §11.1). Placement guidance, not detection. **5c verdict clarity pass done** (verdict first; see §11.1). The Thai-speaker review is still open. | `PhotoResultCard.tsx`, `placement.ts`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
-| **6. Hardening** | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
+| **5d. Unified result display** — **done** ([record](V1_2_SLICE_5D_UNIFIED_RESULT_DISPLAY.md)). Manual and Photo share one result card. The manual percentage is removed from the UI. No engine change. | `colorChecker/*`, `photoChecker/photoResult.ts`, `placement.ts` (intents), i18n `colorResult`, CSS | shared card, manual adapter + domain baseline, cross-mode, copy consistency | – | Same hierarchy and styles in both modes; manual `checkColor` output unchanged | engine alignment |
+| **6. Hardening** (follows 5d) | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
 | **7. Capacitor readiness check** (when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |
 
 Slices 1–3 are independent of each other and of V1.1 (released), so they can start after Slice 0.
@@ -813,7 +832,8 @@ Open questions for product:
 - **Q1.** Is the photo checker free, or rewarded-ad gated (`photo_check_bonus`)? The recommendation is free in V1.2.
 - **Q2.** Category labels: confirm the 5-category wording in EN/TH (§11.1).
 - **Q3.** Should the manual checker's "Open in manual checker" deep-link ship in V1.2? Recommendation: yes, it's cheap.
-- **Q4.** Should the *manual* checker's "% palette fit" be retired for consistency? Recommendation: decide separately and not in V1.2.
+- **Q4.** Should the *manual* checker's "% palette fit" be retired for consistency? **Decided in Slice 5d: yes.** It is hidden from the UI, and the score stays in the domain.
+- **Q5 (new, from 5d).** Manual and Photo can give different verdicts for the same HEX. Should the two engines be aligned? This is a separate domain decision; see the 5d record §20.
 
 ---
 

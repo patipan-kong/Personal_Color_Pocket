@@ -13,10 +13,12 @@ import { imageCenter, initialPhotoPanelState, nudgePoint, photoPanelReducer, PRE
 
 // V1.2 Photo Checker panel (Slice 5a): choose a local photo, prepare it with openPhoto, show it,
 // and inspect a tapped or keyboard-chosen spot against the user's saved subtype. Slice 5b adds
-// the placement guidance card. Nothing here is persisted or sent anywhere; closing the panel
-// drops the photo. The presentation preference only changes example garments in the card.
-export function PhotoCheckerPanel({ copy, garments, language, presentation, subtype }: {
+// the placement guidance card; Slice 5d renders it with the shared Color Checker result.
+// Nothing here is persisted or sent anywhere; closing the panel drops the photo. The
+// presentation preference only changes example garments in the card.
+export function PhotoCheckerPanel({ copy, resultCopy, garments, language, presentation, subtype }: {
   copy: LocaleCopy['photoChecker']
+  resultCopy: LocaleCopy['colorResult']
   garments: LocaleCopy['styleExamples']['garments']
   language: Language
   presentation: PresentationPreference
@@ -111,7 +113,7 @@ export function PhotoCheckerPanel({ copy, garments, language, presentation, subt
         />
         <p id={hintId} className="photo-hint">{copy.keyboardHint}</p>
       </div>
-      <PhotoFeedback copy={copy} garments={garments} language={language} presentation={presentation} selection={state.selection} />
+      <PhotoFeedback copy={copy} resultCopy={resultCopy} garments={garments} language={language} presentation={presentation} selection={state.selection} />
     </div>}
   </section>
 }

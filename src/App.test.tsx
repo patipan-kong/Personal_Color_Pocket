@@ -26,7 +26,10 @@ describe('primary product flow', () => {
     await user.clear(input)
     await user.type(input, 'D98463')
     await user.click(screen.getByRole('button', { name: 'Check' }))
-    expect(screen.getByText(/palette fit/i)).toBeInTheDocument()
+    // Slice 5d: the verdict, not a percentage, answers the question.
+    expect(screen.getByRole('status')).toHaveTextContent('#D98463')
+    expect(document.querySelector('.check-verdict')!.textContent!.length).toBeGreaterThan(10)
+    expect(document.body.textContent).not.toMatch(/palette fit|\d+%/)
   })
 
   it('can complete all eleven quiz questions with keyboard controls', async () => {

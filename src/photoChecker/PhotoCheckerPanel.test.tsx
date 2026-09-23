@@ -134,7 +134,7 @@ afterEach(() => {
 
 const renderPanel = (subtype: Subtype = SUBTYPE, localized = copy) => {
   const locale = localized === th.photoChecker ? th : en
-  return render(<PhotoCheckerPanel copy={localized} garments={locale.styleExamples.garments} language={locale === th ? 'th' : 'en'} presentation="women" subtype={subtype} />)
+  return render(<PhotoCheckerPanel copy={localized} resultCopy={locale.colorResult} garments={locale.styleExamples.garments} language={locale === th ? 'th' : 'en'} presentation="women" subtype={subtype} />)
 }
 const picker = () => screen.getByLabelText(new RegExp(`^(${copy.choose}|${copy.change})$`)) as HTMLInputElement
 const stage = () => document.querySelector<HTMLElement>('.photo-stage')!
@@ -663,7 +663,7 @@ describe('accessibility and localization', () => {
     expect(feedback().querySelector('.photo-summary')).toHaveAttribute('role', 'status')
     expect(feedback()).toHaveTextContent(copy.instruction)
     tapStage(200, 150)
-    expect(feedback().querySelector('.photo-summary')).toHaveTextContent(`${copy.sampleLabel}${BEST}✨${copy.verdicts.strong}${copy.categories['near-face']}`)
+    expect(feedback().querySelector('.photo-summary')).toHaveTextContent(`${copy.sampleLabel}${BEST}✨${en.colorResult.verdicts.strong}${copy.categories['near-face']}`)
   })
 
   it('renders Thai copy for the whole flow', async () => {
@@ -709,20 +709,20 @@ describe('Slice 5b guidance inside the panel', () => {
     const photo = canvas()
     tapStage(100, 150)
     expect(feedback()).toHaveTextContent(copy.categories['near-face'])
-    expect(feedback().querySelector('.photo-verdict')).toHaveTextContent(copy.verdicts.strong)
-    expect(document.querySelectorAll('.photo-guidance')).toHaveLength(1)
-    expect(feedback().querySelector('.photo-pairing h2')).toHaveTextContent(copy.pairing.around.heading)
-    const firstCard = document.querySelector('.photo-guidance')
+    expect(feedback().querySelector('.check-verdict')).toHaveTextContent(en.colorResult.verdicts.strong)
+    expect(document.querySelectorAll('.check-guidance')).toHaveLength(1)
+    expect(feedback().querySelector('.check-pairing h2')).toHaveTextContent(en.colorResult.pairing.around.heading)
+    const firstCard = document.querySelector('.check-guidance')
     tapStage(300, 150)
     expect(feedback()).toHaveTextContent(copy.categories['away-from-face'])
     expect(feedback()).not.toHaveTextContent(copy.categories['near-face'])
     // Slice 5c: the verdict flips from positive to negative with the new tap; only one verdict is shown.
-    expect(feedback().querySelector('.photo-verdict')).toHaveTextContent(copy.verdicts.weak)
-    expect(feedback()).not.toHaveTextContent(copy.verdicts.strong)
-    expect(document.querySelectorAll('.photo-verdict')).toHaveLength(1)
-    expect(document.querySelectorAll('.photo-guidance')).toHaveLength(1)
-    expect(document.querySelector('.photo-guidance')).not.toBe(firstCard)
-    expect(feedback().querySelector('.photo-pairing h2')).toHaveTextContent(copy.pairing['near-face'].heading)
+    expect(feedback().querySelector('.check-verdict')).toHaveTextContent(en.colorResult.verdicts.weak)
+    expect(feedback()).not.toHaveTextContent(en.colorResult.verdicts.strong)
+    expect(document.querySelectorAll('.check-verdict')).toHaveLength(1)
+    expect(document.querySelectorAll('.check-guidance')).toHaveLength(1)
+    expect(document.querySelector('.check-guidance')).not.toBe(firstCard)
+    expect(feedback().querySelector('.check-pairing h2')).toHaveTextContent(en.colorResult.pairing['near-face'].heading)
     expect(canvas()).toBe(photo)
     expect(openPhotoMock).toHaveBeenCalledTimes(1)
   })
@@ -731,13 +731,13 @@ describe('Slice 5b guidance inside the panel', () => {
     renderPanel()
     await openReady(split(1600, 1200, BEST, HARDER), { width: 400, height: 300 })
     tapStage(100, 150)
-    expect(document.querySelector('.photo-guidance')).not.toBeNull()
+    expect(document.querySelector('.check-guidance')).not.toBeNull()
     stage().focus()
     fireEvent.keyDown(stage(), { key: 'ArrowRight' })
-    expect(document.querySelector('.photo-guidance')).toBeNull()
+    expect(document.querySelector('.check-guidance')).toBeNull()
     expect(feedback().querySelector('.photo-summary')).toHaveTextContent(copy.pending)
     fireEvent.keyDown(stage(), { key: 'Enter' })
-    expect(document.querySelector('.photo-guidance')).not.toBeNull()
+    expect(document.querySelector('.check-guidance')).not.toBeNull()
   })
 
   it('a real glare sample keeps its category, placement and pairings, with the warning after them', async () => {
@@ -749,28 +749,28 @@ describe('Slice 5b guidance inside the panel', () => {
     tapStage(200, 150)
     const result = tapSpy.mock.results[0].value
     expect(result.match.warnings).toContain('highlight')
-    expect(feedback().querySelector('.photo-category')).toHaveTextContent(copy.categories[result.match.category as keyof typeof copy.categories])
-    expect(feedback().querySelectorAll('.photo-place').length).toBeGreaterThan(0)
-    expect(feedback().querySelectorAll('.photo-pairs .color-chip')).toHaveLength(result.match.pairWith.length)
-    expect(feedback().querySelector('.photo-warnings')).toHaveTextContent(copy.warnings.highlight)
+    expect(feedback().querySelector('.check-category')).toHaveTextContent(copy.categories[result.match.category as keyof typeof copy.categories])
+    expect(feedback().querySelectorAll('.check-place').length).toBeGreaterThan(0)
+    expect(feedback().querySelectorAll('.check-pairs .color-chip')).toHaveLength(result.match.pairWith.length)
+    expect(feedback().querySelector('.check-warnings')).toHaveTextContent(copy.warnings.highlight)
   })
 
   it('presentation changes example pieces only', async () => {
-    const { unmount } = render(<PhotoCheckerPanel copy={copy} garments={en.styleExamples.garments} language="en" presentation="men" subtype={SUBTYPE} />)
+    const { unmount } = render(<PhotoCheckerPanel copy={copy} resultCopy={en.colorResult} garments={en.styleExamples.garments} language="en" presentation="men" subtype={SUBTYPE} />)
     await openReady(solid(400, 300, BEST), { width: 400, height: 300 })
     tapStage(200, 150)
     const men = {
-      category: feedback().querySelector('.photo-category')!.textContent,
-      areas: [...document.querySelectorAll('.photo-place span')].map((node) => node.textContent),
-      examples: [...document.querySelectorAll('.photo-place small')].map((node) => node.textContent).join(' | '),
+      category: feedback().querySelector('.check-category')!.textContent,
+      areas: [...document.querySelectorAll('.check-place span')].map((node) => node.textContent),
+      examples: [...document.querySelectorAll('.check-place small')].map((node) => node.textContent).join(' | '),
     }
     unmount()
     renderPanel()
     await openReady(solid(400, 300, BEST), { width: 400, height: 300 })
     tapStage(200, 150)
-    expect(feedback().querySelector('.photo-category')!.textContent).toBe(men.category)
-    expect([...document.querySelectorAll('.photo-place span')].map((node) => node.textContent)).toEqual(men.areas)
-    expect([...document.querySelectorAll('.photo-place small')].map((node) => node.textContent).join(' | ')).not.toBe(men.examples)
+    expect(feedback().querySelector('.check-category')!.textContent).toBe(men.category)
+    expect([...document.querySelectorAll('.check-place span')].map((node) => node.textContent)).toEqual(men.areas)
+    expect([...document.querySelectorAll('.check-place small')].map((node) => node.textContent).join(' | ')).not.toBe(men.examples)
     expect(men.examples).not.toMatch(/Dress|Skirt|Blouse/)
   })
 })
