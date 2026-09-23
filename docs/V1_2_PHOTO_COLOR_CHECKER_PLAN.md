@@ -97,7 +97,7 @@ Principles:
 flowchart TD
   F["File (from input)"] --> V{"validate: size ≤ 30 MB,<br/>type starts with image/ or empty"}
   V -->|no| E1[error: unsupported / too large]
-  V -->|yes| H["header probe: unattached img load → naturalWidth/Height<br/>(no full decode; Slice 0: +6–22 MiB, 6–35 ms)"]
+  V -->|yes| H["header preflight: JPEG/PNG/WebP dimensions parsed from the first bytes;<br/>other formats: unattached img load → naturalWidth/Height (no full decode)"]
   H -->|fails| E2["error: couldn't open (HEIC message if ftyp brand sniffed)"]
   H --> G{"source pixels ≤ 60 MP?"}
   G -->|no| E3[error: too large]
@@ -121,7 +121,16 @@ Key decisions:
   `URL.createObjectURL` + `HTMLImageElement.decode()` is used only where `createImageBitmap` is
   missing, because Chromium keeps `<img>` decodes in its image cache after cleanup
   (+105–186 MiB retained). See §22.
-- **The working canvas doubles as the preview.** The same canvas is displayed with CSS
+  **Implemented in Slice 3** ([record](V1_2_SLICE_3_IMAGE_PIPELINE.md)): the preflight parses
+  JPEG/PNG/WebP headers directly, and uses the `<img>` probe only for other formats (HEIC on
+  Safari, AVIF, GIF) so the cap is never skipped. The `<img>` fallback also runs when
+  `createImageBitmap` rejects with `TypeError`/`NotSupportedError` (it cannot take a Blob).
+  Any other decode failure is final, with no second decoder.
+- **Superseded by Slice 3:** the service's canvas is temporary and zeroed once the pixels are
+  read. Slice 4 paints the returned pixels into its own display canvas with
+  `putImageData(new ImageData(data, w, h))`, which wraps the buffer without copying it.
+  The retained total is the same, and the preview shows exactly the sampled pixels.
+  Original text: **The working canvas doubles as the preview.** The same canvas is displayed with CSS
   `width:100%; height:auto`. There is no second copy and no long-lived object URL.
 - **Read pixels once.** One `getImageData(0,0,w,h)` after drawing. Every tap samples the
   retained `Uint8ClampedArray`, which keeps sampling pure and makes it unit-testable. It also
@@ -645,7 +654,7 @@ flowchart TB
 | `domain/photoColor/photoMatch.ts` | `classifyPhotoColor(sample.oklab, subtype)` → `PhotoMatchResult` {category, nearest, resembles?, direction[], descriptors, pairWith} | `colorUtils`, `palettes`, `colorMatch.pairingSuggestions` | be imported by `scoring.ts` / `diagnostics.ts` (same isolation rule as `styleGuide.ts`) |
 | `domain/photoColor/placement.ts` | `placementsFor(category, group, preference)` → `StyleCategoryKey[]` | `styleGuide` types | contain prose |
 | `domain/photoColor/types.ts` | `PixelSource`, `PhotoSample`, `SampleFlag`, `PhotoMatchCategory`, `PhotoMatchResult` | `personalColor/types` | – |
-| `services/photoImage.ts` | `openPhoto(file, {maxEdge}) → Promise<WorkingImage>` where `WorkingImage = { width, height, pixels: PixelSource, drawTo(canvas), dispose() }`, plus typed `PhotoOpenError` codes | browser APIs only | import domain matching, persist anything, log |
+| `services/photoImage.ts` (+ pure `photoImageHeader.ts`) | **As built in Slice 3:** `openPhoto(file, { signal? }) → Promise<PixelSource>`, which rejects with `PhotoImageError { code }`. The codes are `file-too-large`, `image-too-large`, `invalid-image`, `unsupported-format`, `unsupported-heic`, `decode-failed`, `canvas-failed` and `aborted`. It retains nothing: no `drawTo`/`dispose` (see §4) | browser APIs only | import domain matching, persist anything, log |
 | `photoChecker/*.tsx` | UI state machine: `idle → preparing → ready(sample?) → error` | the above + i18n | do color math inline |
 
 Dependency direction is `UI → services / domain/photoColor → domain/personalColor`, never the
@@ -726,7 +735,7 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **0. Device spike** — desktop portion **done** (§22). The dev-only harness is kept in `spikes/photo-device-spike/` for the physical-phone portion. | A minimal HTML page: file input → createImageBitmap → 1600 px canvas → tap → print trimmed-mean HEX | scratch only | manual | Measured decode time/memory for 12 MP and 48 MP on a mid Android. HEIC/HEIF behaviour recorded on Android Chrome and iOS Safari. Orientation correct. | any product code |
 | **1. Pure sampling** — **done** (sampling engine only, see the Slice 1 note). `coordinates.ts` moves to Slice 4, and the matching helpers (weighted distance, chroma, hue) move to Slice 2. | `coordinates.ts`, `sampling.ts`, `photoColor/types.ts`, colorUtils additions | unit + fixtures | all §17 sampling/coordinate tests | Deterministic, no DOM imports, thresholds as named constants | UI, matching |
 | **2. Match engine** — **done** (see the Slice 2 note). The manual checker is frozen by `colorMatch.regression.test.ts`, and `placement.ts` moves to Slice 5. | `photoMatch.ts`, `placement.ts`, export `pairingSuggestions` | unit: per-subtype table, lighting robustness, `checkColor` regression snapshot | – | All 12 subtypes pass the table and robustness tests. Manual checker is byte-identical. | copy |
-| **3. Image service** | `services/photoImage.ts` | mocked-global unit tests | – | Caps, error codes, cleanup verified | UI |
+| **3. Image service** — **done** (see the Slice 3 note). The contract is simplified to `PixelSource`, and `AbortSignal` is supported. | `services/photoImage.ts`, `photoImageHeader.ts` | mocked-global unit tests | – | Caps, error codes, cleanup verified | UI |
 | **4. Panel + surface** | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |
 | **5. Result card + copy** | `PhotoResultCard.tsx`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
 | **6. Hardening** | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
