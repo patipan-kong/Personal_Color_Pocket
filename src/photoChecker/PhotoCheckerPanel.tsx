@@ -93,6 +93,7 @@ export function PhotoCheckerPanel({ copy, resultCopy, garments, language, presen
         <span>{ready ? copy.change : copy.choose}</span>
       </label>
       <p className="photo-privacy">{copy.privacy}</p>
+      <p className="photo-tip">{copy.captureTip}</p>
     </div>
     {state.status === 'preparing' && <div className="photo-placeholder">
       {/* Inserted empty, filled after the delay, so only a slow preparation is announced. */}

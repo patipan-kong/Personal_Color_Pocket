@@ -33,6 +33,7 @@ function view(suitability: Suitability, overrides: Partial<ColorResultView> = {}
     pairWith: [palette.neutrals[0], palette.best[1], palette.accents[0]],
     details: [],
     warnings: [],
+    info: null,
     caveat: null,
     ...overrides,
   }
@@ -125,7 +126,7 @@ describe('shared Color Checker result card', () => {
 
   it('optional slots render only when the source has them', () => {
     renderView(view('good'))
-    for (const selector of ['.check-details', '.check-warnings', '.check-caveat', '.check-note', '.check-sr-only']) expect($(selector), selector).toBeNull()
+    for (const selector of ['.check-details', '.check-warnings', '.check-info', '.check-caveat', '.check-note', '.check-sr-only']) expect($(selector), selector).toBeNull()
     cleanup()
     renderView(view('conditional', { details: ['Detail one', 'Detail two'], note: { color: palette.harder[0], text: 'Also close to a Harder colour.' }, warnings: ['Warning one'], caveat: 'Caveat text' }))
     expect([...document.querySelectorAll('.check-details span')].map((node) => node.textContent)).toEqual(['Detail one', 'Detail two'])

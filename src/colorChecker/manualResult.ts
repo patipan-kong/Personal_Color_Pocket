@@ -53,6 +53,7 @@ export function toManualResultView(match: ColorMatchResult, copy: LocaleCopy, pr
     pairWith: match.pairWith,
     details: [],
     warnings: [],
+    info: null,
     caveat: null,
   }
 }

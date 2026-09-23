@@ -567,6 +567,11 @@ neighbouring palette colors.
 
 **V1.2: A (no correction) + guidance + honest framing.** B is deferred. C is rejected.
 
+**Durable decision (Slice 5f, [record](V1_2_SLICE_5F_PHOTO_LIGHTING_GUIDANCE.md)):** Photo lighting uncertainty is handled
+transparently through guidance in V1.2, not automatic color correction. The shipped guidance is a capture tip, "tap an evenly
+lit area", a presentation-only note for light near-neutral samples, and highlight / shadow warnings that say what they
+measure (very bright / very dark pixels).
+
 ---
 
 ## 13. Privacy / Security
@@ -807,7 +812,8 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **5b. Result card + copy** — **done** (see the Slice 5b note in §11.1). Placement guidance, not detection. **5c verdict clarity pass done** (verdict first; see §11.1). The Thai-speaker review is still open. | `PhotoResultCard.tsx`, `placement.ts`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
 | **5d. Unified result display** — **done** ([record](V1_2_SLICE_5D_UNIFIED_RESULT_DISPLAY.md)). Manual and Photo share one result card. The manual percentage is removed from the UI. No engine change. | `colorChecker/*`, `photoChecker/photoResult.ts`, `placement.ts` (intents), i18n `colorResult`, CSS | shared card, manual adapter + domain baseline, cross-mode, copy consistency | – | Same hierarchy and styles in both modes; manual `checkColor` output unchanged | engine alignment |
 | **5e. Real-world sampling investigation** — **done** ([record](V1_2_SLICE_5E_REAL_WORLD_SAMPLING_INVESTIGATION.md)). Investigation only: a white shirt in shade sampled as `#9FABB4`. **This investigation is required before final Photo sampling hardening.** | test-only `photoColor/investigation/*`, docs | findings pinned against the unchanged sampler/matcher | – | Production bundle byte-identical | any production change |
-| **6. Hardening** (follows 5d, and the Photo-sampling outcome of 5e) | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
+| **5f. Photo lighting guidance** — **done** ([record](V1_2_SLICE_5F_PHOTO_LIGHTING_GUIDANCE.md)). The 5e outcome: guidance, not correction. Capture tip, evenly-lit tap guidance, a presentation-only note for light near-neutral samples, and honest highlight / shadow copy. | `domain/photoColor/lightingGuidance.ts`, photo adapter, shared card `info` slot, i18n, CSS | `photoLightingGuidance.test.tsx`, domain before/after proof | – | Sample, match, category and Manual outputs identical before and after | sampling, matcher, thresholds, correction, multi-tap |
+| **6. Hardening** (follows 5d, and 5f, which resolves the Photo-sampling outcome of 5e) | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
 | **7. Capacitor readiness check** (when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |
 
 Slices 1–3 are independent of each other and of V1.1 (released), so they can start after Slice 0.

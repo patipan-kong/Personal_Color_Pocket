@@ -29,5 +29,8 @@ export interface ColorResultView {
   details: string[]
   // Photo only: sampling warnings and the "based on this photo" caveat.
   warnings: string[]
+  // Optional source-specific informational note (Photo: the lighting note for a light, near-neutral
+  // colour). Supporting guidance only: never a verdict or a warning. Manual: none.
+  info: string | null
   caveat: string | null
 }

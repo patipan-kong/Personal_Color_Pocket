@@ -291,10 +291,11 @@ describe('warnings stay advisory', () => {
   })
 
   it('warning copy says the photo may affect the result and how to double-check', () => {
+    // Slice 5f: highlight / shadow say what the sampler actually measures (very bright / very dark pixels).
     expect(en.photoChecker.warnings).toEqual({
-      mixed: 'This spot mixes several colors, so this result may be less reliable. Try a more even area.',
-      highlight: 'Strong light may make this color look lighter. Try another spot if you want to double-check.',
-      shadow: 'Shadow may make this color look darker. Try another spot if you want to double-check.',
+      mixed: 'This spot contains several colors, so this result may be less reliable. Try a more even area of the same color.',
+      highlight: 'This spot contains very bright pixels, which may make the color look lighter. Try an evenly lit spot.',
+      shadow: 'This spot contains very dark pixels, which may make the color look darker. Try an evenly lit spot.',
     })
     Object.values(th.photoChecker.warnings).forEach((warning) => expect(warning).toMatch(/ลองแตะ/))
   })

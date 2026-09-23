@@ -123,7 +123,7 @@ export const en: LocaleCopy = {
   photoChecker: {
     modeAria: 'How to check a color', modes: { manual: 'Manual', photo: 'Photo' },
     choose: 'Choose a photo', change: 'Choose another photo', privacy: 'Your photo stays on this device.',
-    preparing: 'Preparing photo…', instruction: 'Tap any color in the photo to see where it works best.', surfaceLabel: 'Photo to check',
+    preparing: 'Preparing photo…', instruction: 'Tap an evenly lit area of a color to see where it works best.', surfaceLabel: 'Photo to check',
     keyboardHint: 'Keyboard: press Enter to check the center, use the arrow keys to move the marker (hold Shift to move further), then press Enter to check.',
     pending: 'Press Enter to check this spot.', sampleLabel: 'Color at this spot',
     categories: {
@@ -131,10 +131,12 @@ export const en: LocaleCopy = {
       'away-from-face': 'Better away from your face', outside: 'Outside your palette',
     },
     warnings: {
-      mixed: 'This spot mixes several colors, so this result may be less reliable. Try a more even area.',
-      highlight: 'Strong light may make this color look lighter. Try another spot if you want to double-check.',
-      shadow: 'Shadow may make this color look darker. Try another spot if you want to double-check.',
+      mixed: 'This spot contains several colors, so this result may be less reliable. Try a more even area of the same color.',
+      highlight: 'This spot contains very bright pixels, which may make the color look lighter. Try an evenly lit spot.',
+      shadow: 'This spot contains very dark pixels, which may make the color look darker. Try an evenly lit spot.',
     },
+    captureTip: 'For a more accurate color, use a photo with even lighting and avoid deep shade, glare or strong reflections.',
+    lightingNote: "White and light colors can look darker or pick up a color cast in a photo. If this doesn't look like the real color, try another evenly lit spot on the same color.",
     unavailable: {
       transparent: 'This spot is transparent. Tap a visible part of the photo.',
       'insufficient-pixels': 'Too little of the photo here. Tap nearer the middle.',

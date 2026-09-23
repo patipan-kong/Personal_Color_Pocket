@@ -145,6 +145,9 @@ export interface LocaleCopy {
     sampleLabel: string
     categories: Record<PhotoMatchCategory, string>
     warnings: Record<SampleFlag, string>
+    // Slice 5f: shown before choosing a photo, and the note for a light near-neutral colour.
+    captureTip: string
+    lightingNote: string
     unavailable: Record<SampleUnavailableReason, string>
     errors: Record<Exclude<PhotoImageErrorCode, 'aborted'>, string>
     // Photo-specific reasons (Slice 5c): they speak about "this photo color". Shared result wording is in colorResult.

@@ -1,4 +1,5 @@
 import type { ColorResultView } from '../colorChecker/resultView'
+import { getPhotoLightingGuidance } from '../domain/photoColor/lightingGuidance'
 import { getColorPlacement } from '../domain/photoColor/placement'
 import { getSuitability } from '../domain/photoColor/suitability'
 import type { PhotoPointMatched } from '../domain/photoColor/types'
@@ -9,6 +10,7 @@ import type { PresentationPreference } from '../services/presentationPreference'
 // V1.2 Slice 5d: photo match → the shared Color Checker result. A relabelling only: the verdict is
 // getSuitability(category), placement is getColorPlacement(match), and pairWith, nearest,
 // resembles, direction, descriptors and warnings are passed through as the engine returned them.
+// The lighting note (Slice 5f) is presentation only and never changes any of them.
 export function toPhotoResultView(matched: PhotoPointMatched, copy: LocaleCopy['photoChecker'], language: Language, presentation: PresentationPreference): ColorResultView {
   const { match } = matched
   const suitability = getSuitability(match.category)
@@ -30,6 +32,8 @@ export function toPhotoResultView(matched: PhotoPointMatched, copy: LocaleCopy['
       `${copy.descriptorsLabel}: ${copy.descriptors.value[match.descriptors.value]} · ${copy.descriptors.clarity[match.descriptors.clarity]}`,
     ],
     warnings: match.warnings.map((flag) => copy.warnings[flag]),
+    // Slice 5f: shown only when no warning already asks for another spot.
+    info: getPhotoLightingGuidance(match) ? copy.lightingNote : null,
     caveat: copy.caveat,
   }
 }

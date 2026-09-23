@@ -39,7 +39,7 @@ export function ColorResultSummary({ copy, view }: { copy: ResultCopy; view: Col
   </div>
 }
 
-// Why → action → palette reference → placement → pairing → details → warnings → caveat.
+// Why → action → palette reference → placement → pairing → details → warnings / info → caveat.
 export function ColorResultGuidance({ copy, garments, language, view }: { copy: ResultCopy; garments: Garments; language: Language; view: ColorResultView }) {
   const { suitability, placement } = view
   const tone = suitabilityTone(suitability)
@@ -88,6 +88,8 @@ export function ColorResultGuidance({ copy, garments, language, view }: { copy: 
     {view.warnings.length > 0 && <ul className="check-warnings" aria-hidden="true">
       {view.warnings.map((warning) => <li key={warning}>{warning}</li>)}
     </ul>}
+    {/* Informational, normal reading-order text: not announced with the summary. */}
+    {view.info && <p className="check-info">{view.info}</p>}
     {view.caveat && <p className="check-caveat">{view.caveat}</p>}
   </div>
 }
