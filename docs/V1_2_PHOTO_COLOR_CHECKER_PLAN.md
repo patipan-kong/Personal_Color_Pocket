@@ -15,8 +15,8 @@ code** for gallery selection.
 - **Pipeline:** `<input type="file" accept="image/*">` → `File` → `createImageBitmap`
   (or `HTMLImageElement.decode()` fallback) → one downscaled **working canvas (≤1600 px
   long edge)** → a single `getImageData` copy → pure TypeScript sampling on tap.
-- **Sampling:** a disc whose radius is set in **screen space (~14 CSS px)** and mapped to
-  image pixels, **lightness-trimmed (drop darkest 20% and brightest 20%)**, then a mean of the
+- **Sampling:** a disc with a **fixed working-image radius (24 px on a 1600 px photo; changed from
+  screen space by Slice 4, §8.4)**, **lightness-trimmed (drop darkest 20% and brightest 20%)**, then a mean of the
   remaining pixels. A spread metric flags patterned or mixed areas, and a clipping metric
   flags blown highlights.
 - **Match model:** a new, photo-specific **categorical** classifier built on the existing
@@ -298,6 +298,14 @@ r_image    = clamp(r_image, 3, round(0.04 · min(width, height)))
   to 48 px. The marker ring is drawn at `r_image / scale` CSS px, so what you see is what is sampled.
 - Zoom is not in V1.2. If added later the same formula still holds, because `renderedRect` grows
   and the radius shrinks in image space.
+
+**Changed by Slice 4** ([record](V1_2_SLICE_4_INTEGRATION_COORDINATES.md) §9): the radius no longer
+depends on the preview size. It is `max(3, min(24, round(0.04 · min(width, height))))` in working-image px.
+- Every downsized photo gets 24 px, the Slice 1 default: the same share of the photo on every screen.
+- Small images get the 4% cap.
+- Slice 0 §8 showed that the cap always bound on phones, so the screen term only ever shrank the disc on
+  large displays, and a small preview could no longer inflate it.
+- The marker ring is drawn at `24 / scale` CSS px, so it still shows exactly what is sampled.
 
 ---
 
@@ -649,7 +657,8 @@ flowchart TB
 
 | Module | Responsibility | Depends on | Must not |
 |---|---|---|---|
-| `domain/photoColor/coordinates.ts` | `clientToImage(pt, rect, img)`, `sampleRadiusPx(rect, img)`, `clampPoint`, `nudge(point, dir, step)` | nothing | touch DOM types beyond plain `{x,y,width,height}` |
+| `domain/photoColor/coordinates.ts` | **As built in Slice 4:** `fitContain(image, container)`, `displayToImage(point, imageRect, image)` → image point or `outside-displayed-image`, `imageToDisplay`, `imageLengthToDisplay`, `sampleRadiusFor(image)`. The keyboard nudge step is left to the UI. | `sampling` (default radius) | touch DOM types beyond plain `{x,y,width,height}`, or use DPR |
+| `domain/photoColor/inspect.ts` | **Slice 4:** `inspectPhotoTap(image, tap, subtype)` / `inspectPhotoPoint(image, point, subtype)` → `outside-displayed-image` \| `unavailable` \| `matched {sample, match}`. Glue only. | `coordinates`, `sampling`, `photoMatch` | contain colour math, infer the subtype |
 | `domain/photoColor/sampling.ts` | `samplePatch(source, center, radius)` → `PhotoSample`. Thresholds live here as named constants. | `colorUtils` | know about canvas or File |
 | `domain/photoColor/photoMatch.ts` | `classifyPhotoColor(sample.oklab, subtype)` → `PhotoMatchResult` {category, nearest, resembles?, direction[], descriptors, pairWith} | `colorUtils`, `palettes`, `colorMatch.pairingSuggestions` | be imported by `scoring.ts` / `diagnostics.ts` (same isolation rule as `styleGuide.ts`) |
 | `domain/photoColor/placement.ts` | `placementsFor(category, group, preference)` → `StyleCategoryKey[]` | `styleGuide` types | contain prose |
@@ -736,13 +745,14 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **1. Pure sampling** — **done** (sampling engine only, see the Slice 1 note). `coordinates.ts` moves to Slice 4, and the matching helpers (weighted distance, chroma, hue) move to Slice 2. | `coordinates.ts`, `sampling.ts`, `photoColor/types.ts`, colorUtils additions | unit + fixtures | all §17 sampling/coordinate tests | Deterministic, no DOM imports, thresholds as named constants | UI, matching |
 | **2. Match engine** — **done** (see the Slice 2 note). The manual checker is frozen by `colorMatch.regression.test.ts`, and `placement.ts` moves to Slice 5. | `photoMatch.ts`, `placement.ts`, export `pairingSuggestions` | unit: per-subtype table, lighting robustness, `checkColor` regression snapshot | – | All 12 subtypes pass the table and robustness tests. Manual checker is byte-identical. | copy |
 | **3. Image service** — **done** (see the Slice 3 note). The contract is simplified to `PixelSource`, and `AbortSignal` is supported. | `services/photoImage.ts`, `photoImageHeader.ts` | mocked-global unit tests | – | Caps, error codes, cleanup verified | UI |
-| **4. Panel + surface** | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |
-| **5. Result card + copy** | `PhotoResultCard.tsx`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
+| **4. Integration core + coordinates** — **done** (see the Slice 4 note). Pure geometry and tap → sample → match glue, with no UI. The panel and surface below move to Slice 5. | `coordinates.ts`, `inspect.ts` | unit + synthetic end-to-end | geometry, DPR, boundaries, warnings | Bundle unchanged | UI |
+| **5a. Panel + surface** (was 4) | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |
+| **5b. Result card + copy** | `PhotoResultCard.tsx`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
 | **6. Hardening** | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
 | **7. Capacitor readiness check** (when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |
 
 Slices 1–3 are independent of each other and of V1.1 (released), so they can start after Slice 0.
-Slice 4 is the first to touch `App.tsx`.
+Slice 5 (panel + surface) is the first to touch `App.tsx`; Slice 4 stayed pure.
 
 ---
 

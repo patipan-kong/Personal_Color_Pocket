@@ -98,3 +98,56 @@ export interface PhotoColorMatch {
   // Sampling flags carried through unchanged. They never change the category.
   warnings: SampleFlag[]
 }
+
+// ---- Display geometry and tap inspection (Slice 4) ----
+
+// A width/height pair in any one consistent unit (CSS px for the display, pixels for images).
+export interface Size {
+  width: number
+  height: number
+}
+
+// An axis-aligned rectangle in DISPLAY coordinates: CSS px, origin at the top-left of the
+// preview container's content box, x right, y down.
+export interface DisplayRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+// A pointer position in the same display coordinates as the DisplayRect it is compared with.
+export interface DisplayPoint {
+  x: number
+  y: number
+}
+
+export type DisplayToImageResult =
+  | { kind: 'image-point'; point: ImagePoint }
+  // The pointer is in the letterbox/padding around the photo, or the photo is not laid out.
+  | { kind: 'outside-displayed-image' }
+
+// A tap: where the pointer is, and where the photo is drawn, both in display coordinates.
+export interface DisplayTap {
+  point: DisplayPoint
+  imageRect: DisplayRect
+}
+
+export interface PhotoPointUnavailable {
+  kind: 'unavailable'
+  point: ImagePoint
+  radius: number
+  reason: SampleUnavailableReason
+}
+
+export interface PhotoPointMatched {
+  kind: 'matched'
+  point: ImagePoint
+  radius: number // working-image px actually sampled, so the UI can draw the same disc
+  sample: PhotoColorSample // diagnostics and flags unchanged from the sampler
+  match: PhotoColorMatch
+}
+
+export type PhotoPointInspection = PhotoPointUnavailable | PhotoPointMatched
+
+export type PhotoTapInspection = { kind: 'outside-displayed-image' } | PhotoPointInspection
