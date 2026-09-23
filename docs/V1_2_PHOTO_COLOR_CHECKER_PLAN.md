@@ -262,6 +262,13 @@ Why this one:
 All thresholds are named constants in one module, calibrated in Slice 0/1 fixtures, and
 never inlined.
 
+**Implemented in Slice 1** as `samplePhotoRegion()` in `src/domain/photoColor/sampling.ts`. The frozen
+contract and its deviations from the sketch above are in [V1_2_SLICE_1_SAMPLING_ENGINE.md](V1_2_SLICE_1_SAMPLING_ENGINE.md).
+In short: the single `exposure` flag is split into `highlight` / `shadow`, and a pixel only counts as clipped
+when **all** channels are clipped, so saturated fabric is not flagged. Clipping fractions are over opaque
+pixels. Results are a typed union, so there is `unavailable` with the reasons `outside-image`,
+`transparent` and `insufficient-pixels` (< 5 opaque pixels).
+
 ### 8.4 Region size rule
 
 The sample should cover **what the user's finger meant**, which is a screen-space quantity. It must
@@ -703,7 +710,7 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | # | Scope | Files | Tests | Acceptance | Out of scope |
 |---|---|---|---|---|---|
 | **0. Device spike** — desktop portion **done** (§22). The dev-only harness is kept in `spikes/photo-device-spike/` for the physical-phone portion. | A minimal HTML page: file input → createImageBitmap → 1600 px canvas → tap → print trimmed-mean HEX | scratch only | manual | Measured decode time/memory for 12 MP and 48 MP on a mid Android. HEIC/HEIF behaviour recorded on Android Chrome and iOS Safari. Orientation correct. | any product code |
-| **1. Pure sampling** | `coordinates.ts`, `sampling.ts`, `photoColor/types.ts`, colorUtils additions | unit + fixtures | all §17 sampling/coordinate tests | Deterministic, no DOM imports, thresholds as named constants | UI, matching |
+| **1. Pure sampling** — **done** (sampling engine only, see the Slice 1 note). `coordinates.ts` moves to Slice 4, and the matching helpers (weighted distance, chroma, hue) move to Slice 2. | `coordinates.ts`, `sampling.ts`, `photoColor/types.ts`, colorUtils additions | unit + fixtures | all §17 sampling/coordinate tests | Deterministic, no DOM imports, thresholds as named constants | UI, matching |
 | **2. Match engine** | `photoMatch.ts`, `placement.ts`, export `pairingSuggestions` | unit: per-subtype table, lighting robustness, `checkColor` regression snapshot | – | All 12 subtypes pass the table and robustness tests. Manual checker is byte-identical. | copy |
 | **3. Image service** | `services/photoImage.ts` | mocked-global unit tests | – | Caps, error codes, cleanup verified | UI |
 | **4. Panel + surface** | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |

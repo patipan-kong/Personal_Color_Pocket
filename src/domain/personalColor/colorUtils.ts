@@ -20,6 +20,10 @@ export function hexToRgb(value: string): RGB | null {
   }
 }
 
+export function rgbToHex({ r, g, b }: RGB): string {
+  return `#${[r, g, b].map((channel) => Math.round(Math.min(255, Math.max(0, channel))).toString(16).padStart(2, '0')).join('').toUpperCase()}`
+}
+
 function linearize(channel: number) {
   const value = channel / 255
   return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4
