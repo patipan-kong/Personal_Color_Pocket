@@ -1,0 +1,47 @@
+<!doctype html>
+<!--
+  V1.2 Slice 0 — Photo Color Checker DEVICE SPIKE (dev-only diagnostic harness).
+  NOT a product feature. Not linked from the app, not a Vite build input, not type-checked.
+  Open on a phone via `npm run dev` → http://<dev-machine-LAN-IP>:5173/spikes/photo-device-spike/
+  Everything runs locally in the page: no fetch/upload of the chosen photo.
+  See docs/V1_2_SLICE_0_DEVICE_SPIKE.md §17 for the manual test procedure.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photo Device Spike</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; }
+    body { margin: 0; padding: 16px; background: #faf7f2; color: #222; }
+    h1 { font-size: 1.1rem; margin: 0 0 4px; }
+    p.note { margin: 0 0 12px; color: #666; font-size: .85rem; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .controls > * { min-height: 44px; font-size: 1rem; }
+    button { padding: 0 14px; }
+    #stage { position: relative; display: inline-block; max-width: 100%; }
+    #stage canvas { display: block; max-width: 100%; height: auto; touch-action: manipulation; }
+    #marker { position: absolute; border: 2px solid #fff; outline: 2px solid #000; border-radius: 50%; pointer-events: none; display: none; }
+    #swatch { display: inline-block; width: 44px; height: 44px; border: 1px solid #0003; vertical-align: middle; }
+    pre { background: #fff; border: 1px solid #0002; padding: 8px; font-size: .75rem; white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <h1>Photo device spike (Slice 0)</h1>
+  <p class="note">Dev-only. The photo never leaves this page. Tap the photo to sample.</p>
+  <div class="controls">
+    <input id="file" type="file" accept="image/*" />
+    <label>Max edge <select id="maxEdge"><option>1280</option><option selected>1600</option><option>2048</option></select></label>
+    <label>Method <select id="method"><option value="bitmap" selected>createImageBitmap</option><option value="bitmap-resize">createImageBitmap + resize</option><option value="img">HTMLImageElement</option></select></label>
+    <button id="dispose" type="button">Dispose</button>
+    <button id="copy" type="button">Copy log</button>
+  </div>
+  <div id="stage"><canvas id="preview" width="0" height="0" aria-label="Photo preview. Tap to sample."></canvas><span id="marker"></span></div>
+  <p><span id="swatch"></span> <strong id="sampleText">No sample yet</strong></p>
+  <h2 style="font-size:1rem">Capabilities</h2>
+  <pre id="caps">probing…</pre>
+  <h2 style="font-size:1rem">Log</h2>
+  <pre id="log"></pre>
+  <script type="module" src="./spike.js"></script>
+</body>
+</html>

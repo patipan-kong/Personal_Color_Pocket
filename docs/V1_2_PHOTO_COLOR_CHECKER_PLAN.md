@@ -97,11 +97,13 @@ Principles:
 flowchart TD
   F["File (from input)"] --> V{"validate: size ≤ 30 MB,<br/>type starts with image/ or empty"}
   V -->|no| E1[error: unsupported / too large]
-  V -->|yes| D["decode: createImageBitmap(file, resize opts if supported)<br/>fallback: objectURL → img.decode()"]
-  D -->|throws| E2["error: couldn't open (HEIC hint)"]
-  D --> G{"source pixels ≤ 60 MP?"}
+  V -->|yes| H["header probe: unattached img load → naturalWidth/Height<br/>(no full decode; Slice 0: +6–22 MiB, 6–35 ms)"]
+  H -->|fails| E2["error: couldn't open (HEIC message if ftyp brand sniffed)"]
+  H --> G{"source pixels ≤ 60 MP?"}
   G -->|no| E3[error: too large]
-  G -->|yes| W["draw into working canvas<br/>long edge ≤ 1600 px, imageSmoothingQuality='high'<br/>colorSpace 'srgb'"]
+  G -->|yes| D["decode: createImageBitmap(file) — no resize options<br/>fallback only if unavailable: objectURL → img.decode()"]
+  D -->|throws| E2
+  D --> W["draw into working canvas<br/>long edge ≤ 1600 px, imageSmoothingQuality='high'<br/>colorSpace 'srgb'"]
   W --> R["release: bitmap.close(), URL.revokeObjectURL()"]
   W --> P["getImageData once → PixelSource {width,height,data}"]
   P --> S["tap → samplePatch() (pure)"]
@@ -113,10 +115,12 @@ Key decisions:
 
 - **Decode path:** prefer `createImageBitmap(file)`. It decodes off the main thread in
   Chromium and applies EXIF orientation by default (`imageOrientation: 'from-image'`).
-  Where supported, pass `resizeWidth`/`resizeHeight` + `resizeQuality: 'high'` so the
-  decoder can downscale early. Support for resize options varies, so feature-detect with
-  try/catch and fall back to plain decode. Final fallback is `URL.createObjectURL` +
-  `HTMLImageElement.decode()`.
+  **Changed by Slice 0:** do *not* pass `resizeWidth`/`resizeHeight`. Chromium 153 honours
+  them, but peak memory stayed the same as a full decode (48 MP: +265 vs +260 MiB) and decoding
+  was slower. Enforce the 60 MP cap with a cheap header-only dimension probe *before* decoding.
+  `URL.createObjectURL` + `HTMLImageElement.decode()` is used only where `createImageBitmap` is
+  missing, because Chromium keeps `<img>` decodes in its image cache after cleanup
+  (+105–186 MiB retained). See §22.
 - **The working canvas doubles as the preview.** The same canvas is displayed with CSS
   `width:100%; height:auto`. There is no second copy and no long-lived object URL.
 - **Read pixels once.** One `getImageData(0,0,w,h)` after drawing. Every tap samples the
@@ -160,7 +164,7 @@ Key decisions:
 | JPEG | Universal. EXIF orientation applied by modern browsers' `createImageBitmap`/`<img>`/`drawImage(img)`. | Supported. |
 | PNG / screenshots | Universal. May have alpha. | Supported. Transparent pixels are excluded when sampling (§10). |
 | WebP | Chrome/Android WebView/Safari 14+/Firefox. | Supported. |
-| **HEIC/HEIF** | **iOS Safari:** the picker usually hands the page a transcoded JPEG, and recent Safari decodes HEIC natively anyway, so it works. **Android Chrome / Android WebView (Chromium):** Chromium does not decode HEIC, so an iPhone-originated `.heic` file that reached an Android device unconverted **will fail to decode**. Many transfer routes (Google Photos downloads, messaging apps) already convert to JPEG. Some Samsung devices can be set to shoot HEIF. | **No HEIC library in V1.2.** A WASM decoder (e.g. libheif-based) costs roughly 1–2 MB+, adds licensing and maintenance work, and adds decode memory on low-end phones, all for a minority case. Detect decode failure (and `.heic/.heif` name or type) and show a **specific friendly message**: *"This photo format (HEIC) can't be opened here. Try a screenshot of the photo, or save it as JPEG."* **Verify in Slice 0** on a Samsung "Save as HEIF" photo. |
+| **HEIC/HEIF** | **iOS Safari:** the picker usually hands the page a transcoded JPEG, and recent Safari decodes HEIC natively anyway, so it works. **Android Chrome / Android WebView (Chromium):** Chromium does not decode HEIC, so an iPhone-originated `.heic` file that reached an Android device unconverted **will fail to decode**. Many transfer routes (Google Photos downloads, messaging apps) already convert to JPEG. Some Samsung devices can be set to shoot HEIF. | **No HEIC library in V1.2.** A WASM decoder (e.g. libheif-based) costs roughly 1–2 MB+, adds licensing and maintenance work, and adds decode memory on low-end phones, all for a minority case. **Slice 0 decision (option A):** always *attempt* decode. Never reject by name or MIME, because a JPEG labelled `.heic` / `image/heic` decoded fine: browsers sniff the content. On decode failure, sniff bytes 4–12 for an `ftyp` HEIF brand (`heic`/`heix`/`mif1`/`msf1`/`heif`) and show the **specific friendly message**: *"This photo format (HEIC) can't be opened here. Try a screenshot of the photo, or save it as JPEG."* Otherwise show the generic decode error. A real HEIC on an Android device still **requires a physical-device test**. |
 | AVIF | Chromium and modern Safari decode it. | Supported where the browser decodes it; otherwise it falls into the generic decode error. |
 | GIF / SVG | GIF decodes (first frame). SVG is an image type, but sampling vector art is not meaningful, and SVG can reference external resources. | Reject `image/svg+xml` explicitly. Allow GIF silently. |
 | Wide-gamut (Display-P3) / ICC | Browsers color-manage decoded images into the canvas color space. A default 2D canvas is sRGB, so P3 values are converted or clipped to sRGB. | Request `getContext('2d', { colorSpace: 'srgb' })` explicitly for determinism. The palette is sRGB HEX anyway, so this is the *correct* space to compare in. |
@@ -183,7 +187,8 @@ texture and JPEG noise, so it *helps*.
 | Decode latency | 12 MP JPEG is typically about 100–400 ms on mid-range Android. Show a "Preparing photo…" state. |
 
 Safeguards:
-- Reject files **> 30 MB** before decoding. Reject decoded sources **> 60 MP** (width×height),
+- Reject files **> 30 MB** before decoding. Reject sources **> 60 MP** (width×height, read
+  by the header probe *before* the full decode, per Slice 0),
   with copy suggesting a screenshot or smaller copy. Most phones save 12 MP (binned) by
   default, and 48–200 MP only in "high-res" modes.
 - Keep canvas dimensions under iOS Safari's canvas area limit (about 16.7 MP). 1600² is far below it.
@@ -497,7 +502,7 @@ during a check, and Application → Storage shows no new keys).
 
 | Risk | Safeguard |
 |---|---|
-| Huge file / decompression bomb | 30 MB file cap before decode. 60 MP decoded cap. Decode in try/catch. `createImageBitmap` rejects malformed data instead of hanging. |
+| Huge file / decompression bomb | 30 MB file cap before decode. 60 MP cap checked by header probe before decode. Decode in try/catch. `createImageBitmap` rejects malformed data instead of hanging. |
 | Unsupported / mislabeled MIME | Don't trust `file.type`. Rely on decode success. Reject `image/svg+xml`. |
 | Memory leaks | `bitmap.close()`, `revokeObjectURL`, zero-size canvas on reset or unmount. The effect cleanup is tested. |
 | File name exposure | Not rendered, not stored. |
@@ -697,7 +702,7 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 
 | # | Scope | Files | Tests | Acceptance | Out of scope |
 |---|---|---|---|---|---|
-| **0. Device spike** (throwaway, not merged) | A minimal HTML page: file input → createImageBitmap → 1600 px canvas → tap → print trimmed-mean HEX | scratch only | manual | Measured decode time/memory for 12 MP and 48 MP on a mid Android. HEIC/HEIF behaviour recorded on Android Chrome and iOS Safari. Orientation correct. | any product code |
+| **0. Device spike** — desktop portion **done** (§22). The dev-only harness is kept in `spikes/photo-device-spike/` for the physical-phone portion. | A minimal HTML page: file input → createImageBitmap → 1600 px canvas → tap → print trimmed-mean HEX | scratch only | manual | Measured decode time/memory for 12 MP and 48 MP on a mid Android. HEIC/HEIF behaviour recorded on Android Chrome and iOS Safari. Orientation correct. | any product code |
 | **1. Pure sampling** | `coordinates.ts`, `sampling.ts`, `photoColor/types.ts`, colorUtils additions | unit + fixtures | all §17 sampling/coordinate tests | Deterministic, no DOM imports, thresholds as named constants | UI, matching |
 | **2. Match engine** | `photoMatch.ts`, `placement.ts`, export `pairingSuggestions` | unit: per-subtype table, lighting robustness, `checkColor` regression snapshot | – | All 12 subtypes pass the table and robustness tests. Manual checker is byte-identical. | copy |
 | **3. Image service** | `services/photoImage.ts` | mocked-global unit tests | – | Caps, error codes, cleanup verified | UI |
@@ -715,7 +720,7 @@ Slice 4 is the first to touch `App.tsx`.
 
 | Rank | Risk / question | Mitigation |
 |---|---|---|
-| **HIGH** | Full-resolution decode of 48–200 MP photos can exhaust memory on low-end Android before we can downscale | Slice 0 measurement. Resize-on-decode where supported. 60 MP cap with friendly copy. |
+| **HIGH** | Full-resolution decode of 48–200 MP photos can exhaust memory on low-end Android before we can downscale | Slice 0 measured the transient peak at ≈1.4–1.7× decoded RGBA (48 MP ≈ +250–260 MiB on desktop Chromium). Resize-on-decode does **not** help. A 60 MP cap is enforced by the header probe before decode. A physical low-RAM Android test is still required. |
 | **HIGH** | Users over-trust results taken under warm indoor light | Categorical output, lightness-tolerant distance, "as it appears in this photo" caption, pre-photo tips, exposure warning |
 | **MEDIUM** | Threshold calibration (`T_CLOSE`, `T_RELATED`, `SPREAD_WARN`, trim %) is palette-consistent but not validated with people | Calibration tests in Slice 2. Collect informal feedback before tuning. Keep constants in one place. |
 | **MEDIUM** | HEIC on Android fails | Specific error copy with a workaround. Verify in Slice 0. A decoder library only if real usage demands it. |
@@ -782,7 +787,8 @@ Open questions for product:
 
 ## 21. Final Go / No-Go Recommendation
 
-**GO**, gated on a 1–2 day Slice 0 device spike.
+**GO**, gated on a 1–2 day Slice 0 device spike. *(Slice 0 desktop outcome: **GO WITH
+CONDITIONS**, see §22.)*
 
 1. **Is local-only practical?** Yes. File input + `createImageBitmap` + Canvas cover the whole
    flow on web and Android WebView, and no bytes leave the page.
@@ -810,3 +816,37 @@ Open questions for product:
     sampling, cleanup), ~50 × 2 localized strings, threshold calibration, and real-device
     validation. It is not SMALL because device memory and HEIC behaviour must be verified on
     hardware. It is not LARGE because nothing needs new infrastructure.
+
+---
+
+## 22. Slice 0 Findings
+
+Full record: [V1_2_SLICE_0_DEVICE_SPIKE.md](V1_2_SLICE_0_DEVICE_SPIKE.md). Measured on 2026-09-23
+in headless Edge 153 and Chrome 153 (desktop Windows). **No phone was available.**
+
+**Confirmed (desktop evidence)**
+- The local pipeline works end to end: File → `createImageBitmap` → 1600 px canvas → `getImageData`.
+  There is no network, no canvas tainting, and cleanup is verified.
+- EXIF orientation is applied by every decode path (**24/24**, orientations 1–8), including the
+  header probe. **No EXIF library.**
+- Display-P3 / ICC-tagged images are color-managed into sRGB (`getImageData` matched the
+  browser's own P3→sRGB conversion). Out-of-gamut P3 is clipped. **No color-profile code.**
+- **HEIC/HEIF are not decodable in Chromium** (`ImageDecoder.isTypeSupported` → false, and a HEIF
+  header fails in < 2 ms with `InvalidStateError`/`EncodingError`). **No HEIC library.**
+- **1600 px long edge is kept.** 1280, 1600 and 2048 gave the same sampled color (ΔE_OK ≤ 0.006 vs
+  full resolution) and all flagged stripes as mixed. 1600 is the smallest size that stays ≥ 1170
+  device px wide for both landscape and portrait photos on a DPR 3 phone.
+- No new dependency of any kind, and the released app contains no analytics or error reporting.
+
+**Changed decisions**
+1. Don't use `createImageBitmap` resize options (no peak-memory benefit, and slower). §4 is updated.
+2. Add a header-only dimension probe before decode, so the 60 MP cap costs +6–22 MiB instead of
+   +250 MiB. §4, §7 and §13.2 are updated.
+3. The `HTMLImageElement` path is a fallback only for engines without `createImageBitmap`. Chromium
+   retains `<img>` decodes after revoke (+105–186 MiB). §4 is updated.
+4. HEIC: never reject by name/MIME (content sniffing decoded a mislabelled JPEG). On decode
+   failure, sniff the `ftyp` brand for the HEIC-specific message. §6 is updated.
+
+**Remaining device validation**: see the Slice 0 record §17–§18. Low-RAM Android at 48–50 MP,
+a real HEIC on Android Chrome, portrait orientation on a phone, and the Capacitor WebView file
+chooser. These block **release**, not Slice 1–3 coding.
