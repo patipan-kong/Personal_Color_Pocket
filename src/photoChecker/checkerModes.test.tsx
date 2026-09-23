@@ -156,8 +156,12 @@ describe('Color Checker modes', () => {
     await user.upload(screen.getByLabelText('Choose a photo'), new File(['x'], 'a.jpg', { type: 'image/jpeg' }))
     await act(async () => {})
     fireEvent.pointerUp(document.querySelector('.photo-stage')!, { clientX: 200, clientY: 150, isPrimary: true, pointerType: 'touch' })
-    expect(screen.getByRole('region', { name: 'Where to wear it' })).toBeInTheDocument()
+    const heading = document.querySelector('.photo-placement h2')!.textContent!
+    expect(['Where it works best', 'How to make it work', 'If you still want to wear it']).toContain(heading)
+    expect(screen.getByRole('region', { name: heading })).toBeInTheDocument()
+    expect(document.querySelector('.photo-verdict')!.textContent!.length).toBeGreaterThan(10)
     expect(document.querySelector('.photo-placement')!.textContent).not.toMatch(/Dress|Skirt|Blouse/)
+    expect(document.querySelector('.photo-action')!.textContent).not.toMatch(/dress|skirt|blouse/i)
     expect(document.querySelector('.photo-placement')!.textContent).toMatch(/Shirt|T-shirt|Trousers/)
     expect(screen.getByText('Based on how the color appears in this photo.')).toBeInTheDocument()
     expect({ ...localStorage }).toEqual(before)

@@ -2,6 +2,7 @@ import type { ConfidenceLabel, DimensionKey, MatchRating, QuizOptionIds, QuizQue
 import type { QuizVisualLabelKey } from '../domain/personalColor/quizVisuals'
 import type { GarmentNounKey, StyleCategoryKey } from '../domain/personalColor/styleGuide'
 import type { PairingAdvice, PlacementArea, PlacementTier } from '../domain/photoColor/placement'
+import type { Suitability, SuitabilityTone } from '../domain/photoColor/suitability'
 import type { PhotoMatchCategory, PhotoMatchDescriptors, PhotoMatchDirection, PositivePaletteGroup, SampleFlag, SampleUnavailableReason } from '../domain/photoColor/types'
 import type { PhotoImageErrorCode } from '../services/photoImage'
 
@@ -145,11 +146,17 @@ export interface LocaleCopy {
     warnings: Record<SampleFlag, string>
     unavailable: Record<SampleUnavailableReason, string>
     errors: Record<Exclude<PhotoImageErrorCode, 'aborted'>, string>
-    // Slice 5b result card. Colour and garment names come from colorDisplayName / styleExamples.garments.
-    nearestLabel: string
+    // Slice 5c verdict: the first answer on the card ("is this colour good for me?"), then why,
+    // then one thing to do. Colour and garment names come from colorDisplayName / styleExamples.garments.
+    verdicts: Record<Suitability, string>
+    why: Record<Suitability, (names: { nearest: string; harder: string | null }) => string>
+    action: Record<Suitability, (pieces: string[], pair: string | null) => string>
+    // Slice 5b result card. 'match' for positive verdicts; 'compare' when the nearest palette
+    // colour is only a reference and the photo colour is not one of the recommended ones.
+    reference: { match: string; compare: string }
     groups: Record<PositivePaletteGroup, string>
     resembles: (colorName: string) => string
-    placementHeading: string
+    placementHeading: Record<SuitabilityTone, string>
     tiers: Record<PlacementTier, string>
     areas: Record<PlacementArea, string>
     pairing: Record<PairingAdvice, { heading: string; body: string }>

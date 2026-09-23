@@ -1,5 +1,12 @@
 import type { LocaleCopy } from './types'
 
+// "top, blouse or scarf": garment labels are title case, so lower-case them mid-sentence
+// (a label like "T-shirt" keeps its capital).
+const orList = (pieces: string[]) => {
+  const words = pieces.map((piece) => (/^[A-Z][a-z]/.test(piece) ? piece[0].toLowerCase() + piece.slice(1) : piece))
+  return words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} or ${words[words.length - 1]}`
+}
+
 export const en: LocaleCopy = {
   language: 'en',
   languageName: 'English',
@@ -119,9 +126,9 @@ export const en: LocaleCopy = {
       'away-from-face': 'Better away from your face', outside: 'Outside your palette',
     },
     warnings: {
-      mixed: 'This spot mixes several colors. Try a more even area.',
-      highlight: 'Strong light may make this color look lighter than it is.',
-      shadow: 'Shadow may make this color look darker than it is.',
+      mixed: 'This spot mixes several colors, so this result may be less reliable. Try a more even area.',
+      highlight: 'Strong light may make this color look lighter. Try another spot if you want to double-check.',
+      shadow: 'Shadow may make this color look darker. Try another spot if you want to double-check.',
     },
     unavailable: {
       transparent: 'This spot is transparent. Tap a visible part of the photo.',
@@ -137,18 +144,41 @@ export const en: LocaleCopy = {
       'decode-failed': "This photo couldn't be opened. Try another photo.",
       'canvas-failed': "This device couldn't prepare the photo. Try again, or choose a smaller photo.",
     },
-    nearestLabel: 'Closest in your palette',
+    verdicts: {
+      strong: 'Yes! Excellent for your Personal Color',
+      good: 'This color works well for your Personal Color',
+      conditional: 'Wearable, but not one of your strongest colors',
+      weak: 'Not ideal near your face',
+      outside: 'This color is not recommended for your Personal Color',
+    },
+    why: {
+      strong: ({ nearest }) => `This photo color is very close to ${nearest} in your palette, so it works beautifully near your face.`,
+      good: ({ nearest }) => `This photo color is very close to ${nearest}, a neutral in your palette. Easy to wear in lots of ways.`,
+      conditional: () => 'Its tone sits near your palette, but other palette colors flatter you more.',
+      weak: ({ harder }) => harder
+        ? `It is closer to ${harder}, a color that suits you better away from your face.`
+        : 'It is closer to the colors that suit you better away from your face.',
+      outside: () => 'It sits outside the main colors recommended for you.',
+    },
+    action: {
+      strong: (pieces) => `Go ahead and wear it as a ${orList(pieces)}.`,
+      good: (pieces) => `Easy as a main piece of your outfit: ${orList(pieces)}.`,
+      conditional: (pieces, pair) => `If you wear it, keep it as a second color: ${orList(pieces)}.${pair ? ` Keep ${pair} near your face.` : ''}`,
+      weak: (pieces, pair) => `If you like it, move it away from your face: ${orList(pieces)}.${pair ? ` Keep ${pair} near your face instead.` : ''}`,
+      outside: (pieces, pair) => `If you still love it, use it away from your face: ${orList(pieces)}.${pair ? ` If it's a top, keep ${pair} near your face to balance it.` : ''}`,
+    },
+    reference: { match: 'In your palette', compare: 'Nearest palette color, for comparison' },
     groups: { best: 'Best color', accents: 'Accent color', neutrals: 'Neutral' },
-    resembles: (name) => `In this photo it is also close to ${name}, one of your more considered colors.`,
-    placementHeading: 'Where to wear it',
-    tiers: { best: 'Best here', good: 'Works well', easiest: 'Easiest here', care: 'Use with care' },
+    resembles: (name) => `In this photo it is also close to ${name}, a color that suits you better away from your face.`,
+    placementHeading: { positive: 'Where it works best', middle: 'How to make it work', negative: 'If you still want to wear it' },
+    tiers: { best: 'Wear it here', good: 'Also works', easiest: 'Easiest here', care: 'Less ideal' },
     areas: {
       'near-face': 'Near your face', 'larger-pieces': 'Larger pieces', base: 'Main or base pieces',
       layers: 'A second color or layer', 'below-face': 'Below the face', accents: 'Accessories and small accents',
     },
     pairing: {
-      around: { heading: 'Try it with', body: 'Palette colors that go well with it.' },
-      'near-face': { heading: 'Pair it with', body: 'Wear one of these closer to your face.' },
+      around: { heading: 'Goes well with', body: 'Palette colors that pair nicely with it.' },
+      'near-face': { heading: 'If you like it, keep one of these near your face', body: 'A color from your palette closer to your face will suit you better.' },
     },
     direction: (name, parts) => `A little ${parts.join(' and ')} than ${name}.`,
     directions: { lighter: 'lighter', deeper: 'deeper', brighter: 'brighter', muted: 'more muted', warmer: 'warmer', cooler: 'cooler' },

@@ -10,18 +10,19 @@ import type { PhotoColorMatch, PhotoMatchCategory } from './types'
 // No prose here: the UI renders these keys through i18n.
 
 // How comfortable the placement is. Not a score and not ordered numerically.
-// best     "Best here"        the colour's natural home
-// good     "Works well"       comfortable as well
+// (EN labels as of Slice 5c)
+// best     "Wear it here"     the colour's natural home
+// good     "Also works"       comfortable as well
 // easiest  "Easiest here"     the simplest way to use a colour that is less natural near the face
-// care     "Use with care"    fine when a palette colour is placed nearer the face
+// care     "Less ideal"       works only with a palette colour placed nearer the face
 export type PlacementTier = 'best' | 'good' | 'easiest' | 'care'
 
 // Where on the body / outfit, independent of presentation.
 export type PlacementArea = 'near-face' | 'larger-pieces' | 'base' | 'layers' | 'below-face' | 'accents'
 
 // How the UI frames match.pairWith:
-// around     "Try it with": general companions (near-face, neutral-base)
-// near-face  "Put one of these closer to your face" (related, away-from-face, outside)
+// around     "Goes well with": general companions (near-face, neutral-base)
+// near-face  "If you like it, keep one of these near your face" (related, away-from-face, outside)
 export type PairingAdvice = 'around' | 'near-face'
 
 export interface PlacementRow {

@@ -663,7 +663,7 @@ describe('accessibility and localization', () => {
     expect(feedback().querySelector('.photo-summary')).toHaveAttribute('role', 'status')
     expect(feedback()).toHaveTextContent(copy.instruction)
     tapStage(200, 150)
-    expect(feedback()).toHaveTextContent(`${copy.sampleLabel}${BEST}${copy.categories['near-face']}`)
+    expect(feedback().querySelector('.photo-summary')).toHaveTextContent(`${copy.sampleLabel}${BEST}✨${copy.verdicts.strong}${copy.categories['near-face']}`)
   })
 
   it('renders Thai copy for the whole flow', async () => {
@@ -709,12 +709,17 @@ describe('Slice 5b guidance inside the panel', () => {
     const photo = canvas()
     tapStage(100, 150)
     expect(feedback()).toHaveTextContent(copy.categories['near-face'])
+    expect(feedback().querySelector('.photo-verdict')).toHaveTextContent(copy.verdicts.strong)
     expect(document.querySelectorAll('.photo-guidance')).toHaveLength(1)
     expect(feedback().querySelector('.photo-pairing h2')).toHaveTextContent(copy.pairing.around.heading)
     const firstCard = document.querySelector('.photo-guidance')
     tapStage(300, 150)
     expect(feedback()).toHaveTextContent(copy.categories['away-from-face'])
     expect(feedback()).not.toHaveTextContent(copy.categories['near-face'])
+    // Slice 5c: the verdict flips from positive to negative with the new tap; only one verdict is shown.
+    expect(feedback().querySelector('.photo-verdict')).toHaveTextContent(copy.verdicts.weak)
+    expect(feedback()).not.toHaveTextContent(copy.verdicts.strong)
+    expect(document.querySelectorAll('.photo-verdict')).toHaveLength(1)
     expect(document.querySelectorAll('.photo-guidance')).toHaveLength(1)
     expect(document.querySelector('.photo-guidance')).not.toBe(firstCard)
     expect(feedback().querySelector('.photo-pairing h2')).toHaveTextContent(copy.pairing['near-face'].heading)

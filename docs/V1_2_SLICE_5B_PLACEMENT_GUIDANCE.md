@@ -4,6 +4,10 @@ Status: **done in automated and headless-browser checks. Real-phone QA and a Tha
 review are still open.** This slice replaces the compact Slice 5a feedback with a full result card
 that answers *"how can I use this color?"*
 
+> **Superseded in part by [Slice 5c](V1_2_SLICE_5C_VERDICT_CLARITY.md).** The card now opens with a clear verdict
+> ("is this colour good for me?"), and the 5b rule that all copy must sound positive is withdrawn. The placement
+> model below is unchanged. The card order and copy in §6, §10, §11 and §15 describe 5b as shipped.
+
 Files:
 - [placement.ts](../src/domain/photoColor/placement.ts): the pure placement model.
 - [PhotoResultCard.tsx](../src/photoChecker/PhotoResultCard.tsx): the result area (live summary and guidance card).

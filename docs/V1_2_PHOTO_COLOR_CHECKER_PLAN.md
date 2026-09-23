@@ -488,6 +488,23 @@ Durable clarifications:
 - **Layout:** stacked below 900 px. From 900 px the photo and result sit side by side.
 - **Live region:** only the summary (HEX, category and warnings) is announced, not the whole card.
 
+**UX correction in Slice 5c** ([record](V1_2_SLICE_5C_VERDICT_CLARITY.md)), from real-use feedback that the 5b result was too neutral:
+- **Verdict first.** The card answers "is this colour good for me?" before placement. The order is verdict → why → where to use it → what to pair it with.
+- **Verdict levels are a 1:1 relabelling of the five engine categories** (`getSuitability`):
+  - near-face → strong, "Excellent for your Personal Color"
+  - neutral-base → good
+  - related → conditional, "Wearable, but not one of your strongest colors"
+  - away-from-face → weak, "Not ideal near your face"
+  - outside → "not recommended"
+
+  They group into positive / middle / negative tones. This is not a score, and no threshold or category changed.
+- **5b's "never sound negative" copy rule is withdrawn.** Clear negative recommendations are allowed. Harsh language
+  ("never wear", "looks bad", "wrong colour") is still banned.
+- **Placement stays but changes role:** "where is it strongest?" for positive verdicts, "how can I still use it?" otherwise.
+  Weaker results frame pairings as rescue guidance, and the nearest palette colour is labelled "for comparison".
+- **Every result has one action sentence** built from the placement examples and the first `pairWith` colour.
+- **The live region now also reads the verdict.**
+
 ### 11.2 No percentage
 The existing manual checker shows `"{n}% palette fit"` from `exp(-7.2·d)`. That number is a
 monotone transform of a distance, **not calibrated against any observation**. For photo input it
@@ -769,7 +786,7 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **3. Image service** — **done** (see the Slice 3 note). The contract is simplified to `PixelSource`, and `AbortSignal` is supported. | `services/photoImage.ts`, `photoImageHeader.ts` | mocked-global unit tests | – | Caps, error codes, cleanup verified | UI |
 | **4. Integration core + coordinates** — **done** (see the Slice 4 note). Pure geometry and tap → sample → match glue, with no UI. The panel and surface below move to Slice 5. | `coordinates.ts`, `inspect.ts` | unit + synthetic end-to-end | geometry, DPR, boundaries, warnings | Bundle unchanged | UI |
 | **5a. Panel + surface** (was 4) — **done** (see the Slice 5a note). It shows compact feedback only (swatch, HEX, category, warnings); the result card is 5b. | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |
-| **5b. Result card + copy** — **done** (see the Slice 5b note in §11.1). Placement guidance, not detection. The Thai-speaker review is still open. | `PhotoResultCard.tsx`, `placement.ts`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
+| **5b. Result card + copy** — **done** (see the Slice 5b note in §11.1). Placement guidance, not detection. **5c verdict clarity pass done** (verdict first; see §11.1). The Thai-speaker review is still open. | `PhotoResultCard.tsx`, `placement.ts`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
 | **6. Hardening** | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
 | **7. Capacitor readiness check** (when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |
 

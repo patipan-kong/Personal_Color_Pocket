@@ -304,11 +304,23 @@ h1, h2, h3, p { text-wrap: pretty; }
 .photo-feedback { display: grid; gap: 16px; min-width: 0; min-height: 64px; align-content: start; }
 .photo-instruction, .photo-unavailable { margin: 0; color: var(--muted); line-height: 1.5; }
 .photo-unavailable { color: var(--ink); font-weight: 650; }
-.photo-sample { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: center; }
-.photo-swatch { width: 64px; height: 64px; border-radius: 16px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.photo-result { display: grid; gap: 10px; justify-items: start; min-width: 0; }
+.photo-sample { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; }
+.photo-swatch { width: 52px; height: 52px; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
 .photo-sample small { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 800; }
-.photo-hex { display: block; margin: 2px 0 6px; font-family: ui-monospace, monospace; font-size: 1.1rem; }
-.photo-category { font-size: .9rem; }
+.photo-hex { display: block; margin-top: 2px; font-family: ui-monospace, monospace; font-size: 1.05rem; }
+/* Slice 5c verdict: the largest text on the card. Tone styling only reinforces the words. */
+.photo-verdict { margin: 0; display: flex; gap: 10px; align-items: flex-start; color: var(--ink); font-size: clamp(1.18rem, 1.05rem + .6vw, 1.4rem); font-weight: 800; line-height: 1.3; letter-spacing: -.01em; }
+.photo-verdict-mark { flex: none; display: grid; place-items: center; width: 1.55em; height: 1.55em; margin-top: -.08em; border-radius: 50%; font-size: .82em; line-height: 1; }
+.photo-tone-positive .photo-verdict { color: var(--accent-ink); }
+.photo-tone-positive .photo-verdict-mark { background: var(--accent); color: #fff; }
+.photo-tone-middle .photo-verdict-mark { box-shadow: inset 0 0 0 2px var(--muted); color: var(--muted); }
+.photo-tone-negative .photo-verdict-mark { background: #e9e1dd; color: #4a3a40; box-shadow: inset 0 0 0 1px rgba(64,33,45,.2); }
+.photo-category { font-size: .8rem; padding: 5px 10px; }
+.photo-tone-middle .photo-category, .photo-tone-negative .photo-category { background: rgba(64,33,45,.07); color: var(--muted); }
+.photo-why { display: grid; gap: 6px; }
+.photo-reason { margin: 0; color: var(--ink); line-height: 1.5; }
+.photo-action { margin: 0; padding: 10px 12px; border-radius: 14px; background: rgba(64,33,45,.05); color: var(--ink); font-weight: 650; line-height: 1.5; }
 .photo-guidance { display: grid; gap: 14px; min-width: 0; }
 .photo-guidance .color-chip { max-width: 100%; }
 .photo-reference { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; color: var(--muted); font-size: .86rem; }
