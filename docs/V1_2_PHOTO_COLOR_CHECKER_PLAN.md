@@ -408,6 +408,20 @@ This avoids binary good/bad in several ways. An 'outside' color still gets place
 companions. A neutral is its own positive category. 'away-from-face' names a specific
 similar Harder color instead of a verdict.
 
+**Implemented in Slice 2** as `matchPhotoColor(sample, subtype)` in `src/domain/photoColor/photoMatch.ts`.
+Details and calibration are in [V1_2_SLICE_2_PHOTO_MATCH_ENGINE.md](V1_2_SLICE_2_PHOTO_MATCH_ENGINE.md).
+`T_CLOSE`, `T_RELATED` and `kL` were kept at the values above.
+
+Durable clarifications:
+1. A positive color wins "close" only if it is at least as near as the nearest Harder color.
+2. The distance splits Δa/Δb into ΔC and ΔH. The hue term is weighted 0 when the less chromatic color has
+   chroma ≤ 0.01, and 1 when it has chroma ≥ 0.02. For chromatic colors this is exactly the formula above,
+   but grey/white/black samples can no longer change their answer with hue noise. The distance therefore
+   lives in `photoMatch.ts`, and `colorUtils` only gained `oklabChroma`, `oklabHue` and `hueDifference`
+   (no `weightedColorDistance`).
+3. `placement.ts` moves to Slice 5, because it needs the presentation preference and copy. Its inputs,
+   `category` and `nearest.group`, are already in the result.
+
 ### 10.4 What is *not* claimed
 - Nothing about the physical garment, only the photographed color (§12).
 - No probability or percentage (§11.2).
@@ -711,7 +725,7 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 |---|---|---|---|---|---|
 | **0. Device spike** — desktop portion **done** (§22). The dev-only harness is kept in `spikes/photo-device-spike/` for the physical-phone portion. | A minimal HTML page: file input → createImageBitmap → 1600 px canvas → tap → print trimmed-mean HEX | scratch only | manual | Measured decode time/memory for 12 MP and 48 MP on a mid Android. HEIC/HEIF behaviour recorded on Android Chrome and iOS Safari. Orientation correct. | any product code |
 | **1. Pure sampling** — **done** (sampling engine only, see the Slice 1 note). `coordinates.ts` moves to Slice 4, and the matching helpers (weighted distance, chroma, hue) move to Slice 2. | `coordinates.ts`, `sampling.ts`, `photoColor/types.ts`, colorUtils additions | unit + fixtures | all §17 sampling/coordinate tests | Deterministic, no DOM imports, thresholds as named constants | UI, matching |
-| **2. Match engine** | `photoMatch.ts`, `placement.ts`, export `pairingSuggestions` | unit: per-subtype table, lighting robustness, `checkColor` regression snapshot | – | All 12 subtypes pass the table and robustness tests. Manual checker is byte-identical. | copy |
+| **2. Match engine** — **done** (see the Slice 2 note). The manual checker is frozen by `colorMatch.regression.test.ts`, and `placement.ts` moves to Slice 5. | `photoMatch.ts`, `placement.ts`, export `pairingSuggestions` | unit: per-subtype table, lighting robustness, `checkColor` regression snapshot | – | All 12 subtypes pass the table and robustness tests. Manual checker is byte-identical. | copy |
 | **3. Image service** | `services/photoImage.ts` | mocked-global unit tests | – | Caps, error codes, cleanup verified | UI |
 | **4. Panel + surface** | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |
 | **5. Result card + copy** | `PhotoResultCard.tsx`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |

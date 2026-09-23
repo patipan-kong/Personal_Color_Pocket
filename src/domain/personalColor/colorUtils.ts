@@ -55,6 +55,22 @@ export function colorDistance(first: OKLab, second: OKLab) {
   return Math.sqrt((first.l - second.l) ** 2 + (first.a - second.a) ** 2 + (first.b - second.b) ** 2)
 }
 
+export function oklabChroma({ a, b }: OKLab) {
+  return Math.hypot(a, b)
+}
+
+// Hue angle in degrees, [0, 360). Meaningless for near-neutral colors: callers must gate on chroma.
+export function oklabHue({ a, b }: OKLab) {
+  const degrees = Math.atan2(b, a) * 180 / Math.PI
+  return degrees < 0 ? degrees + 360 : degrees
+}
+
+// Signed shortest rotation from `from` to `to` in degrees, in (-180, 180]. 359° → 1° is +2°.
+export function hueDifference(from: number, to: number) {
+  const difference = (((to - from) % 360) + 540) % 360 - 180
+  return difference === -180 ? 180 : difference
+}
+
 export function hexColorDistance(first: string, second: string) {
   const firstLab = hexToOklab(first)
   const secondLab = hexToOklab(second)

@@ -12,7 +12,7 @@ function closest(hex: string, colors: PaletteColor[], count = 1) {
     .slice(0, count)
 }
 
-function pairingSuggestions(hex: string, subtype: Subtype) {
+export function pairingSuggestions(hex: string, subtype: Subtype) {
   const palette = getPalette(subtype)
   const pools = [palette.neutrals, palette.best, palette.accents]
   const selected: PaletteColor[] = []

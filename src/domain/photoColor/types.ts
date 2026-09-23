@@ -1,4 +1,5 @@
 import type { OKLab, RGB } from '../personalColor/colorUtils'
+import type { PaletteColor, Subtype } from '../personalColor/types'
 
 // Working-image pixels in canvas `getImageData` layout: row-major, 4 bytes (R, G, B, A) per
 // pixel, non-premultiplied sRGB. Structurally compatible with the DOM `ImageData`, but the
@@ -56,3 +57,44 @@ export interface PhotoSampleUnavailable {
 }
 
 export type PhotoSampleResult = PhotoColorSample | PhotoSampleUnavailable
+
+// ---- Photo match (Slice 2, plan §10.3) ----
+
+// Ordered from "wear it anywhere" to "outside the palette" (plan §11.1 labels):
+// near-face      → "Great near your face"        (close to a Best or Accent color)
+// neutral-base   → "Easy neutral"                (close to a Neutral)
+// related        → "Works with care"             (in the palette's neighbourhood)
+// away-from-face → "Better away from your face"  (resembles a Harder color)
+// outside        → "Outside your palette"
+export type PhotoMatchCategory = 'near-face' | 'neutral-base' | 'related' | 'away-from-face' | 'outside'
+
+export type PositivePaletteGroup = 'best' | 'accents' | 'neutrals'
+
+// How the photographed color differs from its nearest palette color (plan §10.3 "direction").
+export type PhotoMatchDirection = 'lighter' | 'deeper' | 'brighter' | 'muted' | 'warmer' | 'cooler'
+
+export interface PhotoMatchDescriptors {
+  value: 'light' | 'medium' | 'deep'
+  clarity: 'soft' | 'moderate' | 'clear'
+}
+
+export interface PhotoColorMatch {
+  subtype: Subtype
+  hex: string
+  oklab: OKLab
+  category: PhotoMatchCategory
+  // Nearest Best / Accent / Neutral color. Always present, even for 'outside'.
+  nearest: { color: PaletteColor; group: PositivePaletteGroup; distance: number }
+  // Nearest Harder color, only when it is genuinely close (≤ PHOTO_RELATED_DISTANCE).
+  resembles: { color: PaletteColor; distance: number } | null
+  closest: Record<PositivePaletteGroup, PaletteColor>
+  // Sample minus nearest: OKLab L, OKLab chroma, and signed hue rotation in degrees
+  // (null when either color is too close to neutral for hue to mean anything).
+  difference: { lightness: number; chroma: number; hue: number | null }
+  // Up to 2 notable differences, largest first. Empty for near-face / neutral-base.
+  direction: PhotoMatchDirection[]
+  descriptors: PhotoMatchDescriptors
+  pairWith: PaletteColor[]
+  // Sampling flags carried through unchanged. They never change the category.
+  warnings: SampleFlag[]
+}
