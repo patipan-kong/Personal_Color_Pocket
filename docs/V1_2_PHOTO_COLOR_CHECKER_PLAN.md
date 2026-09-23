@@ -437,7 +437,8 @@ Durable clarifications:
    lives in `photoMatch.ts`, and `colorUtils` only gained `oklabChroma`, `oklabHue` and `hueDifference`
    (no `weightedColorDistance`).
 3. `placement.ts` moves to Slice 5, because it needs the presentation preference and copy. Its inputs,
-   `category` and `nearest.group`, are already in the result.
+   `category` and `nearest.group`, are already in the result. **Built in Slice 5b** as
+   `getColorPlacement(match, presentation)`. It reads `category` only (`nearest.group` was not needed).
 
 ### 10.4 What is *not* claimed
 - Nothing about the physical garment, only the photographed color (§12).
@@ -472,6 +473,20 @@ Durable clarifications:
 - The photo tips list.
 - An "Open in manual checker" link that pre-fills the HEX (cheap and useful: the typed-HEX
   path then shows the existing detailed result).
+
+**As built in Slice 5b** ([record](V1_2_SLICE_5B_PLACEMENT_GUIDANCE.md)), durable decisions:
+- **Placement, not detection.** Guidance answers "where does this colour work best?" from the match category
+  and the presentation preference only. The app never detects, segments or labels what was tapped, and
+  `getColorPlacement` has no input for it.
+- **Placement model:** each category maps to tiers (best / good / easiest / care) × areas (near face, larger
+  pieces, base, layers, below the face, accents). Pairing is framed as "try it with" (near-face, neutral-base)
+  or "wear one of these closer to your face" (related, away-from-face, outside). There is no score or rank.
+- **Presentation only changes example garments**, from the shared `GarmentNounKey` vocabulary. Men never get
+  dress, skirt or blouse.
+- **Nothing is hidden in a `<details>` block.** Direction and descriptors are quiet lines, and `pairWith` is
+  shown directly. The per-group "closest" colours, tips list and manual-checker link are not built (Q3 stays open).
+- **Layout:** stacked below 900 px. From 900 px the photo and result sit side by side.
+- **Live region:** only the summary (HEX, category and warnings) is announced, not the whole card.
 
 ### 11.2 No percentage
 The existing manual checker shows `"{n}% palette fit"` from `exp(-7.2·d)`. That number is a
@@ -574,6 +589,8 @@ during a check, and Application → Storage shows no new keys).
   photo" fails or is cancelled, return focus to the picker button.
 - Warnings use text + icon and are included in the live region.
 - Marker ring: a two-tone (white + dark) outline, so it stays visible on any fabric color.
+- *Slice 5b:* the photo's focus ring and keyboard hint show only after keyboard input. In Chrome, focus moved by
+  script during a tap also matches `:focus-visible`, so the surface tracks the last input type.
 
 ### 14.2 Localization structure
 Add **one** typed section, `LocaleCopy['photoChecker']`, so the compiler enforces TH/EN parity:
@@ -666,7 +683,7 @@ flowchart TB
 | `domain/photoColor/inspect.ts` | **Slice 4:** `inspectPhotoTap(image, tap, subtype)` / `inspectPhotoPoint(image, point, subtype)` → `outside-displayed-image` \| `unavailable` \| `matched {sample, match}`. Glue only. | `coordinates`, `sampling`, `photoMatch` | contain colour math, infer the subtype |
 | `domain/photoColor/sampling.ts` | `samplePatch(source, center, radius)` → `PhotoSample`. Thresholds live here as named constants. | `colorUtils` | know about canvas or File |
 | `domain/photoColor/photoMatch.ts` | `classifyPhotoColor(sample.oklab, subtype)` → `PhotoMatchResult` {category, nearest, resembles?, direction[], descriptors, pairWith} | `colorUtils`, `palettes`, `colorMatch.pairingSuggestions` | be imported by `scoring.ts` / `diagnostics.ts` (same isolation rule as `styleGuide.ts`) |
-| `domain/photoColor/placement.ts` | `placementsFor(category, group, preference)` → `StyleCategoryKey[]` | `styleGuide` types | contain prose |
+| `domain/photoColor/placement.ts` | **As built in Slice 5b:** `getColorPlacement(match, presentation)` → `{ category, rows: { tier, areas, examples: GarmentNounKey[] }[], pairing }`. Reads `match.category` only. | `styleGuide` types | contain prose, accept any detection/garment input, score |
 | `domain/photoColor/types.ts` | `PixelSource`, `PhotoSample`, `SampleFlag`, `PhotoMatchCategory`, `PhotoMatchResult` | `personalColor/types` | – |
 | `services/photoImage.ts` (+ pure `photoImageHeader.ts`) | **As built in Slice 3:** `openPhoto(file, { signal? }) → Promise<PixelSource>`, which rejects with `PhotoImageError { code }`. The codes are `file-too-large`, `image-too-large`, `invalid-image`, `unsupported-format`, `unsupported-heic`, `decode-failed`, `canvas-failed` and `aborted`. It retains nothing: no `drawTo`/`dispose` (see §4) | browser APIs only | import domain matching, persist anything, log |
 | `photoChecker/*.tsx` | UI state machine: `idle → preparing → ready(sample?) → error` | the above + i18n | do color math inline |
@@ -752,7 +769,7 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **3. Image service** — **done** (see the Slice 3 note). The contract is simplified to `PixelSource`, and `AbortSignal` is supported. | `services/photoImage.ts`, `photoImageHeader.ts` | mocked-global unit tests | – | Caps, error codes, cleanup verified | UI |
 | **4. Integration core + coordinates** — **done** (see the Slice 4 note). Pure geometry and tap → sample → match glue, with no UI. The panel and surface below move to Slice 5. | `coordinates.ts`, `inspect.ts` | unit + synthetic end-to-end | geometry, DPR, boundaries, warnings | Bundle unchanged | UI |
 | **5a. Panel + surface** (was 4) — **done** (see the Slice 5a note). It shows compact feedback only (swatch, HEX, category, warnings); the result card is 5b. | `photoChecker/PhotoCheckerPanel.tsx`, `PhotoSurface.tsx`, CheckerView mode tabs, CSS | RTL with mocked service | pick, tap, keyboard, reset, errors | Works end-to-end in dev on a phone. The manual checker is the default and unchanged. | result polish |
-| **5b. Result card + copy** | `PhotoResultCard.tsx`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
+| **5b. Result card + copy** — **done** (see the Slice 5b note in §11.1). Placement guidance, not detection. The Thai-speaker review is still open. | `PhotoResultCard.tsx`, `placement.ts`, `photoChecker` i18n section EN + TH | RTL: categories, reason, details, TH/EN | – | Every category/warning/error has EN + TH copy reviewed by a Thai speaker. No percentage anywhere. | history |
 | **6. Hardening** | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
 | **7. Capacitor readiness check** (when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |
 

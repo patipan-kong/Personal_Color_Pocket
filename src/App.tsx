@@ -577,7 +577,7 @@ function PaletteView({ copy, language, result, presentationPreference, onPresent
   </main>
 }
 
-function CheckerView({ copy, language, result }: { copy: LocaleCopy; language: Language; result: PersonalColorResult }) {
+function CheckerView({ copy, language, result, presentationPreference }: { copy: LocaleCopy; language: Language; result: PersonalColorResult; presentationPreference: PresentationPreference }) {
   const definition = copy.subtypes[result.subtype]
   const [picker, setPicker] = useState(getPalette(result.subtype).best[0].hex)
   const [input, setInput] = useState(picker)
@@ -595,7 +595,7 @@ function CheckerView({ copy, language, result }: { copy: LocaleCopy; language: L
     <div className="palette-tabs checker-modes" role="tablist" aria-label={copy.photoChecker.modeAria}>
       {modes.map(([key, label]) => <button key={key} type="button" role="tab" id={`checker-tab-${key}`} aria-selected={mode === key} aria-controls={`checker-tabpanel-${key}`} className={mode === key ? 'active' : ''} onClick={() => setMode(key)}>{label}</button>)}
     </div>
-    {mode === 'photo' && <div id="checker-tabpanel-photo" role="tabpanel" aria-labelledby="checker-tab-photo"><PhotoCheckerPanel copy={copy.photoChecker} subtype={result.subtype} /></div>}
+    {mode === 'photo' && <div id="checker-tabpanel-photo" role="tabpanel" aria-labelledby="checker-tab-photo"><PhotoCheckerPanel copy={copy.photoChecker} garments={copy.styleExamples.garments} language={language} presentation={presentationPreference} subtype={result.subtype} /></div>}
     {mode === 'manual' && <div id="checker-tabpanel-manual" role="tabpanel" aria-labelledby="checker-tab-manual">
     <section className="checker-workspace">
       <form className="color-form" onSubmit={submit}>
@@ -664,7 +664,7 @@ export default function App() {
     {view === 'quiz' && <Quiz copy={copy} answers={answers} step={quizStep} presentationPreference={presentationPreference ?? 'women'} onAnswer={(questionId, answerId) => setAnswers((current) => ({ ...current, [questionId]: answerId }))} onStep={(next) => setQuizStep(Math.max(0, Math.min(quizQuestions.length - 1, next)))} onComplete={completeQuiz} />}
     {view === 'result' && result && <ResultView copy={copy} language={language} result={result} answers={answers} showDiagnostics={showDiagnostics} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} onPalette={() => void changeView('palette')} onRetake={() => setConfirmRetake(true)} />}
     {view === 'palette' && result && <PaletteView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} />}
-    {view === 'checker' && result && <CheckerView copy={copy} language={language} result={result} />}
+    {view === 'checker' && result && <CheckerView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} />}
     {result && view !== 'quiz' && view !== 'presentation' && <BottomNav copy={copy} view={view} onView={(next) => void changeView(next)} />}
     {confirmRetake && <RetakeDialog copy={copy} onCancel={() => setConfirmRetake(false)} onConfirm={retake} />}
   </div>

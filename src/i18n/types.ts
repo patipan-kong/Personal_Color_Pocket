@@ -1,7 +1,8 @@
 import type { ConfidenceLabel, DimensionKey, MatchRating, QuizOptionIds, QuizQuestionId, Subtype } from '../domain/personalColor/types'
 import type { QuizVisualLabelKey } from '../domain/personalColor/quizVisuals'
 import type { GarmentNounKey, StyleCategoryKey } from '../domain/personalColor/styleGuide'
-import type { PhotoMatchCategory, SampleFlag, SampleUnavailableReason } from '../domain/photoColor/types'
+import type { PairingAdvice, PlacementArea, PlacementTier } from '../domain/photoColor/placement'
+import type { PhotoMatchCategory, PhotoMatchDescriptors, PhotoMatchDirection, PositivePaletteGroup, SampleFlag, SampleUnavailableReason } from '../domain/photoColor/types'
 import type { PhotoImageErrorCode } from '../services/photoImage'
 
 export type Language = 'en' | 'th'
@@ -144,6 +145,19 @@ export interface LocaleCopy {
     warnings: Record<SampleFlag, string>
     unavailable: Record<SampleUnavailableReason, string>
     errors: Record<Exclude<PhotoImageErrorCode, 'aborted'>, string>
+    // Slice 5b result card. Colour and garment names come from colorDisplayName / styleExamples.garments.
+    nearestLabel: string
+    groups: Record<PositivePaletteGroup, string>
+    resembles: (colorName: string) => string
+    placementHeading: string
+    tiers: Record<PlacementTier, string>
+    areas: Record<PlacementArea, string>
+    pairing: Record<PairingAdvice, { heading: string; body: string }>
+    direction: (colorName: string, parts: string[]) => string
+    directions: Record<PhotoMatchDirection, string>
+    descriptorsLabel: string
+    descriptors: { value: Record<PhotoMatchDescriptors['value'], string>; clarity: Record<PhotoMatchDescriptors['clarity'], string> }
+    caveat: string
   }
   nav: { aria: string; colors: string; palette: string; checker: string }
   dialog: { title: string; body: string; cancel: string; confirm: string }

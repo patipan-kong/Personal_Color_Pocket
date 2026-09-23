@@ -18,6 +18,8 @@ export type StyleCategoryKey =
 export type GarmentNounKey =
   | 'shirt' | 'polo' | 'trousers' | 'chinos' | 'loafers' | 'sneakers' | 'jacket'
   | 'top' | 'blouse' | 'skirt' | 'dress' | 'bag' | 'accessory'
+  // Photo placement examples (V1.2 Slice 5b) share this vocabulary.
+  | 'tshirt' | 'scarf' | 'shoes' | 'belt'
 
 export interface StyleCategory {
   key: StyleCategoryKey

@@ -16,6 +16,8 @@ import { KEYBOARD_BIG_STEP_FACTOR, PREPARING_NOTICE_DELAY_MS, initialPhotoPanelS
 import panelSource from './PhotoCheckerPanel.tsx?raw'
 import surfaceSource from './PhotoSurface.tsx?raw'
 import stateSource from './photoPanelState.ts?raw'
+import cardSource from './PhotoResultCard.tsx?raw'
+import placementSource from '../domain/photoColor/placement.ts?raw'
 
 // The pipeline is mocked at the service boundary (jsdom cannot decode images). The pure
 // geometry and inspection code runs for real; inspect is wrapped only to observe delegation.
@@ -130,7 +132,10 @@ afterEach(() => {
   delete (URL as { createObjectURL?: unknown }).createObjectURL
 })
 
-const renderPanel = (subtype: Subtype = SUBTYPE, localized = copy) => render(<PhotoCheckerPanel copy={localized} subtype={subtype} />)
+const renderPanel = (subtype: Subtype = SUBTYPE, localized = copy) => {
+  const locale = localized === th.photoChecker ? th : en
+  return render(<PhotoCheckerPanel copy={localized} garments={locale.styleExamples.garments} language={locale === th ? 'th' : 'en'} presentation="women" subtype={subtype} />)
+}
 const picker = () => screen.getByLabelText(new RegExp(`^(${copy.choose}|${copy.change})$`)) as HTMLInputElement
 const stage = () => document.querySelector<HTMLElement>('.photo-stage')!
 const canvas = () => document.querySelector<HTMLCanvasElement>('.photo-canvas')!
@@ -655,7 +660,7 @@ describe('accessibility and localization', () => {
     await openReady(solid(400, 300, BEST), { width: 400, height: 300 })
     expect(screen.getByRole('group', { name: copy.surfaceLabel })).toBe(stage())
     expect(stage().tabIndex).toBe(0)
-    expect(feedback()).toHaveAttribute('role', 'status')
+    expect(feedback().querySelector('.photo-summary')).toHaveAttribute('role', 'status')
     expect(feedback()).toHaveTextContent(copy.instruction)
     tapStage(200, 150)
     expect(feedback()).toHaveTextContent(`${copy.sampleLabel}${BEST}${copy.categories['near-face']}`)
@@ -688,6 +693,97 @@ describe('accessibility and localization', () => {
   })
 })
 
+describe('Slice 5b guidance inside the panel', () => {
+  it('lays out photo and result as two blocks (stacked on mobile, side by side on desktop via CSS)', async () => {
+    renderPanel()
+    await openReady(solid(400, 300, BEST), { width: 400, height: 300 })
+    const layout = document.querySelector('.photo-layout')!
+    expect([...layout.children].map((child) => child.className)).toEqual(['photo-view', 'photo-feedback'])
+    expect(document.querySelector('.photo-view')!.contains(stage())).toBe(true)
+    expect(stage().nextElementSibling).toHaveClass('photo-hint')
+  })
+
+  it('a tap shows the full guidance; a new tap replaces it cleanly and keeps the photo', async () => {
+    renderPanel()
+    await openReady(split(1600, 1200, BEST, HARDER), { width: 400, height: 300 })
+    const photo = canvas()
+    tapStage(100, 150)
+    expect(feedback()).toHaveTextContent(copy.categories['near-face'])
+    expect(document.querySelectorAll('.photo-guidance')).toHaveLength(1)
+    expect(feedback().querySelector('.photo-pairing h2')).toHaveTextContent(copy.pairing.around.heading)
+    const firstCard = document.querySelector('.photo-guidance')
+    tapStage(300, 150)
+    expect(feedback()).toHaveTextContent(copy.categories['away-from-face'])
+    expect(feedback()).not.toHaveTextContent(copy.categories['near-face'])
+    expect(document.querySelectorAll('.photo-guidance')).toHaveLength(1)
+    expect(document.querySelector('.photo-guidance')).not.toBe(firstCard)
+    expect(feedback().querySelector('.photo-pairing h2')).toHaveTextContent(copy.pairing['near-face'].heading)
+    expect(canvas()).toBe(photo)
+    expect(openPhotoMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('moving the marker by keyboard removes the old guidance until Enter checks the new spot', async () => {
+    renderPanel()
+    await openReady(split(1600, 1200, BEST, HARDER), { width: 400, height: 300 })
+    tapStage(100, 150)
+    expect(document.querySelector('.photo-guidance')).not.toBeNull()
+    stage().focus()
+    fireEvent.keyDown(stage(), { key: 'ArrowRight' })
+    expect(document.querySelector('.photo-guidance')).toBeNull()
+    expect(feedback().querySelector('.photo-summary')).toHaveTextContent(copy.pending)
+    fireEvent.keyDown(stage(), { key: 'Enter' })
+    expect(document.querySelector('.photo-guidance')).not.toBeNull()
+  })
+
+  it('a real glare sample keeps its category, placement and pairings, with the warning after them', async () => {
+    renderPanel()
+    const width = 400
+    const image = solid(width, 300, BEST)
+    for (let row = 0; row < 300; row++) for (let col = 0; col < width; col++) if ((col * 7 + row * 13) % 10 < 4) image.data.set([255, 255, 255, 255], (row * width + col) * 4)
+    await openReady(image, { width: 400, height: 300 })
+    tapStage(200, 150)
+    const result = tapSpy.mock.results[0].value
+    expect(result.match.warnings).toContain('highlight')
+    expect(feedback().querySelector('.photo-category')).toHaveTextContent(copy.categories[result.match.category as keyof typeof copy.categories])
+    expect(feedback().querySelectorAll('.photo-place').length).toBeGreaterThan(0)
+    expect(feedback().querySelectorAll('.photo-pairs .color-chip')).toHaveLength(result.match.pairWith.length)
+    expect(feedback().querySelector('.photo-warnings')).toHaveTextContent(copy.warnings.highlight)
+  })
+
+  it('presentation changes example pieces only', async () => {
+    const { unmount } = render(<PhotoCheckerPanel copy={copy} garments={en.styleExamples.garments} language="en" presentation="men" subtype={SUBTYPE} />)
+    await openReady(solid(400, 300, BEST), { width: 400, height: 300 })
+    tapStage(200, 150)
+    const men = {
+      category: feedback().querySelector('.photo-category')!.textContent,
+      areas: [...document.querySelectorAll('.photo-place span')].map((node) => node.textContent),
+      examples: [...document.querySelectorAll('.photo-place small')].map((node) => node.textContent).join(' | '),
+    }
+    unmount()
+    renderPanel()
+    await openReady(solid(400, 300, BEST), { width: 400, height: 300 })
+    tapStage(200, 150)
+    expect(feedback().querySelector('.photo-category')!.textContent).toBe(men.category)
+    expect([...document.querySelectorAll('.photo-place span')].map((node) => node.textContent)).toEqual(men.areas)
+    expect([...document.querySelectorAll('.photo-place small')].map((node) => node.textContent).join(' | ')).not.toBe(men.examples)
+    expect(men.examples).not.toMatch(/Dress|Skirt|Blouse/)
+  })
+})
+
+describe('focus styling by input type', () => {
+  it('marks pointer focus so the ring and keyboard hint are kept for keyboard use', async () => {
+    renderPanel()
+    await openReady(solid(400, 300, BEST), { width: 400, height: 300 })
+    expect(stage()).toHaveAttribute('data-input', 'keyboard')
+    fireEvent.pointerDown(stage(), { isPrimary: true, pointerType: 'touch' })
+    tapStage(200, 150)
+    expect(document.activeElement).toBe(stage())
+    expect(stage()).toHaveAttribute('data-input', 'pointer')
+    fireEvent.keyDown(stage(), { key: 'ArrowLeft' })
+    expect(stage()).toHaveAttribute('data-input', 'keyboard')
+  })
+})
+
 describe('privacy', () => {
   it('stores nothing and makes no network request during a full photo flow', async () => {
     localStorage.setItem('personal-color-pocket:v1', '{"keep":true}')
@@ -707,7 +803,7 @@ describe('privacy', () => {
   })
 
   it('has no storage, network, URL or colour-math code of its own', () => {
-    for (const source of [panelSource, surfaceSource, stateSource]) {
+    for (const source of [panelSource, surfaceSource, stateSource, cardSource, placementSource]) {
       const code = source.replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
       for (const forbidden of ['localStorage', 'sessionStorage', 'indexedDB', 'fetch', 'XMLHttpRequest', 'sendBeacon', 'createObjectURL', 'FileReader', 'getImageData', 'devicePixelRatio', 'samplePhotoRegion', 'matchPhotoColor', 'rgbToOklab', 'console']) {
         expect(code, forbidden).not.toMatch(new RegExp(`\\b${forbidden}\\b`))

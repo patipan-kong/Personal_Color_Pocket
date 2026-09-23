@@ -96,6 +96,7 @@ export const en: LocaleCopy = {
     garments: {
       shirt: 'Shirt', polo: 'Polo', trousers: 'Trousers', chinos: 'Chinos', loafers: 'Loafers', sneakers: 'Sneakers', jacket: 'Jacket',
       top: 'Top', blouse: 'Blouse', skirt: 'Skirt', dress: 'Dress', bag: 'Bag', accessory: 'Accessory',
+      tshirt: 'T-shirt', scarf: 'Scarf', shoes: 'Shoes', belt: 'Belt',
     },
     combinationsHeading: 'Outfit combinations',
     teaserTitle: 'Try these colors on me', teaserBadge: 'Coming later',
@@ -110,7 +111,7 @@ export const en: LocaleCopy = {
   photoChecker: {
     modeAria: 'How to check a color', modes: { manual: 'Manual', photo: 'Photo' },
     choose: 'Choose a photo', change: 'Choose another photo', privacy: 'Your photo stays on this device.',
-    preparing: 'Preparing photo…', instruction: 'Tap the main color of the garment.', surfaceLabel: 'Photo to check',
+    preparing: 'Preparing photo…', instruction: 'Tap any color in the photo to see where it works best.', surfaceLabel: 'Photo to check',
     keyboardHint: 'Keyboard: press Enter to check the center, use the arrow keys to move the marker (hold Shift to move further), then press Enter to check.',
     pending: 'Press Enter to check this spot.', sampleLabel: 'Color at this spot',
     categories: {
@@ -118,9 +119,9 @@ export const en: LocaleCopy = {
       'away-from-face': 'Better away from your face', outside: 'Outside your palette',
     },
     warnings: {
-      mixed: 'Mixed colors here. Try a solid area.',
-      highlight: 'Bright glare here. The color may look lighter.',
-      shadow: 'Deep shadow here. The color may look darker.',
+      mixed: 'This spot mixes several colors. Try a more even area.',
+      highlight: 'Strong light may make this color look lighter than it is.',
+      shadow: 'Shadow may make this color look darker than it is.',
     },
     unavailable: {
       transparent: 'This spot is transparent. Tap a visible part of the photo.',
@@ -136,6 +137,24 @@ export const en: LocaleCopy = {
       'decode-failed': "This photo couldn't be opened. Try another photo.",
       'canvas-failed': "This device couldn't prepare the photo. Try again, or choose a smaller photo.",
     },
+    nearestLabel: 'Closest in your palette',
+    groups: { best: 'Best color', accents: 'Accent color', neutrals: 'Neutral' },
+    resembles: (name) => `In this photo it is also close to ${name}, one of your more considered colors.`,
+    placementHeading: 'Where to wear it',
+    tiers: { best: 'Best here', good: 'Works well', easiest: 'Easiest here', care: 'Use with care' },
+    areas: {
+      'near-face': 'Near your face', 'larger-pieces': 'Larger pieces', base: 'Main or base pieces',
+      layers: 'A second color or layer', 'below-face': 'Below the face', accents: 'Accessories and small accents',
+    },
+    pairing: {
+      around: { heading: 'Try it with', body: 'Palette colors that go well with it.' },
+      'near-face': { heading: 'Pair it with', body: 'Wear one of these closer to your face.' },
+    },
+    direction: (name, parts) => `A little ${parts.join(' and ')} than ${name}.`,
+    directions: { lighter: 'lighter', deeper: 'deeper', brighter: 'brighter', muted: 'more muted', warmer: 'warmer', cooler: 'cooler' },
+    descriptorsLabel: 'Color character',
+    descriptors: { value: { light: 'Light', medium: 'Medium', deep: 'Deep' }, clarity: { soft: 'Soft', moderate: 'Moderate', clear: 'Clear' } },
+    caveat: 'Based on how the color appears in this photo.',
   },
   nav: { aria: 'Main navigation', colors: 'My Colors', palette: 'Palette', checker: 'Color Checker' },
   dialog: {

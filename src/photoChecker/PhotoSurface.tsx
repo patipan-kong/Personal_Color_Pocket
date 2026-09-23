@@ -26,6 +26,9 @@ export function PhotoSurface({ image, marker, label, describedBy, onTap, onKey, 
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [box, setBox] = useState<Size | null>(null)
+  // Last input used on the photo. Focus moved by script in pointerdown matches :focus-visible in
+  // Chrome, so CSS uses this to keep the focus ring and keyboard hint for keyboard use only.
+  const [input, setInput] = useState<'keyboard' | 'pointer'>('keyboard')
   const paintFailed = useRef(onPaintFailed)
   paintFailed.current = onPaintFailed
 
@@ -81,6 +84,7 @@ export function PhotoSurface({ image, marker, label, describedBy, onTap, onKey, 
   }
 
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    setInput('keyboard')
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       onKey({ type: 'check' })
@@ -105,10 +109,11 @@ export function PhotoSurface({ image, marker, label, describedBy, onTap, onKey, 
     role="group"
     aria-label={label}
     aria-describedby={describedBy}
+    data-input={input}
     // Focus on press (so keyboard use can follow a tap) without letting focus scroll the page
     // between pointerdown and pointerup, which would move the photo under the finger. Desktop
     // Chrome does not scroll here either way; this guards other engines (device QA item).
-    onPointerDown={(event) => event.currentTarget.focus({ preventScroll: true })}
+    onPointerDown={(event) => { setInput('pointer'); event.currentTarget.focus({ preventScroll: true }) }}
     onPointerUp={pointerUp}
     onKeyDown={keyDown}
   >

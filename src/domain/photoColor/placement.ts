@@ -1,0 +1,102 @@
+import type { GarmentNounKey } from '../personalColor/styleGuide'
+import type { PresentationPreference } from '../../services/presentationPreference'
+import type { PhotoColorMatch, PhotoMatchCategory } from './types'
+
+// V1.2 colour placement (Slice 5b): "given this photographed colour and the user's subtype,
+// where does it work best?" Pure and deterministic. It reads only the match CATEGORY that the
+// photo match engine already decided, plus the presentation preference, which chooses example
+// garments and nothing else. There is deliberately no input for what was tapped: no garment
+// type, label, box, mask or confidence. A shirt and a bag of the same colour get the same answer.
+// No prose here: the UI renders these keys through i18n.
+
+// How comfortable the placement is. Not a score and not ordered numerically.
+// best     "Best here"        the colour's natural home
+// good     "Works well"       comfortable as well
+// easiest  "Easiest here"     the simplest way to use a colour that is less natural near the face
+// care     "Use with care"    fine when a palette colour is placed nearer the face
+export type PlacementTier = 'best' | 'good' | 'easiest' | 'care'
+
+// Where on the body / outfit, independent of presentation.
+export type PlacementArea = 'near-face' | 'larger-pieces' | 'base' | 'layers' | 'below-face' | 'accents'
+
+// How the UI frames match.pairWith:
+// around     "Try it with": general companions (near-face, neutral-base)
+// near-face  "Put one of these closer to your face" (related, away-from-face, outside)
+export type PairingAdvice = 'around' | 'near-face'
+
+export interface PlacementRow {
+  tier: PlacementTier
+  areas: PlacementArea[]
+  // Example pieces for this presentation, reusing the style guide's garment vocabulary.
+  examples: GarmentNounKey[]
+}
+
+export interface ColorPlacement {
+  category: PhotoMatchCategory
+  rows: PlacementRow[]
+  pairing: PairingAdvice
+}
+
+interface RowPlan {
+  tier: PlacementTier
+  areas: PlacementArea[]
+  examples: Record<PresentationPreference, GarmentNounKey[]>
+}
+
+// Presentation-specific examples for "near the face". Men never get dress/skirt examples.
+const NEAR_FACE: Record<PresentationPreference, GarmentNounKey[]> = { women: ['top', 'scarf'], men: ['shirt', 'tshirt'] }
+
+const PLANS: Record<PhotoMatchCategory, { rows: RowPlan[]; pairing: PairingAdvice }> = {
+  // One of the safer colours to wear close to the face, and fine everywhere else too.
+  'near-face': {
+    rows: [
+      { tier: 'best', areas: ['near-face'], examples: { women: ['top', 'blouse', 'scarf', 'jacket'], men: ['shirt', 'tshirt', 'polo', 'jacket'] } },
+      { tier: 'good', areas: ['larger-pieces', 'accents'], examples: { women: ['dress', 'skirt', 'bag'], men: ['trousers', 'bag', 'shoes'] } },
+    ],
+    pairing: 'around',
+  },
+  // An easy foundation. Not downgraded for being neutral: it also works near the face.
+  'neutral-base': {
+    rows: [
+      { tier: 'best', areas: ['base'], examples: { women: ['trousers', 'skirt', 'jacket', 'bag'], men: ['trousers', 'jacket', 'shoes', 'bag'] } },
+      { tier: 'good', areas: ['near-face'], examples: NEAR_FACE },
+    ],
+    pairing: 'around',
+  },
+  // Usable; placement and pairing make it easier.
+  related: {
+    rows: [
+      { tier: 'good', areas: ['layers'], examples: { women: ['jacket', 'skirt', 'bag'], men: ['jacket', 'trousers', 'bag'] } },
+      { tier: 'care', areas: ['near-face'], examples: NEAR_FACE },
+    ],
+    pairing: 'near-face',
+  },
+  // Still wearable: easiest below the face, with a palette colour nearer the face.
+  'away-from-face': {
+    rows: [
+      { tier: 'easiest', areas: ['below-face', 'accents'], examples: { women: ['skirt', 'trousers', 'shoes', 'bag'], men: ['trousers', 'belt', 'shoes', 'bag'] } },
+      { tier: 'care', areas: ['near-face'], examples: NEAR_FACE },
+    ],
+    pairing: 'near-face',
+  },
+  // Not a prohibition: easiest in small or lower placements, paired with a palette colour.
+  outside: {
+    rows: [
+      { tier: 'easiest', areas: ['accents', 'below-face'], examples: { women: ['bag', 'shoes', 'accessory', 'skirt'], men: ['bag', 'shoes', 'belt', 'trousers'] } },
+      { tier: 'care', areas: ['near-face'], examples: NEAR_FACE },
+    ],
+    pairing: 'near-face',
+  },
+}
+
+// The whole placement model: one table lookup. Only `match.category` is read from the match;
+// `presentation` picks the example garments and cannot change tiers, areas or pairing.
+export function getColorPlacement(match: Pick<PhotoColorMatch, 'category'>, presentation: PresentationPreference): ColorPlacement {
+  const plan = PLANS[match.category]
+  if (!plan) throw new RangeError(`Unknown photo match category: ${String(match.category)}`)
+  return {
+    category: match.category,
+    rows: plan.rows.map(({ tier, areas, examples }) => ({ tier, areas: [...areas], examples: [...examples[presentation]] })),
+    pairing: plan.pairing,
+  }
+}

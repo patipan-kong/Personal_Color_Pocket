@@ -1,20 +1,27 @@
 import { useEffect, useId, useReducer, useRef } from 'react'
 import type { ChangeEvent } from 'react'
-import { readableTextColor } from '../domain/personalColor/colorUtils'
 import type { Subtype } from '../domain/personalColor/types'
 import { inspectPhotoPoint, inspectPhotoTap } from '../domain/photoColor/inspect'
 import type { DisplayTap } from '../domain/photoColor/types'
-import type { LocaleCopy } from '../i18n'
+import type { Language, LocaleCopy } from '../i18n'
 import { openPhoto, PhotoImageError } from '../services/photoImage'
+import type { PresentationPreference } from '../services/presentationPreference'
+import { PhotoFeedback } from './PhotoResultCard'
 import { PhotoSurface } from './PhotoSurface'
 import type { SurfaceKeyIntent } from './PhotoSurface'
 import { imageCenter, initialPhotoPanelState, nudgePoint, photoPanelReducer, PREPARING_NOTICE_DELAY_MS } from './photoPanelState'
-import type { PhotoSelection } from './photoPanelState'
 
 // V1.2 Photo Checker panel (Slice 5a): choose a local photo, prepare it with openPhoto, show it,
-// and inspect a tapped or keyboard-chosen spot against the user's saved subtype. Nothing here
-// is persisted or sent anywhere; closing the panel drops the photo.
-export function PhotoCheckerPanel({ copy, subtype }: { copy: LocaleCopy['photoChecker']; subtype: Subtype }) {
+// and inspect a tapped or keyboard-chosen spot against the user's saved subtype. Slice 5b adds
+// the placement guidance card. Nothing here is persisted or sent anywhere; closing the panel
+// drops the photo. The presentation preference only changes example garments in the card.
+export function PhotoCheckerPanel({ copy, garments, language, presentation, subtype }: {
+  copy: LocaleCopy['photoChecker']
+  garments: LocaleCopy['styleExamples']['garments']
+  language: Language
+  presentation: PresentationPreference
+  subtype: Subtype
+}) {
   const [state, dispatch] = useReducer(photoPanelReducer, initialPhotoPanelState)
   // Identity of the latest selection. Only completions carrying this id may dispatch, because an
   // in-progress browser decode can still finish after its AbortSignal fired.
@@ -90,41 +97,21 @@ export function PhotoCheckerPanel({ copy, subtype }: { copy: LocaleCopy['photoCh
       <p role="status">{state.slow ? copy.preparing : ''}</p>
     </div>}
     {state.status === 'error' && <p className="photo-error" role="alert">{copy.errors[state.code]}</p>}
-    {ready && <>
-      <PhotoSurface
-        key={state.request}
-        image={state.image}
-        marker={state.selection?.point ?? null}
-        label={copy.surfaceLabel}
-        describedBy={hintId}
-        onTap={tap}
-        onKey={key}
-        onPaintFailed={() => dispatch({ type: 'failed', request: state.request, code: 'canvas-failed' })}
-      />
-      <p id={hintId} className="photo-hint">{copy.keyboardHint}</p>
-      <div className="photo-feedback" role="status">
-        <PhotoFeedback copy={copy} selection={state.selection} />
+    {ready && <div className="photo-layout">
+      <div className="photo-view">
+        <PhotoSurface
+          key={state.request}
+          image={state.image}
+          marker={state.selection?.point ?? null}
+          label={copy.surfaceLabel}
+          describedBy={hintId}
+          onTap={tap}
+          onKey={key}
+          onPaintFailed={() => dispatch({ type: 'failed', request: state.request, code: 'canvas-failed' })}
+        />
+        <p id={hintId} className="photo-hint">{copy.keyboardHint}</p>
       </div>
-    </>}
+      <PhotoFeedback copy={copy} garments={garments} language={language} presentation={presentation} selection={state.selection} />
+    </div>}
   </section>
-}
-
-// Deliberately compact (Slice 5a): enough to prove the interaction. The rich guidance card is Slice 5b.
-function PhotoFeedback({ copy, selection }: { copy: LocaleCopy['photoChecker']; selection: PhotoSelection | null }) {
-  if (!selection) return <p className="photo-instruction">{copy.instruction}</p>
-  const { inspection } = selection
-  if (!inspection) return <p className="photo-instruction">{copy.pending}</p>
-  if (inspection.kind === 'unavailable') return <p className="photo-unavailable">{copy.unavailable[inspection.reason]}</p>
-  const { hex } = inspection.sample
-  return <div className="photo-sample">
-    <span className="photo-swatch" style={{ background: hex, color: readableTextColor(hex) }} aria-hidden="true" />
-    <div>
-      <small>{copy.sampleLabel}</small>
-      <strong className="photo-hex">{hex}</strong>
-      <p className="rating">{copy.categories[inspection.match.category]}</p>
-      {inspection.match.warnings.length > 0 && <ul className="photo-warnings">
-        {inspection.match.warnings.map((flag) => <li key={flag}>{copy.warnings[flag]}</li>)}
-      </ul>}
-    </div>
-  </div>
 }

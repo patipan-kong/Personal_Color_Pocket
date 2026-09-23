@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
 import { hexToRgb } from '../domain/personalColor/colorUtils'
+import { getPalette } from '../domain/personalColor/palettes'
 import { analyzeQuiz } from '../domain/personalColor/scoring'
 import { inspectPhotoTap } from '../domain/photoColor/inspect'
 import type { PixelSource } from '../domain/photoColor/types'
@@ -144,5 +145,21 @@ describe('Color Checker modes', () => {
     await user.click(manualTab())
     expect(localStorage.getItem(STORAGE_KEY)).toBe(saved)
     expect(Object.keys(localStorage).sort()).toEqual([STORAGE_KEY, 'personal-color-pocket:language'].sort())
+  })
+
+  it('shows placement guidance using the saved presentation, without persisting anything new', async () => {
+    localStorage.setItem('personal-color-pocket:presentation:v1', 'men')
+    const before = { ...localStorage }
+    const user = await openChecker()
+    await user.click(photoTab())
+    openPhotoMock.mockResolvedValueOnce(solid(400, 300, getPalette(result.subtype).harder[0].hex))
+    await user.upload(screen.getByLabelText('Choose a photo'), new File(['x'], 'a.jpg', { type: 'image/jpeg' }))
+    await act(async () => {})
+    fireEvent.pointerUp(document.querySelector('.photo-stage')!, { clientX: 200, clientY: 150, isPrimary: true, pointerType: 'touch' })
+    expect(screen.getByRole('region', { name: 'Where to wear it' })).toBeInTheDocument()
+    expect(document.querySelector('.photo-placement')!.textContent).not.toMatch(/Dress|Skirt|Blouse/)
+    expect(document.querySelector('.photo-placement')!.textContent).toMatch(/Shirt|T-shirt|Trousers/)
+    expect(screen.getByText('Based on how the color appears in this photo.')).toBeInTheDocument()
+    expect({ ...localStorage }).toEqual(before)
   })
 })
