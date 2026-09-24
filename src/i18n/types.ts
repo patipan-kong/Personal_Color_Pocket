@@ -186,6 +186,8 @@ export interface LocaleCopy {
     weekdays: Record<LuckyWeekday, string>
     framing: string
     goalPrompt: string
+    goalLimit: string
+    goalSeparator: string
     goals: Record<LuckyGoal, string>
     resultEyebrow: string
     familyLabel: string

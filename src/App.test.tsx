@@ -37,7 +37,8 @@ describe('primary product flow', () => {
     render(<App />)
     await user.click(screen.getByRole('button', { name: /today's lucky color/i }))
     expect(screen.getByRole('heading', { name: /what should i wear today/i })).toBeInTheDocument()
-    expect(screen.getAllByRole('radio')).toHaveLength(4)
+    expect(document.querySelectorAll('[data-daily-goal]')).toHaveLength(4)
+    expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('can complete all eleven quiz questions with keyboard controls', async () => {

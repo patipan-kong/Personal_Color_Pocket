@@ -1,6 +1,6 @@
 # Personal Color Pocket — V1.3 Daily Lucky Color Outfit: Plan
 
-**Status:** Slice 4 Daily experience UI is complete. Slice 5 deterministic garment-board visuals remain unimplemented.
+**Status:** Slice 4 Daily experience UI and Slice 4.1 multi-goal extension are complete. Slice 5 deterministic garment-board visuals remain unimplemented.
 
 ## Purpose and product boundary
 
@@ -25,7 +25,7 @@ They must remain separate in code and copy. In particular, a lucky `green` rule 
 | Decision | V1.3 rule |
 |---|---|
 | Domain system | The 7-day **daily shirt-colour** table documented in `V1_3_SLICE_0_DOMAIN_RESEARCH.md`, whose four product categories correspond to Taksa positions. It is distinct from a person’s birth-day Taksa reading and from annual zodiac tables. |
-| Goals | One goal: Work, Money, Luck & opportunity, or Mentor support. Love is not a V1.3 goal because the chosen source system has no independent traditional love position. |
+| Goals | One or two goals: Work, Money, Luck & opportunity, or Mentor support. Love is not a V1.3 goal because the chosen source system has no independent traditional love position. |
 | Weekday | Seven civil weekdays. Wednesday is one day; do not ask for time of birth or split daily Wednesday. |
 | Avoid colours | Preserve `กาลกิณี` as provenance data, but do not show an avoid-colour warning or use it to make an outfit alarming in V1.3. |
 | Date | Client/device-local calendar date and weekday; recompute at the device’s midnight. No backend, GPS, weather, location permission, notification, or manual date picker. |
@@ -99,7 +99,7 @@ Suggested Thai / English copy:
 
 | Moment | Thai | English |
 |---|---|---|
-| Goal prompt | วันนี้อยากเน้นเรื่องไหน? | What would you like to focus on today? |
+| Goal prompt | วันนี้อยากเน้นเรื่องไหน? เลือกได้สูงสุด 2 เรื่อง | What would you like to focus on today? Choose up to 2. |
 | Framing | สีแนะนำวันนี้อ้างอิงความเชื่อเรื่องสีมงคล และปรับให้เข้ากับ Personal Color ของคุณ | Today’s colour is inspired by Thai lucky-colour traditions and adapted for your Personal Color. |
 | No profile | เลือกโทนที่คุณชอบได้เลย หรือทำแบบทดสอบเพื่อรับคำแนะนำเฉดและตำแหน่งที่เข้ากับคุณ | Choose a shade you enjoy, or take the quiz for a more personal shade and placement. |
 | Disclosure | เกี่ยวกับสีมงคลวันนี้ | About today’s lucky colours |
@@ -123,6 +123,7 @@ V1.2’s `describeColor()` returns a stable, local structured name `{ family, gr
 | 2 | Personal Color adaptation | **Complete:** structured V1.2 family mapping, curated same-family candidate ladder, explicit accessory fallback, and exhaustive 120-combination tests. |
 | 3 | Outfit recommendation composition | **Complete:** pure personalized/general outfit structure, Slice 2 placement reuse, curated supports, semantic accessory fallback, and exhaustive audits. |
 | 4 | Daily experience UI | **Complete:** goal selector, local day/rollover orchestration, typed TH/EN copy, local goal preference, semantic family tokens, no-profile CTA, and source disclosure. |
+| 4.1 | Multi-goal Daily selection and composition | **Complete:** one-or-two selection, migrated local preference, order-independent dual-rule composition, same-family provenance collapse, dual personalized/general outfit claims, and accessibility semantics. This is an extension after the historical Slice 4 record; it does not rewrite that record. |
 | 5 | Deterministic outfit visual/card | CSS/SVG board and accessible text alternative; no generative asset. |
 | 6 | Localization, accessibility, and edge cases | TH/EN parity, midnight refresh, source disclosure, storage/date failure paths. |
 | 7 | Hardening and real-use QA | Rule provenance audit, visual review, regression and product closure. |

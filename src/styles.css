@@ -64,18 +64,22 @@ h1, h2, h3, p { text-wrap: pretty; }
 .daily-framing { margin: 0; color: var(--muted); font-size: .92rem; line-height: 1.55; }
 .daily-goals { border: 1px solid var(--line); border-radius: 24px; padding: clamp(18px, 4vw, 28px); background: rgba(255,250,244,.72); }
 .daily-goals h2 { margin: 0 0 16px; font-size: clamp(1.25rem, 3vw, 1.65rem); letter-spacing: -.03em; }
+.daily-goal-limit { margin: -8px 0 14px; color: var(--muted); font-size: .83rem; font-weight: 750; }
 .daily-goal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .daily-goal-grid button { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 14px; border: 1px solid var(--line); border-radius: 14px; background: #fffdfa; color: var(--ink); font-weight: 750; text-align: left; }
-.daily-goal-grid button[aria-checked="true"] { border: 2px solid var(--accent); padding: 10px 13px; background: color-mix(in srgb, var(--accent-soft) 46%, white); }
+.daily-goal-grid button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 10px 13px; background: color-mix(in srgb, var(--accent-soft) 46%, white); }
 .daily-goal-grid button span { color: var(--accent); opacity: 0; font-weight: 900; }
-.daily-goal-grid button[aria-checked="true"] span { opacity: 1; }
+.daily-goal-grid button[aria-pressed="true"] span { opacity: 1; }
 .daily-result { margin-top: 20px; padding: clamp(22px, 4vw, 34px); border-radius: 24px; background: var(--accent); color: #fff; }
 .daily-result .section-number { color: rgba(255,255,255,.7); }
+.daily-family-list { display: grid; gap: 20px; }
+.daily-family-claim + .daily-family-claim { padding-top: 20px; border-top: 1px solid rgba(255,255,255,.24); }
 .daily-family-heading { display: flex; align-items: center; gap: 15px; }
 .daily-family-heading > i { flex: 0 0 52px; width: 52px; height: 52px; border: 3px solid rgba(255,255,255,.7); border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
 .daily-family-heading h2 { margin: 0; font-size: clamp(2rem, 5vw, 3.25rem); letter-spacing: -.045em; line-height: 1; }
 .daily-family-heading p { margin: 5px 0 0; font-size: .78rem; font-weight: 700; color: rgba(255,255,255,.74); text-transform: uppercase; letter-spacing: .08em; }
-.daily-shade, .daily-profile, .daily-placement-note, .daily-general p { margin: 18px 0 0; line-height: 1.5; }
+.daily-goal-provenance { margin: 9px 0 0; font-weight: 800; color: rgba(255,255,255,.9); }
+.daily-shade, .daily-profile, .daily-placement-note, .daily-general p { margin: 12px 0 0; line-height: 1.5; }
 .daily-shade { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
 .daily-shade span { font-size: .8rem; color: rgba(255,255,255,.72); }
 .daily-general { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
@@ -89,7 +93,7 @@ h1, h2, h3, p { text-wrap: pretty; }
 .daily-piece h3 { margin: 0 0 5px; font-size: .82rem; text-transform: uppercase; letter-spacing: .09em; }
 .daily-piece-color { display: flex; gap: 8px; align-items: center; font-weight: 720; }
 .daily-piece-color i { width: 19px; height: 19px; border: 1px solid rgba(35,20,26,.25); border-radius: 50%; }
-.daily-lucky-badge, .daily-supporting-label { flex: 0 0 auto; border-radius: 999px; padding: 5px 8px; font-size: .7rem; font-weight: 850; white-space: nowrap; }
+.daily-lucky-badge, .daily-supporting-label { flex: 0 1 auto; border-radius: 999px; padding: 5px 8px; font-size: .7rem; font-weight: 850; white-space: normal; text-align: center; }
 .daily-lucky-badge { background: var(--accent); color: #fff; }
 .daily-supporting-label { color: var(--muted); background: rgba(92,63,74,.08); }
 .daily-sources { margin: 0 0 30px; padding: 17px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; line-height: 1.55; }
