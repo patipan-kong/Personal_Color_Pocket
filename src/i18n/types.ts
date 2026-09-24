@@ -104,6 +104,8 @@ export interface LocaleCopy {
     tabsAria: string
     summaryHeading: string
     harderTips: [string, string, string, string]
+    // V1.4 Slice 4: the More Considered section's link to its Learn guide.
+    learnCta: string
   }
   styleExamples: {
     heading: string
@@ -130,6 +132,8 @@ export interface LocaleCopy {
     check: string
     hexError: string
     hexExample: string
+    // V1.4 Slice 4: the photo mode's link to the Color Checker guide in Learn.
+    photoLearnCta: string
     // Slice 5d: the manual result uses the shared colorResult card. These are the manual-only parts.
     sampleLabel: string
     // One reason per existing manual rating, reworded from the V1.1 matchReason. No colour is named:

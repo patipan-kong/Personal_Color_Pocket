@@ -88,6 +88,7 @@ export const en: LocaleCopy = {
       'Pair it with one of your best colors to bring it back into balance.',
       'None of these are forbidden -- they just take a little more thought to wear well.',
     ],
+    learnCta: 'How to wear More Considered colors',
   },
   styleExamples: {
     heading: 'Style examples', intro: 'See your season on a real outfit, then build your own from the exact palette above.',
@@ -113,7 +114,7 @@ export const en: LocaleCopy = {
     eyebrow: (name) => `Your ${name} lens`, title: 'Does this color suit me?',
     intro: 'Pick any color and see how it relates to your saved palette.', choose: 'Choose a color',
     hexLabel: 'Or enter a HEX value', check: 'Check', hexError: 'Enter 3 or 6 HEX characters.',
-    hexExample: 'Example: D98463', sampleLabel: 'Selected color',
+    hexExample: 'Example: D98463', sampleLabel: 'Selected color', photoLearnCta: 'Why can photo colors shift?',
     why: {
       'Great Match': 'It sits right among the colors recommended for you, so it works beautifully near your face.',
       'Good Match': 'It has a similar feel to the colors in your palette, so it should look harmonious on you.',

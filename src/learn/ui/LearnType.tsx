@@ -1,7 +1,7 @@
 import type { ReactNode, RefObject } from 'react'
 import type { Subtype } from '../../domain/personalColor/types'
 import type { Language, LocaleCopy } from '../../i18n'
-import { subtypeGuide, typeDetailSections } from '..'
+import { subtypeGuide, typeDetailSections, typeOrientedNote } from '..'
 import type { LearnCopy, LearnProfile, PaletteColorGroupKey, SwatchGroup } from '..'
 import { BackButton } from './LearnReader'
 import { DimensionScales, OutfitFlatLay, Swatches, YourTypeMarker } from './LearnVisuals'
@@ -40,7 +40,8 @@ export function LearnTypePage({ copy, learn, language, subtype, profile, backLab
 }) {
   const guide = subtypeGuide(subtype, language)
   const detail = learn.typeDetail
-  // Only a marker: the palette and advice are identical whoever is looking.
+  // Only a marker: the palette and advice are identical whoever is looking. The one wording change is
+  // that a metal note addressed to "you" speaks about the type when it is not the reader's own (Slice 4).
   const mine = profile?.subtype === subtype
   const group = (key: PaletteColorGroupKey) => guide.groups.find((entry) => entry.group === key)!
   const nameOf = (key: PaletteColorGroupKey, id: string) => {
@@ -77,7 +78,7 @@ export function LearnTypePage({ copy, learn, language, subtype, profile, backLab
       <ul className="learn-metals">
         {guide.metals.items.map((metal, index) => <li key={metal.id}>
           <i aria-hidden="true" style={{ background: metal.hex }} />
-          <span><strong>{guide.metals.names[index]}</strong> {guide.metals.notes[index]}</span>
+          <span><strong>{guide.metals.names[index]}</strong> {mine ? guide.metals.notes[index] : typeOrientedNote(guide.metals.notes[index], language)}</span>
         </li>)}
       </ul>
     </section>,

@@ -9,7 +9,7 @@ import type { PersonalColorResult, Subtype } from '../../domain/personalColor/ty
 import { colorDisplayName, getCopy, metalDisplayNote } from '../../i18n'
 import type { Language } from '../../i18n'
 import { STORAGE_KEY } from '../../services/persistence'
-import { dimensionBand, dimensionBandOrder, dimensionExamples, dimensionOrder, getLearnCopy, paletteColorById, seasonGroups, typeDetailSections } from '..'
+import { dimensionBand, dimensionBandOrder, dimensionExamples, dimensionOrder, getLearnCopy, paletteColorById, seasonGroups, typeDetailSections, typeOrientedNote } from '..'
 import type { LearnEntry } from './LearnView'
 import { LearnView } from './LearnView'
 
@@ -176,9 +176,10 @@ describe('B/C. One template renders every type from canonical data', () => {
     const harder = root.querySelector<HTMLElement>('[data-learn-group="harder"]')!
     expect(harder.textContent).toBe([copy.palette.sections.harder.title, copy.palette.sections.harder.description, ...palette.harder.map((color) => colorDisplayName(language, color)), ...copy.palette.harderTips].join(''))
 
-    // Metals: the canonical two, with their existing notes.
+    // Metals: the canonical two, with their existing notes — worded about the type, since this browsed
+    // type is not the reader's own (Slice 4; the audit is in LearnGuides.test.tsx).
     const metals = [...root.querySelectorAll<HTMLElement>('[data-learn-group="metals"] li')]
-    expect(metals.map((metal) => metal.textContent)).toEqual(palette.metals.map((metal) => `${colorDisplayName(language, metal)} ${metalDisplayNote(language, metal)}`))
+    expect(metals.map((metal) => metal.textContent)).toEqual(palette.metals.map((metal) => `${colorDisplayName(language, metal)} ${typeOrientedNote(metalDisplayNote(language, metal), language)}`))
     expect(swatchColors(root, '[data-learn-group="metals"] li i')).toEqual(palette.metals.map((metal) => cssColor(metal.hex)))
 
     // Formula: the first Best, Neutral and Accent, named, with a decorative flat-lay in the same colours.

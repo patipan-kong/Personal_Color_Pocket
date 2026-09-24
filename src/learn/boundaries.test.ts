@@ -59,7 +59,7 @@ describe('R/E. Learn architecture boundaries', () => {
     expect(Object.keys(appSources)).toContain('../App.tsx')
     const users = Object.entries(appSources).flatMap(([path, source]) => specifiers(source).filter((specifier) => /(^|\/)learn(\/|$)/.test(specifier)).map((specifier) => `${path} -> ${specifier}`))
     expect(users).toEqual(['../App.tsx -> ./learn/ui/LearnView'])
-    expect(Object.keys(import.meta.glob(['./**/*.tsx', '!./**/*.test.tsx'])).sort()).toEqual(['./ui/LearnHome.tsx', './ui/LearnReader.tsx', './ui/LearnType.tsx', './ui/LearnView.tsx', './ui/LearnVisuals.tsx'])
+    expect(Object.keys(import.meta.glob(['./**/*.tsx', '!./**/*.test.tsx'])).sort()).toEqual(['./ui/LearnArt.tsx', './ui/LearnGuides.tsx', './ui/LearnHome.tsx', './ui/LearnReader.tsx', './ui/LearnType.tsx', './ui/LearnView.tsx', './ui/LearnVisuals.tsx'])
   })
 })
 

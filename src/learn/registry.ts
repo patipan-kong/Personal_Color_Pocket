@@ -2,6 +2,7 @@ import type { LearnGroupId, LearnPersonalization, LearnTopicId, LearnVisualKind 
 import type { TruthKind } from './sources'
 
 // The stable, language-independent P0 topic registry. Titles and prose live in content/{en,th}.ts.
+// `visual` is what the reader draws for a topic; Slice 4 gave More Considered and Lucky Color their own.
 
 export interface LearnTopicMeta {
   id: LearnTopicId
@@ -25,9 +26,9 @@ export const learnTopics: Readonly<Record<LearnTopicId, LearnTopicMeta>> = {
   'basics.dimensions': { id: 'basics.dimensions', group: 'basics', visual: 'dimension-scales', personalization: 'type-markers', truth: 'E' },
   'types.overview': { id: 'types.overview', group: 'basics', visual: 'subtype-grid', personalization: 'type-badge', truth: 'E' },
   'wear.palette': { id: 'wear.palette', group: 'wear', visual: 'garment-placement', personalization: 'own-colors', truth: 'E' },
-  'wear.harder': { id: 'wear.harder', group: 'wear', visual: 'garment-placement', personalization: 'own-colors', truth: 'E' },
+  'wear.harder': { id: 'wear.harder', group: 'wear', visual: 'placement-shift', personalization: 'own-colors', truth: 'E' },
   'app.color-checker': { id: 'app.color-checker', group: 'app', visual: 'lighting-comparison', personalization: 'checker-link', truth: 'E' },
-  'app.lucky': { id: 'app.lucky', group: 'app', visual: null, personalization: 'none', truth: 'E' },
+  'app.lucky': { id: 'app.lucky', group: 'app', visual: 'lucky-flow', personalization: 'none', truth: 'E' },
 }
 
 // At most two featured cards on the Learn home (plan §11); everything else is a list row.

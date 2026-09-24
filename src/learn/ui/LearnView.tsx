@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PersonalColorResult, Subtype } from '../../domain/personalColor/types'
 import type { Language, LocaleCopy } from '../../i18n'
-import { getLearnCopy, learnProfileFrom, learnSubtype } from '..'
+import { getLearnCopy, learnProfileFrom, learnSubtype, learnTopic } from '..'
 import type { LearnTopicId } from '..'
 import { LearnHome } from './LearnHome'
 import { LearnTopicPage } from './LearnReader'
@@ -11,8 +11,9 @@ import { LearnTypePage } from './LearnType'
 // and a visible in-app Back. Everything shown is derived from the props on every render: the profile
 // comes from the app's current result, never from storage.
 
-// Where the app may open Learn (Slice 3): its home, or one type's page (the Result screen's link).
-export type LearnEntry = { kind: 'home' } | { kind: 'type'; subtype: Subtype }
+// Where the app may open Learn: its home, one type's page (the Result screen's link, Slice 3), or one
+// P0 topic (the Palette and Checker links, Slice 4).
+export type LearnEntry = { kind: 'home' } | { kind: 'type'; subtype: Subtype } | { kind: 'topic'; topic: LearnTopicId }
 
 // `your-type` follows the app's result (the home hero's link); `type` is one type chosen by id (the
 // 12-type overview, or an app entry) and stays on that type whatever the result becomes.
@@ -27,10 +28,12 @@ interface ReturnPoint { page: LearnPage; scrollY: number; from: string }
 
 const pageKey = (page: LearnPage) => page.kind === 'topic' ? `topic:${page.topic}` : page.kind === 'type' ? `type:${page.subtype}` : page.kind
 
-// An unknown subtype opens the Learn home: Learn never guesses a replacement type.
+// An unknown subtype or topic opens the Learn home: Learn never guesses a replacement.
 function entryPage(entry: LearnEntry | undefined): LearnPage {
   const subtype = entry?.kind === 'type' ? learnSubtype(entry.subtype) : null
-  return subtype ? { kind: 'type', subtype } : { kind: 'home' }
+  if (subtype) return { kind: 'type', subtype }
+  const topic = entry?.kind === 'topic' ? learnTopic(entry.topic) : null
+  return topic ? { kind: 'topic', topic } : { kind: 'home' }
 }
 
 export function LearnView({ copy, language, result, entry, onQuiz, onPalette }: {
@@ -65,9 +68,10 @@ export function LearnView({ copy, language, result, entry, onQuiz, onPalette }: 
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false
-      // Opening Learn home from the app is handled by the app's own view change (top of page, focus
-      // kept). Opening straight at a type moves focus to its title, since the link that opened it is gone.
-      if (current.kind !== 'home') headingRef.current?.focus({ preventScroll: true })
+      // Opening Learn home from the nav or Welcome is handled by the app's own view change (top of page,
+      // focus kept). A contextual link (Result, Palette, Checker) is gone once Learn opens, so focus moves
+      // to the page title: the requested page's, or the home's if the request was not valid.
+      if (entry && entry.kind !== 'home') headingRef.current?.focus({ preventScroll: true })
       return
     }
     // Back returns to where the reader was on the parent page, focused on what they opened.

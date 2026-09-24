@@ -672,6 +672,80 @@ h1, h2, h3, p { text-wrap: pretty; }
   .result-learn-link { margin-top: -14px; }
 }
 
+/* V1.4 Slice 4: the practical illustrations. One frame, one 1.5 px line with round joins, the same
+   20 / 14 / 9 px corners and the same small tag, so palette placement, More Considered placement,
+   lighting and the lucky-colour flow read as one set. Canonical colours stay exactly as they are, with a
+   neutral hairline; the lighting casts and the lucky-colour tones are illustration colours, labelled so.
+   Layouts are sized in em, so under large text they drop to fewer columns instead of shrinking. */
+.learn-illus { container-type: inline-size; margin: 22px 0 0; padding: 16px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,253,250,.7); }
+.learn-illus-tag { margin: 0 0 12px; color: var(--muted); font-size: .8rem; font-weight: 800; letter-spacing: .06em; line-height: 1.4; text-transform: uppercase; }
+.language-th .learn-illus-tag { font-size: .84rem; letter-spacing: .01em; text-transform: none; }
+.learn-illus-caption { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; line-height: 1.5; }
+.learn-illus-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14em), 1fr)); gap: 16px; align-items: center; }
+.learn-flatlay-shape, .learn-flatlay-pendant { stroke: rgba(38,24,32,.3); stroke-width: 1.5; stroke-linejoin: round; }
+.learn-flatlay-shape.is-outline { fill: var(--cream); stroke-dasharray: 4 3; }
+.learn-flatlay-shape.is-tone { fill: var(--learn-tone-3); }
+.learn-flatlay-strap.is-outline { stroke: rgba(38,24,32,.3); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.learn-flatlay-chain { fill: none; stroke-width: 3; stroke-linecap: round; }
+.learn-illus li > i, .learn-roles i { box-shadow: inset 0 0 0 1px rgba(38,24,32,.2); }
+
+/* Palette placement: the zone near the face above the zone below it, then the roles in words. */
+.learn-zones { display: grid; }
+.learn-zone { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 8px 0; }
+.learn-zone + .learn-zone { border-top: 1px dashed color-mix(in srgb, var(--ink) 26%, transparent); }
+.learn-zone-label { flex: 1 1 5.5em; margin: 0; color: var(--accent-ink); font-size: .84rem; font-weight: 760; line-height: 1.3; }
+.learn-zone .learn-flatlay { flex: 2 1 8em; max-width: 13em; }
+.learn-roles li.is-considered i { outline: 1.5px dashed color-mix(in srgb, var(--ink) 40%, transparent); outline-offset: 2px; }
+
+/* More Considered: the two outfits side by side, stacked when there is no room. */
+.learn-shift { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 7em), 1fr)); gap: 10px; margin: 0 0 16px; padding: 0; list-style: none; }
+.learn-shift li { padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--cream); }
+.learn-shift .learn-flatlay { max-width: 11em; margin: 0 auto 8px; }
+.learn-shift p { margin: 0; font-size: .86rem; font-weight: 700; line-height: 1.4; }
+
+/* Color Checker: the two modes, then the four photo tiles (two by two, four across when wide). */
+.learn-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 11em), 1fr)); gap: 10px; margin: 0 0 16px; padding: 0; list-style: none; }
+.learn-modes li { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--cream); }
+.learn-mode-art { flex: none; width: 56px; height: auto; }
+.learn-mode-ring { fill: none; stroke: var(--accent-ink); stroke-width: 2; }
+.learn-modes p { margin: 0; font-size: .88rem; line-height: 1.45; }
+.learn-modes strong { display: block; }
+.learn-casts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px; margin: 0; padding: 0; list-style: none; }
+.learn-casts svg { display: block; width: 100%; height: auto; margin-bottom: 6px; }
+.learn-casts span { display: block; font-size: .82rem; line-height: 1.3; }
+.learn-cast-ground { fill: #e8e5e0; stroke: rgba(38,24,32,.18); stroke-width: 1; }
+.learn-cast-ground.is-context { fill: #c64a2e; }
+.learn-cast { mix-blend-mode: multiply; }
+.learn-cast.is-warm { fill: #f2a94e; opacity: .5; }
+.learn-cast.is-cool { fill: #7ea6e0; opacity: .5; }
+.learn-cast.is-shade { fill: #3a3d52; opacity: .5; }
+.learn-cast.is-context { fill: #c64a2e; opacity: .22; }
+@container (min-width: 30em) {
+  .learn-casts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* Lucky colours: family → shade → placement, in one illustration tone family. */
+.learn-illus.is-lucky-flow { --learn-tone-1: #e2eee0; --learn-tone-2: #bcd8b6; --learn-tone-3: #86b88c; --learn-tone-4: #4f8e63; --learn-tone-5: #2d5d45; }
+.learn-flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9em), 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; counter-reset: learn-flow; }
+.learn-flow li { counter-increment: learn-flow; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--cream); }
+.learn-flow li::before { content: counter(learn-flow); float: left; display: grid; place-items: center; width: 1.6em; height: 1.6em; margin: 0 10px 0 0; border-radius: 50%; background: var(--accent-ink); color: var(--cream); font-size: .8rem; font-weight: 800; }
+.learn-flow p { clear: left; margin: 10px 0 0; font-size: .88rem; line-height: 1.45; }
+.learn-flow strong { display: block; }
+.learn-tones { display: flex; align-items: flex-end; gap: 4px; height: 48px; }
+.learn-tones i { flex: 1; height: 34px; border-radius: 9px; box-shadow: inset 0 0 0 1px rgba(38,24,32,.18); }
+.learn-tones.is-picking i:not(.is-picked) { opacity: .3; }
+.learn-tones i.is-picked { height: 44px; outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+.learn-tones .is-tone-1 { background: var(--learn-tone-1); }
+.learn-tones .is-tone-2 { background: var(--learn-tone-2); }
+.learn-tones .is-tone-3 { background: var(--learn-tone-3); }
+.learn-tones .is-tone-4 { background: var(--learn-tone-4); }
+.learn-tones .is-tone-5 { background: var(--learn-tone-5); }
+.learn-flow .learn-flatlay { width: auto; height: 56px; margin-top: -8px; }
+
+/* The Palette and Checker links into Learn: text links, secondary to the screen's own task. */
+.palette-learn-link { margin: 10px 0 0 -14px; text-align: left; }
+.checker-learn-link { justify-self: start; margin: 4px 0 0 -14px; text-align: left; }
+
 @media (max-width: 760px) {
   .app-shell { padding: 0 20px 118px; }
   .brand-bar { min-height: 70px; }

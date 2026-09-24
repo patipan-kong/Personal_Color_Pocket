@@ -25,3 +25,7 @@ export const generalOutfitExample: Readonly<{ nearFace: PaletteColorId; base: Pa
   accent: 'soft-autumn-accent-1',
   moreConsidered: 'soft-autumn-harder-1',
 }
+
+// Slice 4: the garment in the Color Checker lighting illustration. The same for everyone: a very light,
+// low-chroma neutral, the kind of colour the checker's lighting note says photos shift most.
+export const lightingExample: PaletteColorId = 'light-summer-neutral-1'

@@ -50,7 +50,7 @@ export function LearnTopicPage({ copy, learn, language, profile, topic, backLabe
       <h1 ref={headingRef} tabIndex={-1}>{content.title}</h1>
       <p className="learn-answer">{content.answer}</p>
     </header>
-    <TopicVisual kind={learnTopics[topic].visual} learn={learn} language={language} profile={profile} onOpenType={onOpenType} />
+    <TopicVisual kind={learnTopics[topic].visual} copy={copy} learn={learn} language={language} profile={profile} onOpenType={onOpenType} />
     <section className="learn-level" aria-labelledby="learn-why">
       <h2 id="learn-why">{learn.reader.why}</h2>
       {content.why.map((block, index) => <Block key={index} block={block} copy={copy} guide={guide} />)}

@@ -3,6 +3,9 @@ import type { PaletteColor, Subtype } from '../../domain/personalColor/types'
 import type { Language } from '../../i18n'
 import { dimensionBandOrder, dimensionExamples, dimensionOrder, paletteColorById, seasonGroups, subtypeGuide } from '..'
 import type { DimensionPosition, LearnCopy, LearnProfile, LearnVisualKind, OutfitFormula } from '..'
+import { FlatLay } from './LearnArt'
+import { LightingGuide, LuckyFlow, PalettePlacement, PlacementShift } from './LearnGuides'
+import type { GuideProps } from './LearnGuides'
 
 // V1.4 Slice 3: Learn's visuals, drawn with CSS and inline SVG only. Every colour comes from canonical
 // palette data (a subtype's palette, or a Slice 1 palette-id example); positions come from the Slice 1
@@ -92,32 +95,36 @@ export function TypeGrid({ learn, language, profile, onOpenType }: {
 // the base) and a bag (an Accent in a small piece). Decorative: the formula list beside it names each
 // piece and colour.
 export function OutfitFlatLay({ formula }: { formula: OutfitFormula }) {
-  return <svg className="learn-flatlay" viewBox="0 0 200 150" aria-hidden="true" focusable="false">
-    <path className="learn-flatlay-piece" style={{ fill: formula.nearFace.hex }} d="M52 12 70 6c3 6 7 8 10 8s7-2 10-8l18 6 18 20-14 10-6-8v36H54V34l-6 8-14-10Z" />
-    <path className="learn-flatlay-piece" style={{ fill: formula.base.hex }} d="M56 76h48l4 68H87l-7-44-7 44H52Z" />
-    <path className="learn-flatlay-strap" style={{ stroke: formula.accent.hex }} d="M148 94c0-16 24-16 24 0" />
-    <rect className="learn-flatlay-piece" style={{ fill: formula.accent.hex }} x="138" y="92" width="44" height="36" rx="7" />
-  </svg>
+  return <FlatLay top={formula.nearFace} bottom={formula.base} bag={formula.accent} />
 }
 
-// Registry visual kind → drawing. Kinds without an entry (season strips, garment placement, lighting)
-// are drawn in Slice 4; until then their topics read as text only.
-export function TopicVisual({ kind, learn, language, profile, onOpenType }: {
-  kind: LearnVisualKind | null
-  learn: LearnCopy
-  language: Language
-  profile: LearnProfile | null
-  onOpenType: (subtype: Subtype) => void
-}) {
-  if (kind === 'subtype-grid') return <TypeGrid learn={learn} language={language} profile={profile} onOpenType={onOpenType} />
-  if (kind === 'dimension-scales') {
-    // With a result, the user's type is marked on each scale (the type's position, not their answers).
-    const guide = profile ? subtypeGuide(profile.subtype, language) : null
-    return <figure className="learn-figure">
-      <DimensionScales learn={learn} positions={guide?.position ?? null} examples
-        legend={guide && <><YourTypeMarker learn={learn} /> {guide.copy.name}</>} />
-      {guide && <figcaption className="learn-note">{learn.typeDetail.positionNote}</figcaption>}
-    </figure>
-  }
-  return null
+type VisualProps = GuideProps & { onOpenType: (subtype: Subtype) => void }
+
+// With a result, the user's type is marked on each scale (the type's position, not their answers).
+function DimensionsFigure({ learn, language, profile }: VisualProps) {
+  const guide = profile ? subtypeGuide(profile.subtype, language) : null
+  return <figure className="learn-figure">
+    <DimensionScales learn={learn} positions={guide?.position ?? null} examples
+      legend={guide && <><YourTypeMarker learn={learn} /> {guide.copy.name}</>} />
+    {guide && <figcaption className="learn-note">{learn.typeDetail.positionNote}</figcaption>}
+  </figure>
+}
+
+// Registry visual kind → drawing, for every kind: a topic gets its drawing only from its registry
+// `visual`, never from its id. Season strips and palette swatches have no topic drawing (the palette
+// swatches are drawn by the type page itself), so those topics read as text.
+const topicVisuals: Readonly<Record<LearnVisualKind, ((props: VisualProps) => ReactNode) | null>> = {
+  'season-strips': null,
+  'dimension-scales': DimensionsFigure,
+  'subtype-grid': TypeGrid,
+  'palette-swatches': null,
+  'garment-placement': PalettePlacement,
+  'placement-shift': PlacementShift,
+  'lighting-comparison': LightingGuide,
+  'lucky-flow': LuckyFlow,
+}
+
+export function TopicVisual({ kind, ...props }: VisualProps & { kind: LearnVisualKind | null }) {
+  const Visual = kind ? topicVisuals[kind] : null
+  return Visual ? <Visual {...props} /> : null
 }

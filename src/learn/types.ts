@@ -22,7 +22,9 @@ export type LearnVisualKind =
   | 'subtype-grid'        // 4 seasons x 3 types
   | 'palette-swatches'    // one type's palette groups
   | 'garment-placement'   // top / bottom / accessory flat-lay
+  | 'placement-shift'     // the same More Considered colour near the face, then lower and smaller (Slice 4)
   | 'lighting-comparison' // one swatch under warm, cool and shaded light, labelled as an illustration
+  | 'lucky-flow'          // lucky family → shade → placement, as a concept (Slice 4)
 
 // How a topic changes when the user has a result. Every topic still reads completely without one.
 export type LearnPersonalization =
@@ -92,5 +94,19 @@ export interface LearnCopy {
     yourType: string
     quizCta: string
     examplesCta: string
+    // Slice 4: how a type is referred to when the page is not the reader's own type ("this type's").
+    thisTypes: string
+  }
+  // Slice 4: the labels of the practical visuals. The lesson is carried by these words; the drawings
+  // beside them are decorative.
+  visuals: {
+    illustration: string
+    yourColors: string
+    exampleColors: string
+    placement: { nearFace: string; belowFace: string; metal: string; moreConsidered: string }
+    shift: { nearFace: string; moved: string; same: string }
+    // `manual` and `photo` describe the Checker's two modes; the mode names are the Checker's own.
+    lighting: { manual: string; photo: string; garment: string; warm: string; cool: string; shade: string; context: string; note: string }
+    lucky: { family: string; familyBody: string; shade: string; shadeBody: string; place: string; placeBody: string; note: string }
   }
 }

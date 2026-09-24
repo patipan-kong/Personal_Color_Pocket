@@ -1,6 +1,6 @@
 # V1.4 Learn — Personal Color Guide: Product Plan
 
-**Status:** Slices 0, 1 (content foundation, [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md)) 2 (Learn home and navigation, [V1_4_SLICE_2_LEARN_HOME_NAV.md](V1_4_SLICE_2_LEARN_HOME_NAV.md)) and 3 (types and type guide, [V1_4_SLICE_3_TYPE_GUIDE.md](V1_4_SLICE_3_TYPE_GUIDE.md)) are complete. Slice 4 is next.
+**Status:** Slices 0, 1 (content foundation, [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md)) 2 (Learn home and navigation, [V1_4_SLICE_2_LEARN_HOME_NAV.md](V1_4_SLICE_2_LEARN_HOME_NAV.md)), 3 (types and type guide, [V1_4_SLICE_3_TYPE_GUIDE.md](V1_4_SLICE_3_TYPE_GUIDE.md)) and 4 (practical guides, [V1_4_SLICE_4_PRACTICAL_GUIDES.md](V1_4_SLICE_4_PRACTICAL_GUIDES.md)) are complete. All P0 content and the three contextual links are done. Slice 5 (polish) is next.
 
 **PO decisions after Slice 0:**
 - **Q1:** Everyday Neutrals stays P1. Learn gets no access to the colour-naming module, its guard is unchanged, and neutral families are never inferred from colour names. Revisit only in Slice 4, if P0 is complete and there is a product reason; dropping the topic is acceptable.
@@ -325,8 +325,8 @@ Sources: reuse V1.3 frozen wording (`daily.framing`, `storyFamily`, `storyShade`
 2. **Welcome page:** a secondary text link under the Daily link, for no-profile users.
 3. **Exactly three contextual links**, each landing on a specific topic:
    - Result → "What does my type mean?" → `types.detail[subtype]` (**implemented in Slice 3** as "Learn about your type");
-   - Palette › Harder section → `wear.harder`;
-   - Checker photo caveat / lighting note → `app.color-checker`.
+   - Palette › Harder section → `wear.harder` (**implemented in Slice 4** as "How to wear More Considered colors");
+   - Checker photo caveat / lighting note → `app.color-checker` (**implemented in Slice 4** as "Why can photo colors shift?", in Photo mode).
 4. **No new link on Daily** in V1.4; its About section already explains. If added later, it is P1.
 
 **Learn-internal navigation:**
@@ -572,3 +572,27 @@ The following hold for every V1.4 slice:
   - add `garment-placement` and `lighting-comparison` renderers to `TopicVisual` by kind (reuse `OutfitFlatLay`);
   - extend `LearnEntry` with a validated `topic` variant for the Palette › More Considered and Checker links;
   - keep the §F boundaries: no topic comparisons, no Daily imports, no decimal literals in the UI.
+
+## 37. Slice 4 result, P1 decision and Slice 5 contract
+
+**Done.** See [V1_4_SLICE_4_PRACTICAL_GUIDES.md](V1_4_SLICE_4_PRACTICAL_GUIDES.md).
+
+- **Visuals, by registry kind only:**
+  - `garment-placement` (palette placement);
+  - `placement-shift` (More Considered, new kind);
+  - `lighting-comparison` (Color Checker);
+  - `lucky-flow` (Lucky Color, new kind).
+
+  All four share one garment drawing and frame. Profile mode uses the reader's canonical palette; general mode uses the Slice 1 example, named as such.
+- **Contextual links, complete:** exactly three, Result → type, Palette › More Considered → `wear.harder`, and Checker › Photo → `app.color-checker`. A test enforces the count.
+- **Entry contract:** `LearnEntry` adds `{ kind: 'topic'; topic }`, validated by `learnTopic()` (P0 ids only). An invalid id opens the Learn home. Back from a contextual entry goes to the Learn home.
+- **Metal notes:** on a browsed type, "your" is shown as "this type's" (`typeOrientedNote`), which affects 3 English notes and 0 Thai. Canonical data is unchanged.
+- **P1 decision (recommendation to the PO):**
+  - **Everyday Neutrals:** recommend dropping it from V1.4. Its only unique value needs colour-family classification, and so the colour-naming guard (Q1), which stays unchanged.
+  - **Same name, different shade** and **nearby types:** defer beyond V1.4.
+- **Slice 5 polish items:**
+  - the 200 % header and bottom-nav overflow;
+  - a native Thai review of all Learn copy, including the Slice 4 labels;
+  - a contrast and screen-reader pass;
+  - PO decisions on the lucky diagram's illustration hue, an optional "Open Daily" action (a registry-driven action slot), and `season-strips`;
+  - the Welcome Daily-link ordering quirk.

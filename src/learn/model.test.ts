@@ -4,11 +4,12 @@ import { seasonDefinitions, subtypeOrder } from '../domain/personalColor/seasons
 import type { DimensionKey, Season, Subtype } from '../domain/personalColor/types'
 import { colorDisplayName, getCopy, metalDisplayNote } from '../i18n'
 import type { Language } from '../i18n'
-import { dimensionExamples, generalOutfitExample } from './examples'
+import { dimensionExamples, generalOutfitExample, lightingExample } from './examples'
 import {
-  bandEnd, dimensionBand, dimensionOrder, getLearnCopy, learnProfileFrom, namingQuality, outfitExample,
-  paletteColorById, seasonGroups, seasonTraits, subtypeGuide,
+  bandEnd, dimensionBand, dimensionOrder, getLearnCopy, learnProfileFrom, learnTopic, namingQuality, outfitExample,
+  paletteColorById, seasonGroups, seasonTraits, subtypeGuide, typeOrientedNote,
 } from './model'
+import { learnTopicOrder } from './registry'
 import type { DimensionEnd, PaletteColorId } from './types'
 
 // V1.4 Slice 1: Learn's derived subtype model. Every expectation is computed from the canonical
@@ -177,11 +178,41 @@ describe('P. personalisation contract', () => {
     expect(profile).toEqual({ subtype, season: seasonDefinitions[subtype].season })
     const example = outfitExample(profile)
     const palette = getPalette(subtype)
-    expect(example).toEqual({ nearFace: palette.best[0], base: palette.neutrals[0], accent: palette.accents[0], moreConsidered: palette.harder[0], personal: true })
+    expect(example).toEqual({ nearFace: palette.best[0], base: palette.neutrals[0], accent: palette.accents[0], moreConsidered: palette.harder[0], metal: palette.metals[0], subtype, personal: true })
     expect(example.moreConsidered).toBe(palette.harder[0])
   })
 
   it.each(['bogus', '', 'constructor', '__proto__', 'Soft-Summer'])('never renders an unknown subtype (%j)', (subtype) => {
     expect(learnProfileFrom({ subtype } as never)).toBeNull()
+  })
+})
+
+describe('S4. practical-guide derivations (Slice 4)', () => {
+  it('a requested topic must be a registered P0 topic; anything else is refused', () => {
+    for (const topic of learnTopicOrder) expect(learnTopic(topic)).toBe(topic)
+    for (const value of ['wear.everyday-neutrals', 'wear.same-name', 'types.detail', 'home', 'bogus', '', 'constructor', '__proto__', 'WEAR.HARDER', null, undefined, 3]) expect(learnTopic(value)).toBeNull()
+  })
+
+  it('the general example’s metal is the same type’s first metal, and it names that type', () => {
+    const example = outfitExample(null)
+    expect(example.subtype).toBe(subtypeOf(generalOutfitExample.nearFace))
+    expect(example.metal).toBe(getPalette(example.subtype).metals[0])
+  })
+
+  it('the lighting example is a real neutral, and a very light, low-chroma one', () => {
+    const color = paletteColorById(lightingExample)!
+    expect(getPalette(subtypeOf(lightingExample)).neutrals).toContain(color)
+    const [r, g, b] = [1, 3, 5].map((index) => Number.parseInt(color.hex.slice(index, index + 2), 16))
+    expect(Math.min(r, g, b)).toBeGreaterThan(200)
+    expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThan(12)
+  })
+
+  it('a metal note is re-worded about the type only where it speaks to the reader', () => {
+    expect(typeOrientedNote('Rich gold echoes your natural warmth', 'en')).toBe('Rich gold echoes this type’s natural warmth')
+    expect(typeOrientedNote('Your clarity, your shine', 'en')).toBe('This type’s clarity, this type’s shine')
+    expect(typeOrientedNote('A grounded, sunny finish', 'en')).toBe('A grounded, sunny finish')
+    // "yourself" and "flavour" are not the possessive.
+    expect(typeOrientedNote('flavour for yourself', 'en')).toBe('flavour for yourself')
+    expect(typeOrientedNote('ประกายที่รับกับสีของคุณ', 'th')).toBe('ประกายที่รับกับสีของไทป์นี้')
   })
 })

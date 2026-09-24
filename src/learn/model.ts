@@ -5,7 +5,8 @@ import { colorDisplayName, getCopy, metalDisplayNote } from '../i18n'
 import type { Language, SubtypeCopy } from '../i18n'
 import { learnTranslations } from './content'
 import { generalOutfitExample } from './examples'
-import type { DimensionBand, DimensionEnd, LearnCopy, PaletteColorGroupKey, PaletteColorId } from './types'
+import { learnTopicOrder } from './registry'
+import type { DimensionBand, DimensionEnd, LearnCopy, LearnTopicId, PaletteColorGroupKey, PaletteColorId } from './types'
 
 // Pure presentation derivations for Learn. Everything here is read from seasons.ts, palettes.ts and
 // LocaleCopy at call time: Learn keeps no copy of subtype targets or palette colours. It never
@@ -180,6 +181,23 @@ export function learnSubtype(value: unknown): Subtype | null {
   return subtypeOrder.find((subtype) => subtype === value) ?? null
 }
 
+// A topic requested from outside Learn (the Palette and Checker links, Slice 4): a registered P0 topic
+// id or null. Anything else — a P1 idea, an old id, arbitrary text — opens the Learn home.
+export function learnTopic(value: unknown): LearnTopicId | null {
+  return learnTopicOrder.find((topic) => topic === value) ?? null
+}
+
+// Slice 4: a few canonical English metal notes speak to the reader ("echoes your natural warmth"), which
+// is right on the reader's own type. On any other type the same note is shown about the type instead,
+// by swapping only the second-person possessive for the localized "this type's". The canonical note is
+// never changed, and a note without that possessive (all the Thai ones) is returned as it is.
+const secondPersonPossessive: Record<Language, RegExp> = { en: /\byour\b/gi, th: /ของคุณ/g }
+
+export function typeOrientedNote(note: string, language: Language): string {
+  const replacement = getLearnCopy(language).typeDetail.thisTypes
+  return note.replace(secondPersonPossessive[language], (match) => /^[A-Z]/.test(match) ? replacement[0].toUpperCase() + replacement.slice(1) : replacement)
+}
+
 export function learnProfileFrom(result: Pick<PersonalColorResult, 'subtype'> | null | undefined): LearnProfile | null {
   if (!result || !subtypeOrder.includes(result.subtype)) return null
   return { subtype: result.subtype, season: seasonOf(result.subtype) }
@@ -187,18 +205,29 @@ export function learnProfileFrom(result: Pick<PersonalColorResult, 'subtype'> | 
 
 export interface OutfitExample extends OutfitFormula {
   moreConsidered: PaletteColor
+  // Slice 4: the finishing-detail metal, the palette's first metal.
+  metal: MetalRecommendation
+  // The type whose palette the colours come from, so the page can say whose colours they are.
+  subtype: Subtype
   personal: boolean
 }
 
 // wear.palette / wear.harder: the user's own colours, or one fixed general example without a result.
 export function outfitExample(profile: LearnProfile | null): OutfitExample {
-  if (profile) return { ...outfitFormula(profile.subtype), moreConsidered: getPalette(profile.subtype).harder[0], personal: true }
+  if (profile) {
+    const palette = getPalette(profile.subtype)
+    return { ...outfitFormula(profile.subtype), moreConsidered: palette.harder[0], metal: palette.metals[0], subtype: profile.subtype, personal: true }
+  }
   const resolve = (id: PaletteColorId) => paletteColorById(id)!
+  // The general example is one type's colours (examples.ts); its metal is that same type's first metal.
+  const subtype = subtypeOrder.find((candidate) => generalOutfitExample.nearFace.startsWith(`${candidate}-`))!
   return {
     nearFace: resolve(generalOutfitExample.nearFace),
     base: resolve(generalOutfitExample.base),
     accent: resolve(generalOutfitExample.accent),
     moreConsidered: resolve(generalOutfitExample.moreConsidered),
+    metal: getPalette(subtype).metals[0],
+    subtype,
     personal: false,
   }
 }

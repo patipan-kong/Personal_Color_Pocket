@@ -7,8 +7,8 @@ export type { DimensionPosition, LearnProfile, OutfitExample, OutfitFormula, Sea
 export { resolveAppCopy } from './appCopy'
 export { learnClaims, learnSources } from './sources'
 export { learnGroups, learnHomeFeatured, learnTopicOrder, learnTopics, typeDetailSections, typeDetailVisuals } from './registry'
-export { dimensionExamples, generalOutfitExample } from './examples'
+export { dimensionExamples, generalOutfitExample, lightingExample } from './examples'
 export {
-  bandEnd, dimensionBand, dimensionBandOrder, dimensionOrder, getLearnCopy, learnProfileFrom, learnSubtype, namingQuality, outfitExample,
-  outfitFormula, paletteColorById, seasonGroups, seasonOf, seasonTraits, subtypeGuide,
+  bandEnd, dimensionBand, dimensionBandOrder, dimensionOrder, getLearnCopy, learnProfileFrom, learnSubtype, learnTopic, namingQuality, outfitExample,
+  outfitFormula, paletteColorById, seasonGroups, seasonOf, seasonTraits, subtypeGuide, typeOrientedNote,
 } from './model'

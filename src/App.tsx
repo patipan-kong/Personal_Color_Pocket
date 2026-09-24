@@ -510,7 +510,7 @@ function Swatch({ copy, language, color, selected, onSelect }: { copy: LocaleCop
   </button>
 }
 
-function PaletteTabPanel({ copy, language, definition, palette }: { copy: LocaleCopy; language: Language; definition: LocaleCopy['subtypes'][Subtype]; palette: ReturnType<typeof getPalette> }) {
+function PaletteTabPanel({ copy, language, definition, palette, onLearn }: { copy: LocaleCopy; language: Language; definition: LocaleCopy['subtypes'][Subtype]; palette: ReturnType<typeof getPalette>; onLearn: () => void }) {
   const [selected, setSelected] = useState<PaletteColor | null>(palette.best[0])
   const sections = [
     ['best', copy.palette.sections.best],
@@ -524,6 +524,8 @@ function PaletteTabPanel({ copy, language, definition, palette }: { copy: Locale
       <div className="palette-section-heading"><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{section.title}</h2><p>{section.description}</p></div></div>
       <div className="swatch-grid">{palette[key].map((color) => <Swatch copy={copy} language={language} key={color.id} color={color} selected={selected?.id === color.id} onSelect={() => setSelected(color)} />)}</div>
       {key === 'harder' && <ul className="harder-tips">{copy.palette.harderTips.map((tip) => <li key={tip}>{tip}</li>)}</ul>}
+      {/* V1.4 Slice 4: the one Learn link on this screen, where the reader meets More Considered. */}
+      {key === 'harder' && <button type="button" className="text-button palette-learn-link" onClick={onLearn}>{copy.palette.learnCta} <span aria-hidden="true">→</span></button>}
     </section>)}
     <section className="palette-section metals-section"><div className="palette-section-heading"><span>05</span><div><h2>{copy.palette.sections.metals.title}</h2><p>{copy.palette.sections.metals.description}</p></div></div><div className="metal-grid">{palette.metals.map((metal) => <article key={metal.id}><span className="metal-swatch" style={{ background: `linear-gradient(135deg, ${metal.hex}, #fff6 40%, ${metal.hex})` }} /><div><h3>{colorDisplayName(language, metal)}</h3><p>{metalDisplayNote(language, metal)}</p></div></article>)}</div></section>
   </div>
@@ -560,12 +562,13 @@ function ExamplesTabPanel({ copy, language, result, definition, palette, present
   </div>
 }
 
-function PaletteView({ copy, language, result, presentationPreference, onPresentation }: {
+function PaletteView({ copy, language, result, presentationPreference, onPresentation, onLearn }: {
   copy: LocaleCopy
   language: Language
   result: PersonalColorResult
   presentationPreference: PresentationPreference
   onPresentation: (preference: PresentationPreference) => void
+  onLearn: () => void
 }) {
   const definition = copy.subtypes[result.subtype]
   const palette = getPalette(result.subtype)
@@ -584,12 +587,12 @@ function PaletteView({ copy, language, result, presentationPreference, onPresent
       {tabs.map(([key, label]) => <button key={key} type="button" role="tab" id={`palette-tab-${key}`} aria-selected={tab === key} aria-controls={`palette-tabpanel-${key}`} className={tab === key ? 'active' : ''} onClick={() => setTab(key)}>{label}</button>)}
     </div>
     {tab === 'palette'
-      ? <PaletteTabPanel copy={copy} language={language} definition={definition} palette={palette} />
+      ? <PaletteTabPanel copy={copy} language={language} definition={definition} palette={palette} onLearn={onLearn} />
       : <ExamplesTabPanel copy={copy} language={language} result={result} definition={definition} palette={palette} presentationPreference={presentationPreference} onPresentation={onPresentation} />}
   </main>
 }
 
-function CheckerView({ copy, language, result, presentationPreference }: { copy: LocaleCopy; language: Language; result: PersonalColorResult; presentationPreference: PresentationPreference }) {
+function CheckerView({ copy, language, result, presentationPreference, onLearn }: { copy: LocaleCopy; language: Language; result: PersonalColorResult; presentationPreference: PresentationPreference; onLearn: () => void }) {
   const definition = copy.subtypes[result.subtype]
   const [picker, setPicker] = useState(getPalette(result.subtype).best[0].hex)
   const [input, setInput] = useState(picker)
@@ -608,7 +611,10 @@ function CheckerView({ copy, language, result, presentationPreference }: { copy:
     <div className="palette-tabs checker-modes" role="tablist" aria-label={copy.photoChecker.modeAria}>
       {modes.map(([key, label]) => <button key={key} type="button" role="tab" id={`checker-tab-${key}`} aria-selected={mode === key} aria-controls={`checker-tabpanel-${key}`} className={mode === key ? 'active' : ''} onClick={() => setMode(key)}>{label}</button>)}
     </div>
-    {mode === 'photo' && <div id="checker-tabpanel-photo" role="tabpanel" aria-labelledby="checker-tab-photo"><PhotoCheckerPanel copy={copy.photoChecker} resultCopy={copy.colorResult} garments={copy.styleExamples.garments} language={language} presentation={presentationPreference} subtype={result.subtype} /></div>}
+    {mode === 'photo' && <div id="checker-tabpanel-photo" role="tabpanel" aria-labelledby="checker-tab-photo"><PhotoCheckerPanel copy={copy.photoChecker} resultCopy={copy.colorResult} garments={copy.styleExamples.garments} language={language} presentation={presentationPreference} subtype={result.subtype} />
+      {/* V1.4 Slice 4: after the photo tools and their capture tip, secondary to the check itself. */}
+      <button type="button" className="text-button checker-learn-link" onClick={onLearn}>{copy.checker.photoLearnCta} <span aria-hidden="true">→</span></button>
+    </div>}
     {mode === 'manual' && <div id="checker-tabpanel-manual" role="tabpanel" aria-labelledby="checker-tab-manual">
     <section className="checker-workspace">
       <form className="color-form" onSubmit={submit}>
@@ -641,7 +647,8 @@ export default function App() {
   const [presentationPreference, setPresentationPreference] = useState<PresentationPreference | null>(() => loadPresentationPreference())
   const [view, setView] = useState<View>(initial.result ? 'result' : 'home')
   const [confirmRetake, setConfirmRetake] = useState(false)
-  // Where Learn opens: its home (nav, Welcome) or one type's page (Result). Learn validates the type.
+  // Where Learn opens: its home (nav, Welcome), one type's page (Result) or one topic (Palette, Checker).
+  // Learn validates the type or topic.
   const [learnEntry, setLearnEntry] = useState<LearnEntry>({ kind: 'home' })
   const copy = getCopy(language)
   // DEV-only diagnostic gate: never true in a production build (import.meta.env.DEV is
@@ -675,8 +682,8 @@ export default function App() {
     {view === 'presentation' && <PresentationOnboarding copy={copy} onChoose={choosePresentation} />}
     {view === 'quiz' && <Quiz copy={copy} answers={answers} step={quizStep} presentationPreference={presentationPreference ?? 'women'} onAnswer={(questionId, answerId) => setAnswers((current) => ({ ...current, [questionId]: answerId }))} onStep={(next) => setQuizStep(Math.max(0, Math.min(quizQuestions.length - 1, next)))} onComplete={completeQuiz} />}
     {view === 'result' && result && <ResultView copy={copy} language={language} result={result} answers={answers} showDiagnostics={showDiagnostics} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} onPalette={() => void changeView('palette')} onLearn={() => openLearn({ kind: 'type', subtype: result.subtype })} onRetake={() => setConfirmRetake(true)} />}
-    {view === 'palette' && result && <PaletteView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} />}
-    {view === 'checker' && result && <CheckerView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} />}
+    {view === 'palette' && result && <PaletteView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} onLearn={() => openLearn({ kind: 'topic', topic: 'wear.harder' })} />}
+    {view === 'checker' && result && <CheckerView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} onLearn={() => openLearn({ kind: 'topic', topic: 'app.color-checker' })} />}
     {view === 'daily' && <DailyView copy={copy} result={result} onQuiz={startQuiz} />}
     {view === 'learn' && <LearnView copy={copy} language={language} result={result} entry={learnEntry} onQuiz={startQuiz} onPalette={() => void changeView('palette')} />}
     {result && view !== 'quiz' && view !== 'presentation' && <BottomNav copy={copy} view={view} onView={(next) => next === 'learn' ? openLearn() : void changeView(next)} />}
