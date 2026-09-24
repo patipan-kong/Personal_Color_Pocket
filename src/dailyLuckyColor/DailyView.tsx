@@ -35,19 +35,15 @@ function goalLabels(goals: readonly LuckyGoal[], copy: LocaleCopy): string {
   return goals.map((goal) => copy.daily.goals[goal]).join(copy.daily.goalSeparator)
 }
 
+// The exact V1.2 shade name only: the lucky family is already named in today's colours above.
 function pieceColorName(piece: OutfitBoardPiece, copy: LocaleCopy): string {
   const { fill } = piece
-  if (fill.kind === 'exact') {
-    const shade = fill.name[copy.language]
-    const family = piece.luckyFamily ? copy.daily.familyLabels[piece.luckyFamily] : null
-    // Family, then the exact shade; said once when the V1.2 name is simply the family name.
-    return family && family !== shade ? `${family}${copy.daily.goalSeparator}${shade}` : shade
-  }
+  if (fill.kind === 'exact') return fill.name[copy.language]
   if (fill.kind === 'family-token') return copy.daily.familyLabels[fill.family]
   return copy.daily.semanticColors[fill.token]
 }
 
-// Grid areas place accessories beside the top; the DOM keeps the recommendation's reading order.
+// Composition slot for CSS; the DOM keeps the recommendation's reading order whatever the layout.
 const boardArea = (piece: OutfitBoardPiece) => piece.role === 'accessory' ? `acc${piece.slot ?? 1}` : piece.role
 
 function TodayColors({ board, copy }: { board: OutfitBoardModel; copy: LocaleCopy }) {
@@ -89,22 +85,23 @@ function OutfitBoard({ board, copy, subtype, onQuiz }: { board: OutfitBoardModel
       {board.pieces.map((piece) => <li
         key={piece.key}
         className={`daily-piece is-${piece.role} ${piece.lucky ? 'is-lucky' : 'is-support'}`}
-        style={{ gridArea: boardArea(piece) }}
+        data-board-area={boardArea(piece)}
         data-piece-key={piece.key}
         data-color-kind={piece.fill.kind === 'exact' ? 'palette' : 'semantic'}
         data-fill-kind={piece.fill.kind}
         data-tone={boardFillTone(piece.fill)}
         data-lucky-family={piece.luckyFamily ?? undefined}
       >
-        <div className="daily-garment-art"><div className="daily-garment-figure">
+        {piece.lucky && <span className="daily-garment-glow" aria-hidden="true" />}
+        <div className="daily-garment-figure">
           <GarmentArt role={piece.role} color={boardFillColor(piece.fill)} />
           {piece.lucky && <span className="daily-garment-mark" aria-hidden="true">✦</span>}
-        </div></div>
+        </div>
         <div className="daily-garment-caption">
           <h3>{copy.daily.pieceLabels[piece.role]}</h3>
           <p className="daily-piece-color">{pieceColorName(piece, copy)}</p>
           {piece.lucky
-            ? <p className="daily-lucky-badge"><span aria-hidden="true">✦ </span>{`${copy.daily.luckyBadge}${copy.daily.goalSeparator}${goalLabels(piece.goals, copy)}`}</p>
+            ? <p className="daily-lucky-badge"><span className="daily-lucky-glyph" aria-hidden="true">✦ </span>{`${copy.daily.luckyBadge}${copy.daily.goalSeparator.replace(/^ /, ' ')}${goalLabels(piece.goals, copy)}`}</p>
             : <p className="daily-supporting-label">{piece.support === 'personal-color' ? copy.daily.personalSupport : copy.daily.neutralSupport}</p>}
         </div>
       </li>)}

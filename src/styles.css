@@ -91,7 +91,8 @@ h1, h2, h3, p { text-wrap: pretty; }
 .daily-notes { display: grid; gap: 8px; margin-top: 16px; }
 .daily-placement-note { margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.55; }
 .daily-placement-note strong { color: var(--ink); font-weight: 800; }
-.daily-story, .daily-general { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.daily-general { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.daily-story { margin-top: 10px; padding: 2px 0 2px 14px; border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); }
 .daily-story-steps { display: grid; gap: 2px; margin: 0; font-size: .9rem; font-weight: 720; line-height: 1.5; }
 .daily-story-steps span + span { color: var(--accent); }
 .daily-profile { margin: 6px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
@@ -101,40 +102,73 @@ h1, h2, h3, p { text-wrap: pretty; }
 .daily-section-heading { margin-bottom: 12px; }
 .daily-section-heading .section-number { margin-bottom: 4px; }
 .daily-section-heading h2 { margin: 0; font-size: clamp(1.4rem, 4.6vw, 2rem); letter-spacing: -.035em; line-height: 1.2; }
+/* V1.3 Slice 5.1: one editorial flat-lay canvas. Each garment and its annotation sit at composition
+   coordinates in container-width units (--x/--y/--w for the garment, --ax/--ay/--aw for the note), so
+   the scene recomposes per layout instead of scaling one fixed picture. The DOM order is unchanged. */
+.daily-outfit { container: daily-outfit / inline-size; }
 .daily-board {
-  --garment-line: rgba(38,24,32,.32); --garment-seam: rgba(38,24,32,.2);
-  list-style: none; margin: 0; padding: clamp(18px, 4.5vw, 34px) clamp(14px, 4vw, 34px);
-  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); grid-template-areas: "top top" "bottom shoes";
-  gap: 22px 16px; border-radius: 28px; background: #efe4d7; animation: daily-settle .42s ease both;
+  --garment-line: rgba(38,24,32,.34); --garment-seam: rgba(38,24,32,.2); --garment-shade: rgba(38,24,32,.16); --garment-inner: #efe6db;
+  --canvas-h: 142;
+  position: relative; isolation: isolate; list-style: none; margin: 0; padding: 0; height: calc(var(--canvas-h) * 1cqw);
+  border-radius: 26px; animation: daily-settle .42s ease both;
+  background: radial-gradient(90% 70% at 22% 16%, rgba(255,251,245,.72), rgba(255,251,245,0) 70%), linear-gradient(168deg, #f2e9de, #eadfd1);
+  box-shadow: inset 0 0 0 1px rgba(64,33,45,.06);
 }
-.daily-board[data-accessory-count="1"] { grid-template-areas: "top acc1" "bottom shoes"; }
-.daily-board[data-accessory-count="2"] { grid-template-areas: "top acc1" "top acc2" "bottom shoes"; }
 @keyframes daily-settle { from { opacity: 0; transform: translateY(6px); } }
-.daily-piece { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.daily-piece.is-shoes { align-self: end; }
-.daily-piece.is-accessory { align-self: center; }
-.daily-piece[data-tone="light"] { --garment-line: rgba(38,24,32,.52); }
-.daily-piece[data-tone="dark"] { --garment-seam: rgba(255,255,255,.26); }
-.daily-garment-art { position: relative; display: flex; justify-content: center; align-items: flex-end; }
-.daily-garment-figure { position: relative; width: 100%; }
-.daily-garment-art svg { position: relative; z-index: 1; display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 8px 10px rgba(64,33,45,.13)); }
-.is-top .daily-garment-figure { max-width: 196px; }
-.daily-board[data-accessory-count="0"] .is-top .daily-garment-figure { max-width: 214px; }
-.is-bottom .daily-garment-figure { max-width: 118px; }
-.is-shoes .daily-garment-figure { max-width: 124px; }
-.is-accessory .daily-garment-figure { max-width: 70px; }
-/* A soft spotlight bounded by the garment's own box, so it never reaches a neighbouring caption. */
-.is-lucky .daily-garment-art { padding-block: 14px; }
-.is-lucky .daily-garment-figure::before { content: ""; position: absolute; inset: -14px -16px; border-radius: 50%; background: rgba(255,251,246,.9); }
-.daily-board[data-accessory-count="2"] .is-top { align-self: center; }
-.daily-garment-mark { position: absolute; z-index: 2; top: -12px; right: -16px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: #fff; font-size: .78rem; box-shadow: 0 4px 10px rgba(64,33,45,.2); }
-.daily-garment-caption { min-width: 0; }
-.daily-board[data-accessory-count="0"] .is-top .daily-garment-caption { text-align: center; }
-.daily-garment-caption h3 { margin: 0; color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.language-th .daily-garment-caption h3 { font-size: .8rem; letter-spacing: 0; }
-.daily-piece-color { margin: 2px 0 0; font-size: .92rem; font-weight: 760; line-height: 1.35; overflow-wrap: anywhere; }
-.daily-lucky-badge { display: inline-block; margin: 6px 0 0; padding: 4px 10px; border-radius: 12px; background: var(--accent); color: #fff; font-size: .72rem; font-weight: 800; line-height: 1.4; }
-.daily-supporting-label { margin: 3px 0 0; color: var(--muted); font-size: .76rem; font-weight: 650; line-height: 1.4; }
+.daily-garment-figure, .daily-garment-glow { position: absolute; left: calc(var(--x) * 1cqw); top: calc(var(--y) * 1cqw); width: calc(var(--w) * 1cqw); rotate: var(--r, 0deg); }
+.daily-garment-figure { z-index: 2; }
+.daily-garment-figure svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 7px 9px rgba(64,33,45,.14)) drop-shadow(0 1px 1px rgba(64,33,45,.1)); }
+.is-top .daily-garment-figure { z-index: 3; }
+.is-accessory .daily-garment-figure { z-index: 4; }
+.daily-piece[data-tone="light"] { --garment-line: rgba(38,24,32,.5); }
+.daily-piece[data-tone="dark"] { --garment-seam: rgba(255,255,255,.28); --garment-shade: rgba(0,0,0,.22); }
+/* Lucky pieces: a soft light pool on the paper beneath the garment (never over another garment) and a small ✦ tag. */
+.daily-garment-glow { z-index: 1; aspect-ratio: var(--ar); scale: 1.3; background: radial-gradient(closest-side, rgba(255,252,247,.95), rgba(255,252,247,.55) 62%, rgba(255,252,247,0)); }
+.daily-garment-mark { position: absolute; z-index: 1; left: var(--mx); top: var(--my); width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: #fff; font-size: .7rem; box-shadow: 0 0 0 2px rgba(255,251,246,.9), 0 3px 8px rgba(64,33,45,.22); rotate: calc(var(--r, 0deg) * -1); }
+.daily-garment-caption { position: absolute; z-index: 5; left: calc(var(--ax) * 1cqw); top: calc(var(--ay) * 1cqw); width: calc(var(--aw) * 1cqw); min-width: 0; line-height: 1.3; }
+.daily-garment-caption h3 { margin: 0; color: var(--muted); font-size: .62rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.daily-garment-caption h3::before { content: ""; display: block; width: 16px; height: 1px; margin-bottom: 5px; background: currentColor; opacity: .6; }
+.language-th .daily-garment-caption h3 { font-size: .74rem; letter-spacing: 0; }
+.daily-piece-color { margin: 1px 0 0; font-size: .84rem; font-weight: 760; overflow-wrap: anywhere; }
+.daily-lucky-badge { margin: 3px 0 0; text-wrap: balance; color: var(--accent-ink); font-size: .7rem; font-weight: 800; }
+.daily-lucky-glyph { color: var(--accent); }
+.daily-supporting-label { margin: 2px 0 0; color: var(--muted); font-size: .7rem; font-weight: 650; }
+.language-th .daily-lucky-badge, .language-th .daily-supporting-label { font-size: .74rem; }
+
+/* Narrow composition (phones): garments large; notes sit in the negative space beside and beneath
+   them. Two accessories are laid together as one accent pair rather than stacked like a legend. */
+.daily-piece.is-top { --ar: 180 / 170; --mx: 66%; --my: 1%; --x: 2; --y: 3; --w: 62; --r: -3deg; --ax: 4; --ay: 65; --aw: 31; }
+.daily-piece.is-bottom { --ar: 130 / 190; --mx: 80%; --my: -5%; --x: 34; --y: 53; --w: 33; --r: 4deg; --ax: 70; --ay: 62; --aw: 29; }
+.daily-piece.is-shoes { --ar: 150 / 104; --mx: 78%; --my: -6%; --x: 3; --y: 96; --w: 30; --r: -7deg; --ax: 4; --ay: 121; --aw: 44; }
+.daily-piece.is-accessory { --ar: 1; --mx: 70%; --my: -8%; --x: 74; --y: 4; --w: 17; --r: 0deg; --ax: 70; --ay: 25; --aw: 29; }
+.daily-board[data-accessory-count="2"] .is-accessory { --x: 70; --y: 4; --w: 15; --ay: 26; }
+.daily-board[data-accessory-count="2"] [data-board-area="acc2"] { --x: 84; --y: 12; --w: 11; --r: 16deg; --mx: 60%; --my: -30%; --ay: 55; }
+.daily-board[data-accessory-count="2"] .is-bottom { --ay: 98; }
+.daily-board[data-accessory-count="0"] { --canvas-h: 134; }
+.daily-board[data-accessory-count="0"] .is-top { --x: 3; --ax: 70; --ay: 22; --aw: 29; }
+.daily-board[data-accessory-count="0"] .is-bottom { --x: 36; --ax: 72; --aw: 27; }
+.daily-board[data-accessory-count="0"] .is-shoes { --y: 89; --ay: 113; }
+
+/* Wide composition (tablet and desktop column): same scene, re-spaced rather than simply enlarged. */
+@container daily-outfit (min-width: 540px) {
+  .daily-board { --canvas-h: 84; border-radius: 30px; }
+  .daily-piece.is-top { --x: 6; --y: 5; --w: 42; --ax: 50; --ay: 17; --aw: 19; }
+  .daily-piece.is-bottom { --x: 27; --y: 38; --w: 22; --ax: 51; --ay: 53; --aw: 19; }
+  .daily-piece.is-shoes { --x: 4; --y: 55; --w: 20; --ax: 5; --ay: 71; --aw: 20; }
+  .daily-piece.is-accessory { --x: 76; --y: 8; --w: 11; --ax: 72; --ay: 21; --aw: 24; }
+  .daily-board[data-accessory-count="2"] .is-accessory { --x: 72; --y: 7; --w: 10; }
+  .daily-board[data-accessory-count="2"] [data-board-area="acc2"] { --x: 81; --y: 12; --w: 7.5; --ax: 72; --ay: 44; }
+  .daily-board[data-accessory-count="2"] .is-bottom { --ay: 53; }
+  .daily-board[data-accessory-count="0"] { --canvas-h: 82; }
+  .daily-board[data-accessory-count="0"] .is-top { --x: 14; --ax: 58; --ay: 17; --aw: 22; }
+  .daily-board[data-accessory-count="0"] .is-bottom { --x: 36; --y: 38; --ax: 60; --ay: 53; --aw: 22; }
+  .daily-board[data-accessory-count="0"] .is-shoes { --x: 12; --y: 55; --ax: 13; --ay: 71; }
+  .daily-garment-caption h3 { font-size: .66rem; }
+  .daily-piece-color { font-size: .92rem; }
+  .daily-lucky-badge, .daily-supporting-label { font-size: .74rem; }
+  .language-th .daily-garment-caption h3 { font-size: .78rem; }
+  .language-th .daily-lucky-badge, .language-th .daily-supporting-label { font-size: .8rem; }
+}
 .daily-framing { max-width: 640px; margin: 26px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.6; }
 .daily-sources { margin: 10px 0 30px; padding: 15px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; line-height: 1.55; }
 .daily-sources summary { color: var(--accent); cursor: pointer; font-weight: 800; }
@@ -148,12 +182,6 @@ h1, h2, h3, p { text-wrap: pretty; }
   .daily-hero { margin-bottom: 30px; }
   .daily-layout { grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 48px; align-items: start; }
   .daily-outfit { position: sticky; top: 24px; }
-  .daily-board { gap: 30px 24px; }
-  .is-top .daily-garment-figure { max-width: 250px; }
-  .daily-board[data-accessory-count="0"] .is-top .daily-garment-figure { max-width: 270px; }
-  .is-bottom .daily-garment-figure { max-width: 150px; }
-  .is-shoes .daily-garment-figure { max-width: 160px; }
-  .is-accessory .daily-garment-figure { max-width: 88px; }
 }
 
 /* Welcome */

@@ -1,6 +1,6 @@
 # Personal Color Pocket — V1.3 Daily Lucky Color Outfit: Plan
 
-**Status:** Slices 4, 4.1 and 5 are complete: the Daily UI, one-or-two goal selection, and the deterministic garment-board visual ([Slice 5 record](V1_3_SLICE_5_DAILY_OUTFIT_VISUAL.md)). Slice 6 is next.
+**Status:** Slices 4, 4.1, 5 and 5.1 are complete: the Daily UI, one-or-two goal selection, the deterministic garment-board visual ([Slice 5 record](V1_3_SLICE_5_DAILY_OUTFIT_VISUAL.md)), and its editorial flat-lay refinement ([Slice 5.1 record](V1_3_SLICE_5_1_EDITORIAL_OUTFIT_BOARD.md)). Slice 6 is next.
 
 ## Purpose and product boundary
 
@@ -125,6 +125,7 @@ V1.2’s `describeColor()` returns a stable, local structured name `{ family, gr
 | 4 | Daily experience UI | **Complete:** goal selector, local day/rollover orchestration, typed TH/EN copy, local goal preference, semantic family tokens, no-profile CTA, and source disclosure. |
 | 4.1 | Multi-goal Daily selection and composition | **Complete:** one-or-two selection, migrated local preference, order-independent dual-rule composition, same-family provenance collapse, dual personalized/general outfit claims, and accessibility semantics. This is an extension after the historical Slice 4 record; it does not rewrite that record. |
 | 5 | Deterministic outfit visual/card | **Complete:** inline-SVG flat-lay garment board as the Daily hero, a pure presentation mapper (`buildOutfitBoardModel`), exact palette HEX passed through, broad-family tokens kept presentation-only, compact goal chips and colour summary, an accessible text caption for every piece; no generative asset and no domain change. |
+| 5.1 | Editorial outfit board refinement | **Complete:** visual-only refinement inserted before Slice 6: one composed flat-lay canvas replaces the cell grid, refined neutral garment art, small annotations beside each garment, paired accessory accents; recommendation truth, the presentation mapper and the domain are unchanged. |
 | 6 | Localization, accessibility, and edge cases | TH/EN parity, midnight refresh, source disclosure, storage/date failure paths. |
 | 7 | Hardening and real-use QA | Rule provenance audit, visual review, regression and product closure. |
 

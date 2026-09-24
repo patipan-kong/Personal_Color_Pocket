@@ -74,7 +74,8 @@ describe('V1.3 Slice 5 garment board rendering', () => {
     const lucky = items.filter((item) => item.classList.contains('is-lucky'))
     expect(lucky.map((item) => item.dataset.pieceKey)).toEqual(['accessory-1', 'accessory-2'])
     expect(lucky.map((item) => item.className)).toEqual(['daily-piece is-accessory is-lucky', 'daily-piece is-accessory is-lucky'])
-    expect(lucky.map((item) => item.querySelector('.daily-lucky-badge')!.textContent)).toEqual(['✦ Lucky color · Luck & opportunity', '✦ Lucky color · Money'])
+    // The separator's leading space is non-breaking so "· goal" never starts a wrapped line.
+    expect(lucky.map((item) => item.querySelector('.daily-lucky-badge')!.textContent!.replace(/ /g, ' '))).toEqual(['✦ Lucky color · Luck & opportunity', '✦ Lucky color · Money'])
     expect(container.querySelector('.daily-board')).toHaveAttribute('data-accessory-count', '2')
     expect(container.textContent).not.toMatch(/primary|secondary|#\s?1|#\s?2|first goal|second goal/i)
   })
@@ -100,12 +101,47 @@ describe('V1.3 Slice 5 garment board rendering', () => {
     expect(container.querySelector('.daily-outfit .daily-general button')).toHaveTextContent('Find your Personal Color')
   })
 
-  it('draws each role with its own silhouette in its own board area', () => {
-    const silhouettes = { top: '0 0 160 150', bottom: '0 0 120 170', shoes: '0 0 150 72', accessory: '0 0 110 110' }
+  it('draws each role with its own silhouette in its own composition slot', () => {
+    const silhouettes = { top: '0 0 180 170', bottom: '0 0 130 190', shoes: '0 0 150 104', accessory: '0 0 110 110' }
     const { items } = show('sun', ['work', 'money'], 'warm-spring')
-    expect(items.map((item) => [item.dataset.pieceKey, item.querySelector('svg')!.getAttribute('viewBox'), item.style.gridArea])).toEqual([
+    expect(items.map((item) => [item.dataset.pieceKey, item.querySelector('svg')!.getAttribute('viewBox'), item.dataset.boardArea])).toEqual([
       ['top', silhouettes.top, 'top'], ['bottom', silhouettes.bottom, 'bottom'], ['shoes', silhouettes.shoes, 'shoes'], ['accessory-1', silhouettes.accessory, 'acc1'],
     ])
+    cleanup()
+    const dual = show('mon', ['money', 'luck'], 'soft-autumn')
+    expect(dual.items.filter((item) => item.dataset.pieceKey!.startsWith('accessory')).map((item) => item.dataset.boardArea)).toEqual(['acc1', 'acc2'])
+  })
+
+  // V1.3 Slice 5.1 editorial board.
+  it('paints each garment only with its exact fill or neutral detail ink, for every recommendation piece', () => {
+    const neutralInk = new Set(['none', 'var(--garment-shade)', 'var(--garment-inner)'])
+    for (const [weekday, goals, subtype] of [['mon', ['work', 'money'], 'warm-spring'], ['mon', ['money', 'luck'], 'soft-autumn'], ['thu', ['work', 'money'], undefined], ['sat', ['money'], 'deep-winter']] as const) {
+      const recommendation = recommendLuckyGoalsOutfit({ rules: goals.map((goal) => getLuckyColorRule(weekday, goal)), subtype })
+      const { items } = show(weekday, goals, subtype)
+      expect(items).toHaveLength(recommendation.pieces.length)
+      for (const [index, piece] of recommendation.pieces.entries()) {
+        const fills = [...items[index].querySelectorAll('svg [fill]')].map((node) => node.getAttribute('fill')!)
+        const garment = fills.filter((fill) => !neutralInk.has(fill))
+        expect(garment.length).toBeGreaterThan(0)
+        const expected = piece.color.kind === 'palette' ? piece.color.hex : items[index].querySelector('svg path')!.getAttribute('fill')
+        expect(new Set(garment)).toEqual(new Set([expected]))
+      }
+      cleanup()
+      localStorage.clear()
+    }
+  })
+
+  it('gives only lucky pieces the light pool and the ✦ tag, both decorative, and names the shade once', () => {
+    const { items, container } = show('sun', ['work', 'money'], 'warm-spring')
+    const recommendation = recommendLuckyGoalsOutfit({ rules: [getLuckyColorRule('sun', 'work'), getLuckyColorRule('sun', 'money')], subtype: 'warm-spring' })
+    for (const [index, piece] of recommendation.pieces.entries()) {
+      const lucky = piece.colorRole === 'lucky'
+      expect(items[index].querySelectorAll('.daily-garment-glow')).toHaveLength(lucky ? 1 : 0)
+      expect(items[index].querySelectorAll('.daily-garment-mark')).toHaveLength(lucky ? 1 : 0)
+      for (const decoration of items[index].querySelectorAll('.daily-garment-glow, .daily-garment-mark, .daily-lucky-glyph')) expect(decoration).toHaveAttribute('aria-hidden', 'true')
+      if (piece.color.kind === 'palette') expect(items[index].querySelector('.daily-piece-color')).toHaveTextContent(new RegExp(`^${piece.color.name.en}$`))
+    }
+    expect(container.querySelectorAll('.daily-garment-mark')).toHaveLength(recommendation.luckyClaims.length)
   })
 
   it('marks light and dark garments for outline treatment', () => {
