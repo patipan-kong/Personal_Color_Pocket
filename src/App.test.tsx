@@ -33,7 +33,9 @@ describe('primary product flow', () => {
   })
 
   it('can complete all eleven quiz questions with keyboard controls', async () => {
-    const user = userEvent.setup()
+    // No timer between key events (hundreds of Tab presses). With the default delay this ran at
+    // ~11 s of its 15 s budget under full-suite load (Slice 6). The behaviour tested is identical.
+    const user = userEvent.setup({ delay: null })
     render(<App />)
 
     const tabTo = async (target: HTMLElement) => {

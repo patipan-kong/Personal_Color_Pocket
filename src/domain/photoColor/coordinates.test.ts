@@ -286,21 +286,22 @@ describe('mapping invariants (generated cases)', () => {
   })
 
   it('is monotonic along both axes', () => {
+    // Violations are collected and asserted once: ~300k individual expect() calls made this test
+    // run at over half of its time budget under full-suite load (Slice 6). Same checks.
+    const violations: string[] = []
     for (const { image, container } of generatedCases(200)) {
       const rect = fitContain(image, container)
       let previous = { x: -1, y: -1 }
       for (let step = 0; step <= 256; step++) {
         const t = step / 256
         const point = imagePoint(displayToImage({ x: rect.x + rect.width * t, y: rect.y + rect.height * t }, rect, image))
-        expect(point.x).toBeGreaterThanOrEqual(previous.x)
-        expect(point.y).toBeGreaterThanOrEqual(previous.y)
-        expect(point.x).toBeGreaterThanOrEqual(0)
-        expect(point.x).toBeLessThanOrEqual(image.width)
-        expect(point.y).toBeGreaterThanOrEqual(0)
-        expect(point.y).toBeLessThanOrEqual(image.height)
+        if (!(point.x >= previous.x && point.y >= previous.y && point.x >= 0 && point.x <= image.width && point.y >= 0 && point.y <= image.height)) {
+          violations.push(`${image.width}×${image.height} in ${container.width}×${container.height} at t=${t}: ${point.x},${point.y} after ${previous.x},${previous.y}`)
+        }
         previous = point
       }
     }
+    expect(violations).toEqual([])
   })
 
   it('keeps the normalized position and round-trips through imageToDisplay', () => {

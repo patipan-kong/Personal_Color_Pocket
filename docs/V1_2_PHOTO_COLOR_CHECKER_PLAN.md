@@ -609,6 +609,9 @@ during a check, and Application → Storage shows no new keys).
 - The **web** app has no service worker, so a cold reload while offline fails. That is a
   separate PWA decision and should not be added in V1.2.
 - **Capacitor** bundles the assets locally, so it is fully offline.
+- **Verified in Slice 6** (headless Chrome): with the network switched off after load, choose → decode → tap → verdict
+  worked with 0 server requests. The accurate claim is "Photo analysis runs locally on the device", not "the hosted app
+  works offline".
 
 ---
 
@@ -813,8 +816,9 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **5d. Unified result display** — **done** ([record](V1_2_SLICE_5D_UNIFIED_RESULT_DISPLAY.md)). Manual and Photo share one result card. The manual percentage is removed from the UI. No engine change. | `colorChecker/*`, `photoChecker/photoResult.ts`, `placement.ts` (intents), i18n `colorResult`, CSS | shared card, manual adapter + domain baseline, cross-mode, copy consistency | – | Same hierarchy and styles in both modes; manual `checkColor` output unchanged | engine alignment |
 | **5e. Real-world sampling investigation** — **done** ([record](V1_2_SLICE_5E_REAL_WORLD_SAMPLING_INVESTIGATION.md)). Investigation only: a white shirt in shade sampled as `#9FABB4`. **This investigation is required before final Photo sampling hardening.** | test-only `photoColor/investigation/*`, docs | findings pinned against the unchanged sampler/matcher | – | Production bundle byte-identical | any production change |
 | **5f. Photo lighting guidance** — **done** ([record](V1_2_SLICE_5F_PHOTO_LIGHTING_GUIDANCE.md)). The 5e outcome: guidance, not correction. Capture tip, evenly-lit tap guidance, a presentation-only note for light near-neutral samples, and honest highlight / shadow copy. | `domain/photoColor/lightingGuidance.ts`, photo adapter, shared card `info` slot, i18n, CSS | `photoLightingGuidance.test.tsx`, domain before/after proof | – | Sample, match, category and Manual outputs identical before and after | sampling, matcher, thresholds, correction, multi-tap |
-| **6. Hardening** (follows 5d, and 5f, which resolves the Photo-sampling outcome of 5e) | memory cleanup, focus management, privacy test, device matrix, README privacy note | privacy guard test, full regression | – | §20.1 acceptance criteria met on the device matrix | Capacitor build |
-| **7. Capacitor readiness check** (when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |
+| **6. Hardening** — **engineering done; physical QA pending** ([record](V1_2_SLICE_6_HARDENING.md)). Follows 5d and 5f. One production fix (modified keys are left to the browser); `.kilo` excluded from test discovery; timing flake removed; races, ownership, boundaries, privacy and storage guarded. **READY FOR PHYSICAL QA, not release.** | `PhotoSurface.tsx`, `vite.config.ts`, README privacy note, tests | `photoHardening.test.tsx`, `photoPrivacy.test.tsx`, service boundary tests, full regression ×3 | – | §20.1 acceptance criteria met on the device matrix (**pending**: 48–50 MP Android, iPhone HEIC, TalkBack, VoiceOver, Thai review) | Capacitor build, colour names |
+| **7. Human-readable Color Names** (next) | Stable semantic colour names and tone descriptions in EN/TH; how much prominence HEX keeps. Motivated by real use: nearby taps on one light suit gave `#C6CACF`, `#D9DCDF`, `#D0D1D5`, which is technical, over-precise and visually misleading. Handoff: Slice 6 record §39 | i18n, result view, a naming module | naming stability for nearby colours; EN/TH | – | Nearby taps that pass the Slice 6 §28 metric usually share a name | sampler / matcher / threshold changes to stabilise names |
+| **8. Capacitor readiness check** (was 7; when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |
 
 Slices 1–3 are independent of each other and of V1.1 (released), so they can start after Slice 0.
 Slice 5 (panel + surface) is the first to touch `App.tsx`; Slice 4 stayed pure.
@@ -956,3 +960,29 @@ in headless Edge 153 and Chrome 153 (desktop Windows). **No phone was available.
 **Remaining device validation**: see the Slice 0 record §17–§18. Low-RAM Android at 48–50 MP,
 a real HEIC on Android Chrome, portrait orientation on a phone, and the Capacitor WebView file
 chooser. These block **release**, not Slice 1–3 coding.
+
+---
+
+## 23. Slice 6 Hardening Outcome
+
+Full record: [V1_2_SLICE_6_HARDENING.md](V1_2_SLICE_6_HARDENING.md). Written 2026-09-24. **No phone was available.**
+
+- **Engineering:** no open blocker.
+  - The one production change leaves Alt / Ctrl / Meta + key to the browser and assistive technology on the photo surface.
+  - Races (3-way selection orders, stale success and failure, unmount, mode switch), app-level ownership, and 51-photo
+    stress are all tested. So are the exact 30 MiB and 60 MP boundaries on every path, HEIC and AVIF, and orientation
+    1–8 in real Chrome.
+  - No network or storage use occurs during the photo flow, and the build contents are clean.
+- **Test infrastructure:** plain `npm test` now runs only the repository suite, because `.kilo/**` is excluded in
+  `vite.config.ts`. The 5d timing flake is fixed without raising any timeout.
+- **Limits unchanged:** 30 MiB and 60 MP. **The 60 MP limit stays PROVISIONAL — PHYSICAL ANDROID QA REQUIRED.**
+- **Release gates, all PENDING:**
+  - 48–50 MP on a physical Android
+  - real iPhone HEIC
+  - TalkBack
+  - VoiceOver
+  - native Thai review
+
+  These human gates are not marked complete.
+- **Status: READY FOR PHYSICAL QA.** Not ready for V1.2 release.
+- **Next:** Slice 7, Human-readable Color Names. HEX display is unchanged until then.

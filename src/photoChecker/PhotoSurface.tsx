@@ -85,6 +85,9 @@ export function PhotoSurface({ image, marker, label, describedBy, onTap, onKey, 
 
   const keyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     setInput('keyboard')
+    // Modified keys belong to the browser and assistive technology (Alt/Cmd + Arrow is Back,
+    // screen readers use modified arrows): never handled or prevented here (Slice 6).
+    if (event.altKey || event.ctrlKey || event.metaKey) return
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
       onKey({ type: 'check' })

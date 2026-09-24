@@ -25,6 +25,9 @@ npm test
 npm run build
 ```
 
+`npm test` runs the repository's own test suite only; git-ignored tool worktrees under
+`.kilo/` are excluded in `vite.config.ts`.
+
 ## Architecture note
 
 - scoring is deterministic
@@ -36,3 +39,8 @@ npm run build
 
 - V1.0 stores profile state locally in the browser
 - no account/backend/upload is required
+- V1.2 Photo Color Checker: photo analysis runs locally on the device. The chosen photo is
+  decoded, sampled and matched in the page; it is never uploaded or sent anywhere, and the
+  photo, its file name, its pixels and the sampled colours are never stored
+- the web app has no service worker: photo analysis keeps working without a network once the
+  app is loaded in the tab, but a cold start needs the network

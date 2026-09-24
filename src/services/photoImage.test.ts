@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { samplePhotoRegion } from '../domain/photoColor/sampling'
 import photoImageSource from './photoImage.ts?raw'
 import photoImageHeaderSource from './photoImageHeader.ts?raw'
+import { exceedsPixelLimit } from './photoImageHeader'
+import packageJson from '../../package.json'
 import { ftyp, jpegHeader, jpegSegment, pngHeader, text, webpVp8, webpVp8l, webpVp8x } from './photoImage.fixtures'
 import {
   HEADER_READ_BYTES, MAX_PHOTO_FILE_BYTES, MAX_PHOTO_PIXELS, PhotoImageError, WORKING_MAX_EDGE, openPhoto, workingSize,
@@ -659,5 +661,126 @@ describe('module boundary and local-only audit', () => {
       "import { exceedsPixelLimit, isHeifSignature, isMarkupSignature, readImageHeader } from './photoImageHeader'",
     ])
     expect([...photoImageHeaderSource.matchAll(/^import /gm)]).toHaveLength(0)
+  })
+})
+
+// ---- V1.2 Slice 6 hardening: reconfirm the frozen limits on every path (docs/V1_2_SLICE_6_HARDENING.md §10–§13) ----
+
+describe('Slice 6: 30 MiB file limit on every format path', () => {
+  const EXACT = 31_457_280
+  it.each([
+    ['JPEG', () => jpegHeader(4000, 3000), false],
+    ['PNG', () => pngHeader(4000, 3000), false],
+    ['WebP (VP8 lossy)', () => webpVp8(4000, 3000), false],
+    ['WebP (VP8L lossless)', () => webpVp8l(4000, 3000), false],
+    ['WebP (VP8X extended)', () => webpVp8x(4000, 3000), false],
+    ['GIF, sized by the browser probe', () => text('GIF89a'), true],
+    ['AVIF, sized by the browser probe', () => ftyp('avif', ['avif', 'mif1']), true],
+    ['HEIC that the browser can open (Safari), sized by the probe', () => ftyp('heic'), true],
+  ] as const)('%s: exactly 31,457,280 bytes opens; 31,457,281 is rejected with nothing read, probed or decoded', async (_, head, probed) => {
+    expect(MAX_PHOTO_FILE_BYTES).toBe(EXACT)
+    if (probed) {
+      imageBehaviour.load = ['load']
+      imageBehaviour.size = { width: 4000, height: 3000 }
+    }
+    bitmapQueue.push(new FakeBitmap(4000, 3000))
+    const exact = sizedFile(EXACT, head())
+    await expect(openPhoto(exact.file)).resolves.toMatchObject({ width: 1600, height: 1200 })
+    expect(exact.reads).toEqual([[0, HEADER_READ_BYTES]])
+    const before = { decodes: createImageBitmapMock.mock.calls.length, probes: log.images.length }
+    const over = sizedFile(EXACT + 1, head())
+    await expectCode(openPhoto(over.file), 'file-too-large')
+    expect(over.reads).toEqual([])
+    expect({ decodes: createImageBitmapMock.mock.calls.length, probes: log.images.length }).toEqual(before)
+    expectAllReleased()
+  })
+})
+
+describe('Slice 6: 60 MP pixel limit', () => {
+  it.each([
+    ['JPEG', jpegHeader], ['PNG', pngHeader], ['WebP VP8', webpVp8], ['WebP VP8L', webpVp8l], ['WebP VP8X', webpVp8x],
+  ] as const)('%s header: exactly 60 MP (7500 × 8000) is decoded; one row or column more is rejected before decode', async (_, header) => {
+    expect(MAX_PHOTO_PIXELS).toBe(60_000_000)
+    bitmapQueue.push(new FakeBitmap(7500, 8000))
+    await expect(openPhoto(fileOf(header(7500, 8000)))).resolves.toMatchObject({ width: 1500, height: 1600 })
+    for (const [width, height] of [[7500, 8001], [7501, 8000], [8000, 7501]]) await expectCode(openPhoto(fileOf(header(width, height))), 'image-too-large')
+    expect(createImageBitmapMock).toHaveBeenCalledTimes(1)
+    expectAllReleased()
+  })
+
+  it.each([
+    ['GIF', () => text('GIF89a')], ['AVIF', () => ftyp('avif', ['avif', 'mif1'])], ['Safari HEIC', () => ftyp('heic')],
+  ] as const)('%s sized by the browser probe: exactly 60 MP is decoded; 60 MP + one row is rejected before decode', async (_, head) => {
+    imageBehaviour.load = ['load']
+    imageBehaviour.size = { width: 7500, height: 8000 }
+    bitmapQueue.push(new FakeBitmap(7500, 8000))
+    await expect(openPhoto(fileOf(head()))).resolves.toMatchObject({ width: 1500, height: 1600 })
+    imageBehaviour.load = ['load']
+    imageBehaviour.size = { width: 7500, height: 8001 }
+    await expectCode(openPhoto(fileOf(head())), 'image-too-large')
+    expect(createImageBitmapMock).toHaveBeenCalledTimes(1)
+    expectAllReleased()
+  })
+
+  it('an EXIF-rotated photo at exactly 60 MP (header 8000 × 7500, decoded 7500 × 8000) opens upright', async () => {
+    bitmapQueue.push(new FakeBitmap(7500, 8000))
+    await expect(openPhoto(fileOf(jpegHeader(8000, 7500)))).resolves.toMatchObject({ width: 1500, height: 1600 })
+    expectAllReleased()
+  })
+
+  it('the cap check equals the exact integer product: every divisor pair of 60,000,000 ±1, the square-root edge, and products far above 2^53', () => {
+    const MAX = 60_000_000
+    const exact = (width: number, height: number) => BigInt(width) * BigInt(height) > BigInt(MAX)
+    const cases: [number, number][] = []
+    for (let divisor = 1; divisor <= MAX; divisor++) {
+      if (MAX % divisor) continue
+      const other = MAX / divisor
+      cases.push([divisor, other], [divisor, other + 1], [divisor + 1, other], [divisor, other - 1], [other, divisor])
+    }
+    for (let side = 7740; side <= 7750; side++) for (let other = 7740; other <= 7750; other++) cases.push([side, other])
+    let seed = 1
+    const random = (limit: number) => 1 + Math.floor(((seed = (seed * 48271) % 2147483647) / 2147483647) * limit)
+    for (let index = 0; index < 20_000; index++) cases.push([random(0x7fffffff), random(index % 2 ? 0x7fffffff : 20_000)])
+    cases.push([0x7fffffff, 0x7fffffff], [MAX, 1], [MAX + 1, 1], [1, MAX], [1, MAX + 1])
+    const valid = cases.filter(([width, height]) => width >= 1 && height >= 1)
+    expect(valid.length).toBeGreaterThan(20_000)
+    expect(valid.filter(([width, height]) => exceedsPixelLimit(width, height, MAX) !== exact(width, height))).toEqual([])
+    // Unknown or nonsensical sizes are never treated as safe.
+    for (const [width, height] of [[0, 1], [1, 0], [-1, 5], [Number.NaN, 5], [Number.POSITIVE_INFINITY, 1]]) expect(exceedsPixelLimit(width, height, MAX)).toBe(true)
+  })
+})
+
+describe('Slice 6: HEIC / HEIF reconfirmation', () => {
+  it.each(['avif', 'avis'])('AVIF (%s) that the browser cannot open is "unsupported format", never mislabelled as HEIC', async (brand) => {
+    imageBehaviour.load = ['error']
+    await expectCode(openPhoto(fileOf(ftyp(brand, ['avif', 'mif1']), 'photo.heic', 'image/heic')), 'unsupported-format')
+    expectAllReleased()
+  })
+
+  it('truncated or damaged HEIF headers fail safely with a friendly code: never a throw, never a decode', async () => {
+    const full = ftyp('heic')
+    for (let length = 1; length <= full.length; length++) {
+      imageBehaviour.load = ['error']
+      await expectCode(openPhoto(fileOf(full.slice(0, length))), length >= 12 ? 'unsupported-heic' : 'unsupported-format')
+    }
+    const damagedSize = ftyp('heic')
+    damagedSize.set([0xff, 0xff, 0xff, 0xff], 0)
+    imageBehaviour.load = ['error']
+    await expectCode(openPhoto(fileOf(damagedSize)), 'unsupported-heic')
+    expect(createImageBitmapMock).not.toHaveBeenCalled()
+    expectAllReleased()
+  })
+
+  it('the extension and MIME type alone never reject: .heic / image/heic JPEG, PNG and WebP content all open', async () => {
+    for (const head of [jpegHeader(4000, 3000), pngHeader(4000, 3000), webpVp8x(4000, 3000)]) {
+      bitmapQueue.push(new FakeBitmap(4000, 3000))
+      await expect(openPhoto(fileOf(head, 'IMG_0001.HEIC', 'image/heic'))).resolves.toMatchObject({ width: 1600, height: 1200 })
+    }
+    expectAllReleased()
+  })
+
+  it('there is no HEIC decoder or image library dependency', () => {
+    const dependencies = Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies })
+    expect(dependencies.filter((name) => /heic|heif|libheif|image|exif|sharp|jimp|canvas/i.test(name))).toEqual([])
   })
 })

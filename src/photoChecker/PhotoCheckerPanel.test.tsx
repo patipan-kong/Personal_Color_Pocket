@@ -615,7 +615,9 @@ describe('keyboard interaction', () => {
   })
 
   it('clamps at the image boundaries', async () => {
-    const user = userEvent.setup()
+    // No timer between keys (130 key events). With the default per-key delay this ran at ~3.5 s of
+    // its 5 s budget under full-suite load (Slice 6). The behaviour tested is identical.
+    const user = userEvent.setup({ delay: null })
     renderPanel()
     const image = solid(1600, 1200, BEST)
     await openReady(image, { width: 400, height: 300 })

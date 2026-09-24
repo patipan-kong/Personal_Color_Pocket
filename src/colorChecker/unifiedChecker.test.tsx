@@ -170,29 +170,27 @@ describe('Manual result uses the shared result card', () => {
 })
 
 describe('same HEX, Manual vs Photo: one result experience', () => {
-  const cases = () => [palette.best[0].hex, palette.neutrals[1].hex, hexFor('Wearable'), palette.harder[0].hex, '#808080'].map((hex) => hex.toUpperCase())
+  // One test per language × colour (Slice 6). The ten full App flows used to run inside one test
+  // at ~4.2 s of its 5 s budget, and it timed out under full-suite load.
+  const cases = (['en', 'th'] as const).flatMap((language) =>
+    [palette.best[0].hex, palette.neutrals[1].hex, hexFor('Wearable'), palette.harder[0].hex, '#808080'].map((hex) => [language, hex.toUpperCase()] as const))
 
-  it('both modes show the same sections in the same order; only Photo adds its details and caveat', async () => {
-    for (const language of ['en', 'th'] as const) {
-      for (const hex of cases()) {
-        const copy = locales[language]
-        const user = await openChecker(language)
-        await checkManual(user, hex)
-        const manual = { structure: structure(), hex: text('.check-hex'), label: text('.check-reference > span:first-child'), pairHeading: text('.check-pairing h2') !== '' }
-        await checkPhoto(user, hex, copy)
-        const photo = { structure: structure(), hex: text('.check-hex'), label: text('.check-reference > span:first-child'), pairHeading: text('.check-pairing h2') !== '' }
-        expect(photo.hex, hex).toBe(hex)
-        expect(manual.hex).toBe(hex)
-        // Same reference row; the label says what each engine actually reports.
-        expect(manual.label).toBe(copy.colorResult.reference.nearestBest)
-        expect(photo.label).toBe(copy.colorResult.reference.similar)
-        expect(manual.pairHeading && photo.pairHeading).toBe(true)
-        const base = ['check-sample', 'check-verdict', 'check-category', 'check-reason', 'check-action', 'check-reference', 'check-placement', 'check-pairing']
-        expect(manual.structure).toEqual(base)
-        expect(photo.structure.filter((name) => name !== 'check-note')).toEqual([...base, 'check-details', 'check-caveat'])
-        cleanup()
-      }
-    }
+  it.each(cases)('%s %s: both modes show the same sections in the same order; only Photo adds its details and caveat', async (language, hex) => {
+    const copy = locales[language]
+    const user = await openChecker(language)
+    await checkManual(user, hex)
+    const manual = { structure: structure(), hex: text('.check-hex'), label: text('.check-reference > span:first-child'), pairHeading: text('.check-pairing h2') !== '' }
+    await checkPhoto(user, hex, copy)
+    const photo = { structure: structure(), hex: text('.check-hex'), label: text('.check-reference > span:first-child'), pairHeading: text('.check-pairing h2') !== '' }
+    expect(photo.hex, hex).toBe(hex)
+    expect(manual.hex).toBe(hex)
+    // Same reference row; the label says what each engine actually reports.
+    expect(manual.label).toBe(copy.colorResult.reference.nearestBest)
+    expect(photo.label).toBe(copy.colorResult.reference.similar)
+    expect(manual.pairHeading && photo.pairHeading).toBe(true)
+    const base = ['check-sample', 'check-verdict', 'check-category', 'check-reason', 'check-action', 'check-reference', 'check-placement', 'check-pairing']
+    expect(manual.structure).toEqual(base)
+    expect(photo.structure.filter((name) => name !== 'check-note')).toEqual([...base, 'check-details', 'check-caveat'])
   })
 
   it('when both engines reach the same level, both show the identical verdict text and cue', async () => {
