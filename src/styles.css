@@ -596,6 +596,82 @@ h1, h2, h3, p { text-wrap: pretty; }
   .learn-featured { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+/* V1.4 Slice 3: the 12-type grid, the dimension scales and the one type template. Every swatch keeps
+   its canonical colour; light swatches get a neutral hairline instead of a changed colour. */
+.learn-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; }
+.learn-your-type { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border: 1px solid currentColor; border-radius: 999px; background: var(--cream); color: var(--accent-ink); font-size: .74rem; font-weight: 800; line-height: 1.5; white-space: nowrap; }
+.learn-your-type > span { font-size: .8em; }
+
+.learn-figure { margin: 22px 0 0; padding: 16px; border-radius: 20px; background: rgba(255,253,250,.7); border: 1px solid var(--line); }
+.learn-figure figcaption { margin: 12px 0 0; }
+.learn-scales ul { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.learn-scale-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 14px; font-weight: 700; }
+.learn-scale-key { flex: none; width: 20px; height: 16px; border-radius: 4px; background: var(--accent-ink); }
+.learn-scale-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 12px; margin: 0 0 6px; line-height: 1.4; }
+.learn-scale-head strong { font-weight: 760; }
+.learn-scale-head span { color: var(--accent-ink); font-weight: 760; }
+.learn-scale-row { display: flex; align-items: center; gap: 8px; }
+.learn-scale-track { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; gap: 3px; }
+.learn-scale-track i { height: 10px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 11%, transparent); }
+.learn-scale-track i.is-on { height: 16px; border-radius: 4px; background: var(--accent-ink); }
+.learn-scale-end { flex: none; gap: 0; }
+.learn-scale-end i { width: 22px; height: 22px; border-radius: 6px; }
+.learn-scale-end.is-stack { flex-direction: column; flex-wrap: nowrap; overflow: hidden; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(38,24,32,.18); }
+.learn-scale-end.is-stack i { height: 8px; border-radius: 0; box-shadow: none; }
+.learn-scale-ends { display: flex; justify-content: space-between; gap: 12px; margin: 3px 0 0; color: var(--muted); font-size: .8rem; }
+
+.learn-type-grid { margin-top: 22px; }
+.learn-grid-hint { margin: 0 0 6px; color: var(--muted); font-size: .92rem; }
+.learn-season { padding: 14px 0 6px; border-top: 1px solid var(--line); }
+.learn-season h2 { margin: 0; font-size: 1.12rem; letter-spacing: -.01em; }
+.learn-season-summary { margin: 2px 0 10px; color: var(--muted); font-size: .9rem; line-height: 1.5; }
+.learn-season-types { display: grid; grid-template-columns: repeat(auto-fill, minmax(5.3em, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.learn-type-card { position: relative; min-width: 0; min-height: 44px; padding: 10px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,253,250,.85); }
+.learn-type-card.is-mine { border-color: var(--accent-ink); box-shadow: inset 0 0 0 1px var(--accent-ink); }
+.learn-type-card-art { flex-wrap: nowrap; gap: 0; margin-bottom: 8px; }
+.learn-type-card-art i { flex: 1; width: auto; height: 16px; border-radius: 0; }
+.learn-type-card-art i:first-child, .learn-type-cover i:first-child { border-radius: 6px 0 0 6px; }
+.learn-type-card-art i:last-child, .learn-type-cover i:last-child { border-radius: 0 6px 6px 0; }
+.learn-type-card h3 { margin: 0; font-size: .92rem; line-height: 1.3; overflow-wrap: anywhere; }
+.learn-type-card .learn-your-type { margin-top: 6px; }
+.learn-type-card-secondary { margin: 2px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.35; }
+.learn-type-card:has(.learn-open:focus-visible) { outline: 3px solid #197a78; outline-offset: 2px; }
+.learn-type-card:hover h3 { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 4px; }
+
+.learn-type-cover { flex-wrap: nowrap; gap: 0; margin: 0 0 18px; }
+.learn-type-cover i { flex: 1; width: auto; height: 14px; border-radius: 0; }
+.learn-type-mine { margin: 8px 0 0; }
+.learn-qualities { margin: 10px 0 0; font-weight: 720; line-height: 1.5; }
+.learn-qualities span { margin-right: 6px; color: var(--muted); font-size: .86rem; font-weight: 650; }
+.learn-type-group { margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
+.learn-type-group h2 { margin: 0; font-size: 1.15rem; letter-spacing: -.01em; }
+.learn-group-description { margin: 4px 0 12px; color: var(--muted); font-size: .92rem; line-height: 1.55; }
+/* Rows sized to the group: five across for the 5-colour groups, four across for Best (8) and More
+   Considered (4), so no row leaves an orphan. The em floor drops columns under large text. */
+.learn-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(3em, calc(20% - 7px)), 1fr)); gap: 12px 8px; margin: 0; padding: 0; list-style: none; }
+.is-best .learn-chips, .is-harder .learn-chips { grid-template-columns: repeat(auto-fill, minmax(max(3.2em, calc(25% - 7px)), 1fr)); }
+.learn-chips li { min-width: 0; font-size: .8rem; line-height: 1.3; overflow-wrap: anywhere; }
+.learn-chips i { display: block; height: 36px; margin-bottom: 6px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(38,24,32,.18); }
+.is-best .learn-chips i { height: 58px; border-radius: 14px; }
+.is-best .learn-chips li { font-size: .84rem; font-weight: 650; }
+.learn-type-group.is-harder { padding: 16px; border: 1px dashed color-mix(in srgb, var(--ink) 26%, transparent); border-radius: 20px; background: rgba(255,253,250,.6); }
+.is-harder .learn-chips i { height: 28px; }
+.learn-tips { margin: 14px 0 0; font-size: .9rem; }
+.learn-metals { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.learn-metals li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: center; }
+.learn-metals i { width: 28px; height: 28px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(38,24,32,.2); }
+.learn-metals span { font-size: .9rem; line-height: 1.45; color: var(--muted); }
+.learn-metals strong { display: block; color: var(--ink); }
+.learn-outfit { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8em), 1fr)); gap: 16px; align-items: center; }
+.learn-flatlay { display: block; width: 100%; max-width: 13em; height: auto; }
+.learn-flatlay-piece { stroke: rgba(38,24,32,.3); stroke-width: 1.5; stroke-linejoin: round; }
+.learn-flatlay-strap { fill: none; stroke-width: 5; stroke-linecap: round; }
+.learn-type-quiz { margin-top: 18px; }
+.result-learn-link { grid-column: -2; justify-self: start; margin: -52px 0 0 -14px; text-align: left; }
+@media (max-width: 760px) {
+  .result-learn-link { margin-top: -14px; }
+}
+
 @media (max-width: 760px) {
   .app-shell { padding: 0 20px 118px; }
   .brand-bar { min-height: 70px; }

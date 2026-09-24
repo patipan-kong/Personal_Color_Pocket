@@ -16,7 +16,7 @@ export const learnTh: LearnCopy = {
       cta: 'ค้นหา Personal Color ของคุณ',
     },
   },
-  reader: { back: 'กลับไปหน้าคู่มือสี', why: 'ทำไมถึงได้ผล', more: 'รายละเอียดเพิ่มเติม', takeaway: 'ลองทำดู' },
+  reader: { back: 'กลับไปหน้าคู่มือสี', backTo: 'กลับไปที่', why: 'ทำไมถึงได้ผล', more: 'รายละเอียดเพิ่มเติม', takeaway: 'ลองทำดู' },
   topics: {
     'basics.what-is': {
       title: 'Personal Color คืออะไร',
@@ -140,6 +140,8 @@ export const learnTh: LearnCopy = {
   },
   typeDetail: {
     intro: 'ทุกไทป์ใช้รูปแบบเดียวกัน คือดูว่าไทป์นี้อยู่ตรงไหนบนสเกลสีทั้ง 4 แล้วตามด้วยพาเลตต์',
+    qualitiesLabel: 'ลักษณะสี',
+    gridHint: 'เลือกไทป์เพื่อดูพาเลตต์',
     seasonLabel: 'ฤดู',
     positionHeading: 'ไทป์นี้อยู่ตรงไหน',
     positionNote: 'ตำแหน่งนี้บอกลักษณะของไทป์ ไม่ใช่คะแนนจากคำตอบของคุณ',

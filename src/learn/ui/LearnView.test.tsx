@@ -169,7 +169,7 @@ describe('B/D. Learn reader, type page and Back', () => {
     expect(document.querySelectorAll('[data-learn-group="harder"] .learn-swatches i')).toHaveLength(Math.min(6, getPalette('soft-autumn').harder.length))
   })
 
-  it('opens the minimal type page from the hero, built from the user’s type only', async () => {
+  it('opens the user’s type page from the hero (the Slice 3 template)', async () => {
     const user = userEvent.setup()
     const { onPalette } = renderLearn({ result: resultFor('deep-winter') })
     const learn = getLearnCopy('en')
@@ -179,7 +179,7 @@ describe('B/D. Learn reader, type page and Back', () => {
     expect(screen.getByRole('heading', { level: 1, name: copy.subtypes['deep-winter'].name })).toHaveFocus()
     expect(screen.getByRole('heading', { level: 2, name: learn.typeDetail.positionHeading })).toBeInTheDocument()
     // Bands as words, four of them; no numbers.
-    expect(document.querySelectorAll('.learn-positions dd')).toHaveLength(4)
+    expect(document.querySelectorAll('.learn-type-position .learn-scale-head span')).toHaveLength(4)
     expect(page().textContent).not.toMatch(/\d/)
     const palette = getPalette('deep-winter')
     const formula = [...document.querySelectorAll('.learn-formula strong')].map((name) => name.textContent)

@@ -4,7 +4,7 @@ import type { Language } from '../../i18n'
 import { learnGroups, learnHomeFeatured, learnTopics, outfitExample, seasonGroups, subtypeGuide } from '..'
 import type { LearnCopy, LearnProfile, LearnTopicId, PaletteColorGroupKey } from '..'
 import type { LearnPage } from './LearnView'
-import { Swatches } from './LearnReader'
+import { Swatches } from './LearnVisuals'
 
 // The Learn home (plan §11): a compact hero, at most two featured topics, then the remaining topics
 // as rows under their group. Order, grouping and featuring all come from the Slice 1 registry.
@@ -54,7 +54,7 @@ export function LearnHome({ learn, language, profile, headingRef, onOpen, onQuiz
         <h2 id="learn-hero-title">{guide.copy.name}</h2>
         {guide.copy.secondaryName && <p className="learn-hero-secondary" lang="en">{guide.copy.secondaryName}</p>}
         <p className="learn-hero-summary">{guide.copy.summary}</p>
-        <button type="button" className="primary-button compact" data-learn-open="type" onClick={() => onOpen({ kind: 'type' }, 'type')}>{learn.home.profileHero.cta} <span aria-hidden="true">→</span></button>
+        <button type="button" className="primary-button compact" data-learn-open="type" onClick={() => onOpen({ kind: 'your-type' }, 'type')}>{learn.home.profileHero.cta} <span aria-hidden="true">→</span></button>
       </section>
       : <section className="learn-hero is-general" aria-labelledby="learn-hero-title">
         <Swatches colors={seasonGroups().flatMap((season) => season.sample)} className="learn-hero-swatches is-seasons" />

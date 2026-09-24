@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { subtypeOrder } from '../domain/personalColor/seasons'
 import { learnTranslations } from './content'
 import { learnTopicOrder } from './registry'
+import packageJson from '../../package.json'
 
-// V1.4 Slices 1–2: architectural boundaries of the Learn foundation and its UI, checked on the source text.
+// V1.4 Slices 1–3: architectural boundaries of the Learn foundation and its UI, checked on the source text.
 
 const learnSources = import.meta.glob(['./**/*.ts', '!./**/*.test.ts'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 const appSources = import.meta.glob(['../**/*.{ts,tsx}', '!../**/*.test.{ts,tsx}', '!./**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
@@ -58,7 +59,7 @@ describe('R/E. Learn architecture boundaries', () => {
     expect(Object.keys(appSources)).toContain('../App.tsx')
     const users = Object.entries(appSources).flatMap(([path, source]) => specifiers(source).filter((specifier) => /(^|\/)learn(\/|$)/.test(specifier)).map((specifier) => `${path} -> ${specifier}`))
     expect(users).toEqual(['../App.tsx -> ./learn/ui/LearnView'])
-    expect(Object.keys(import.meta.glob(['./**/*.tsx', '!./**/*.test.tsx'])).sort()).toEqual(['./ui/LearnHome.tsx', './ui/LearnReader.tsx', './ui/LearnView.tsx'])
+    expect(Object.keys(import.meta.glob(['./**/*.tsx', '!./**/*.test.tsx'])).sort()).toEqual(['./ui/LearnHome.tsx', './ui/LearnReader.tsx', './ui/LearnType.tsx', './ui/LearnView.tsx', './ui/LearnVisuals.tsx'])
   })
 })
 
@@ -86,5 +87,30 @@ describe('E. Learn UI boundaries (Slice 2)', () => {
         for (const text of Object.values(learnTranslations[language].topics).flatMap((topic) => [topic.title, topic.rowAnswer, topic.answer])) expect(source, path).not.toContain(text)
       }
     }
+  })
+})
+
+describe('F. Learn type guide boundaries (Slice 3)', () => {
+  it('draws nothing from Daily, colour naming, photo placement or any recommendation code', () => {
+    // Daily's frozen wording is reused by key (appCopy.ts); its domain and UI are never imported.
+    for (const [path, source] of Object.entries({ ...learnSources, ...uiSources })) {
+      for (const specifier of specifiers(source)) expect(specifier, path).not.toMatch(/luckyColor|daily|colorNames|photoColor|components|\/App$/i)
+      expect(code(source), path).not.toMatch(/recommendLucky|adaptLucky|getLuckyColor|luckyFamilies|describeColor|GarmentArt|DailyOutfit/)
+    }
+  })
+
+  it('holds no copied targets or measurements in the UI: no decimal literal at all', () => {
+    for (const [path, source] of Object.entries(uiSources)) expect(code(source).match(/(?<![\w.])0?\.\d+/g) ?? [], path).toEqual([])
+  })
+
+  it('chooses topic visuals by registry kind: the UI never compares a topic or its id', () => {
+    for (const [path, source] of Object.entries(uiSources)) {
+      expect(code(source), path).not.toMatch(/\btopic\s*[!=]==|\.id\s*[!=]==\s*['"`]|topic\.(startsWith|endsWith|includes)/)
+    }
+  })
+
+  it('adds no dependency: the package lists are unchanged', () => {
+    expect(Object.keys(packageJson.dependencies).sort()).toEqual(['@capacitor/android', '@capacitor/core', '@vitejs/plugin-react', 'react', 'react-dom', 'typescript', 'vite'])
+    expect(Object.keys(packageJson.devDependencies).sort()).toEqual(['@capacitor/cli', '@testing-library/jest-dom', '@testing-library/react', '@testing-library/user-event', '@types/react', '@types/react-dom', 'jsdom', 'vitest'])
   })
 })

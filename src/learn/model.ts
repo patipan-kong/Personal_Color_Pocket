@@ -24,6 +24,9 @@ export function dimensionBand(t: number): DimensionBand {
   return 'strong-high'
 }
 
+// The five bands in scale order, from the 0 end to the 1 end: a scale draws a band at its index here.
+export const dimensionBandOrder: readonly DimensionBand[] = ['strong-low', 'lean-low', 'middle', 'lean-high', 'strong-high']
+
 export function bandEnd(band: DimensionBand): DimensionEnd | null {
   return band === 'middle' ? null : band.endsWith('low') ? 'low' : 'high'
 }
@@ -169,6 +172,12 @@ export function subtypeGuide(subtype: Subtype, language: Language): SubtypeGuide
 export interface LearnProfile {
   subtype: Subtype
   season: Season
+}
+
+// A subtype requested from outside Learn (e.g. the Result screen's link): a canonical id or null. Learn
+// never guesses a replacement for an unknown id.
+export function learnSubtype(value: unknown): Subtype | null {
+  return subtypeOrder.find((subtype) => subtype === value) ?? null
 }
 
 export function learnProfileFrom(result: Pick<PersonalColorResult, 'subtype'> | null | undefined): LearnProfile | null {

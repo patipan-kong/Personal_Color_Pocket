@@ -17,7 +17,7 @@ import { ColorResultCard } from './colorChecker/ColorResultCard'
 import { toManualResultView } from './colorChecker/manualResult'
 import { PhotoCheckerPanel } from './photoChecker/PhotoCheckerPanel'
 import { DailyView } from './dailyLuckyColor/DailyView'
-import { LearnView } from './learn/ui/LearnView'
+import { LearnView, type LearnEntry } from './learn/ui/LearnView'
 import { adService } from './services/ads'
 import { clearState, loadState, saveState } from './services/persistence'
 import { loadPresentationPreference, savePresentationPreference } from './services/presentationPreference'
@@ -444,7 +444,7 @@ function DiagnosticPanel({ answers }: { answers: QuizAnswers }) {
   </section>
 }
 
-function ResultView({ copy, language, result, answers, showDiagnostics, presentationPreference, onPresentation, onPalette, onRetake }: {
+function ResultView({ copy, language, result, answers, showDiagnostics, presentationPreference, onPresentation, onPalette, onLearn, onRetake }: {
   copy: LocaleCopy
   language: Language
   result: PersonalColorResult
@@ -453,6 +453,7 @@ function ResultView({ copy, language, result, answers, showDiagnostics, presenta
   presentationPreference: PresentationPreference
   onPresentation: (preference: PresentationPreference) => void
   onPalette: () => void
+  onLearn: () => void
   onRetake: () => void
 }) {
   const definition = copy.subtypes[result.subtype]
@@ -487,6 +488,8 @@ function ResultView({ copy, language, result, answers, showDiagnostics, presenta
     <section className="result-details content-card">
       <div><p className="section-number">{copy.result.whyLabel}</p><h2>{copy.result.whyHeading}</h2></div>
       <ul className="reason-list">{result.reasons.map((reason) => <li key={`${reason.dimension}-${reason.tendency}`}><span>✓</span>{copy.reasonText[reason.dimension][reason.tendency][reason.strength]}</li>)}</ul>
+      {/* V1.4 Slice 3: the one contextual link from Result, to this type's page in Learn. */}
+      <button type="button" className="text-button result-learn-link" onClick={onLearn}>{copy.result.learnCta} <span aria-hidden="true">→</span></button>
     </section>
     <section className="palette-preview content-card">
       <div><p className="section-number">{copy.result.previewLabel}</p><h2>{copy.result.previewHeading}</h2><p>{copy.result.previewCopy}</p></div>
@@ -638,6 +641,8 @@ export default function App() {
   const [presentationPreference, setPresentationPreference] = useState<PresentationPreference | null>(() => loadPresentationPreference())
   const [view, setView] = useState<View>(initial.result ? 'result' : 'home')
   const [confirmRetake, setConfirmRetake] = useState(false)
+  // Where Learn opens: its home (nav, Welcome) or one type's page (Result). Learn validates the type.
+  const [learnEntry, setLearnEntry] = useState<LearnEntry>({ kind: 'home' })
   const copy = getCopy(language)
   // DEV-only diagnostic gate: never true in a production build (import.meta.env.DEV is
   // compiled out to false), and even in dev it requires an explicit query param so the
@@ -657,6 +662,7 @@ export default function App() {
     setView(next)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
+  const openLearn = (entry: LearnEntry = { kind: 'home' }) => { setLearnEntry(entry); void changeView('learn') }
   const completeQuiz = () => { const nextResult = analyzeQuiz(answers); setResult(nextResult); setView('result'); window.scrollTo(0, 0) }
   const startQuiz = () => { setView(presentationPreference ? 'quiz' : 'presentation'); window.scrollTo(0, 0) }
   const choosePresentation = (next: PresentationPreference) => { changePresentation(next); setView('quiz'); window.scrollTo(0, 0) }
@@ -665,15 +671,15 @@ export default function App() {
 
   return <div className={`app-shell language-${language} ${result ? `has-profile season-${result.season}` : ''}`}>
     <AppHeader copy={copy} language={language} onLanguage={changeLanguage} onHome={goHome} presentationPreference={presentationPreference} onPresentation={changePresentation} />
-    {view === 'home' && <Welcome copy={copy} hasProgress={Object.keys(answers).length > 0} onStart={startQuiz} onDaily={() => void changeView('daily')} onLearn={() => void changeView('learn')} />}
+    {view === 'home' && <Welcome copy={copy} hasProgress={Object.keys(answers).length > 0} onStart={startQuiz} onDaily={() => void changeView('daily')} onLearn={() => openLearn()} />}
     {view === 'presentation' && <PresentationOnboarding copy={copy} onChoose={choosePresentation} />}
     {view === 'quiz' && <Quiz copy={copy} answers={answers} step={quizStep} presentationPreference={presentationPreference ?? 'women'} onAnswer={(questionId, answerId) => setAnswers((current) => ({ ...current, [questionId]: answerId }))} onStep={(next) => setQuizStep(Math.max(0, Math.min(quizQuestions.length - 1, next)))} onComplete={completeQuiz} />}
-    {view === 'result' && result && <ResultView copy={copy} language={language} result={result} answers={answers} showDiagnostics={showDiagnostics} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} onPalette={() => void changeView('palette')} onRetake={() => setConfirmRetake(true)} />}
+    {view === 'result' && result && <ResultView copy={copy} language={language} result={result} answers={answers} showDiagnostics={showDiagnostics} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} onPalette={() => void changeView('palette')} onLearn={() => openLearn({ kind: 'type', subtype: result.subtype })} onRetake={() => setConfirmRetake(true)} />}
     {view === 'palette' && result && <PaletteView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} />}
     {view === 'checker' && result && <CheckerView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} />}
     {view === 'daily' && <DailyView copy={copy} result={result} onQuiz={startQuiz} />}
-    {view === 'learn' && <LearnView copy={copy} language={language} result={result} onQuiz={startQuiz} onPalette={() => void changeView('palette')} />}
-    {result && view !== 'quiz' && view !== 'presentation' && <BottomNav copy={copy} view={view} onView={(next) => void changeView(next)} />}
+    {view === 'learn' && <LearnView copy={copy} language={language} result={result} entry={learnEntry} onQuiz={startQuiz} onPalette={() => void changeView('palette')} />}
+    {result && view !== 'quiz' && view !== 'presentation' && <BottomNav copy={copy} view={view} onView={(next) => next === 'learn' ? openLearn() : void changeView(next)} />}
     {confirmRetake && <RetakeDialog copy={copy} onCancel={() => setConfirmRetake(false)} onConfirm={retake} />}
   </div>
 }

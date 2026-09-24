@@ -1,6 +1,6 @@
 # V1.4 Learn — Personal Color Guide: Product Plan
 
-**Status:** Slices 0, 1 (content foundation, [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md)) and 2 (Learn home and navigation, [V1_4_SLICE_2_LEARN_HOME_NAV.md](V1_4_SLICE_2_LEARN_HOME_NAV.md)) are complete. Learn is visible. Slice 3 is next.
+**Status:** Slices 0, 1 (content foundation, [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md)) 2 (Learn home and navigation, [V1_4_SLICE_2_LEARN_HOME_NAV.md](V1_4_SLICE_2_LEARN_HOME_NAV.md)) and 3 (types and type guide, [V1_4_SLICE_3_TYPE_GUIDE.md](V1_4_SLICE_3_TYPE_GUIDE.md)) are complete. Slice 4 is next.
 
 **PO decisions after Slice 0:**
 - **Q1:** Everyday Neutrals stays P1. Learn gets no access to the colour-naming module, its guard is unchanged, and neutral families are never inferred from colour names. Revisit only in Slice 4, if P0 is complete and there is a product reason; dropping the topic is acceptable.
@@ -324,7 +324,7 @@ Sources: reuse V1.3 frozen wording (`daily.framing`, `storyFamily`, `storyShade`
 1. **Bottom nav, 5th item "Guide / คู่มือ"** for profile users, after Checker. Gate: it must fit at 320 px in Thai, with 44 px targets. If not, fall back to a header entry (open question Q3).
 2. **Welcome page:** a secondary text link under the Daily link, for no-profile users.
 3. **Exactly three contextual links**, each landing on a specific topic:
-   - Result → "What does my type mean?" → `types.detail[subtype]`;
+   - Result → "What does my type mean?" → `types.detail[subtype]` (**implemented in Slice 3** as "Learn about your type");
    - Palette › Harder section → `wear.harder`;
    - Checker photo caveat / lighting note → `app.color-checker`.
 4. **No new link on Daily** in V1.4; its About section already explains. If added later, it is P1.
@@ -559,3 +559,16 @@ The following hold for every V1.4 slice:
   - replace the minimal type page with the full §14 template;
   - add an initial-page prop for the Result link.
   - The UI may import only `react`, the public `src/learn` barrel, and types; the app reaches Learn only through `LearnView` (`boundaries.test.ts`).
+
+## 36. Slice 3 result and Slice 4 contract
+
+**Done.** See [V1_4_SLICE_3_TYPE_GUIDE.md](V1_4_SLICE_3_TYPE_GUIDE.md).
+
+- **Types:** `types.overview` draws the 4 × 3 type grid (registry visual `subtype-grid`), with a text "Your type" badge. Every type opens the one template (`typeDetailSections` order), built only from `subtypeGuide()`.
+- **Scales:** `basics.dimensions` and the type page share banded scales (five segments, band text); endpoints come from `dimensionExamples`.
+- **Result link:** Result → "Learn about your type" → the user's type page.
+- **Entry contract:** `LearnView` takes `entry?: LearnEntry` (`{ kind: 'home' } | { kind: 'type'; subtype }`), validated by `learnSubtype()`. An unknown id opens the Learn home. The app sets it through `openLearn()`; nav and Welcome open the home.
+- **Contract for Slice 4:**
+  - add `garment-placement` and `lighting-comparison` renderers to `TopicVisual` by kind (reuse `OutfitFlatLay`);
+  - extend `LearnEntry` with a validated `topic` variant for the Palette › More Considered and Checker links;
+  - keep the §F boundaries: no topic comparisons, no Daily imports, no decimal literals in the UI.

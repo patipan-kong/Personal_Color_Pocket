@@ -9,6 +9,6 @@ export { learnClaims, learnSources } from './sources'
 export { learnGroups, learnHomeFeatured, learnTopicOrder, learnTopics, typeDetailSections, typeDetailVisuals } from './registry'
 export { dimensionExamples, generalOutfitExample } from './examples'
 export {
-  bandEnd, dimensionBand, dimensionOrder, getLearnCopy, learnProfileFrom, namingQuality, outfitExample,
+  bandEnd, dimensionBand, dimensionBandOrder, dimensionOrder, getLearnCopy, learnProfileFrom, learnSubtype, namingQuality, outfitExample,
   outfitFormula, paletteColorById, seasonGroups, seasonOf, seasonTraits, subtypeGuide,
 } from './model'

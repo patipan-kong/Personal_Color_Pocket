@@ -71,7 +71,7 @@ export interface LearnCopy {
     generalHero: { title: string; body: string; cta: string }
   }
   // Labels of the generic topic reader and the Learn shell (Slice 2).
-  reader: { back: string; why: string; more: string; takeaway: string }
+  reader: { back: string; backTo: string; why: string; more: string; takeaway: string }
   topics: Record<LearnTopicId, LearnTopicCopy>
   // One line per season. Seasons are groupings of the 12 types: there are no season palettes.
   seasons: Record<Season, { name: string; summary: string }>
@@ -80,6 +80,10 @@ export interface LearnCopy {
   // Shared labels for the one subtype-detail template. Subtype names and summaries come from LocaleCopy.
   typeDetail: {
     intro: string
+    // Slice 3: the label that frames a type's three existing characteristic words as colour qualities,
+    // and the one-line hint above the 12-type grid.
+    qualitiesLabel: string
+    gridHint: string
     seasonLabel: string
     positionHeading: string
     positionNote: string

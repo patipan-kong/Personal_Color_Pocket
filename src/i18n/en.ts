@@ -65,7 +65,7 @@ export const en: LocaleCopy = {
     whyLabel: 'Why this result', whyHeading: 'Your answers painted a consistent story.',
     previewLabel: 'A first look', previewHeading: 'Colors to reach for',
     previewCopy: 'These shades share the qualities that stood out in your answers.',
-    previewAria: 'Recommended color preview', paletteCta: 'Explore My Palette', retake: 'Retake quiz',
+    previewAria: 'Recommended color preview', paletteCta: 'Explore My Palette', learnCta: 'Learn about your type', retake: 'Retake quiz',
     disclaimer: 'This is a guided estimate based on your answers, not a diagnosis. Real-world color draping may lead to a different result—and your favorite colors are always yours to wear.',
   },
   palette: {

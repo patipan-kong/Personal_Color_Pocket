@@ -82,6 +82,8 @@ export interface LocaleCopy {
     previewCopy: string
     previewAria: string
     paletteCta: string
+    // V1.4 Slice 3: the contextual link from Result to the user's type in Learn.
+    learnCta: string
     retake: string
     disclaimer: string
   }

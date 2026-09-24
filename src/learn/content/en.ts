@@ -15,7 +15,7 @@ export const learnEn: LearnCopy = {
       cta: 'Find your Personal Color',
     },
   },
-  reader: { back: 'Back to Color Guide', why: 'Why it works', more: 'More detail', takeaway: 'Try this' },
+  reader: { back: 'Back to Color Guide', backTo: 'Back to', why: 'Why it works', more: 'More detail', takeaway: 'Try this' },
   topics: {
     'basics.what-is': {
       title: 'What is Personal Color?',
@@ -139,6 +139,8 @@ export const learnEn: LearnCopy = {
   },
   typeDetail: {
     intro: 'Every type is shown the same way: where it sits on the four color scales, then its palette.',
+    qualitiesLabel: 'Color qualities',
+    gridHint: 'Choose a type to see its palette.',
     seasonLabel: 'Season',
     positionHeading: 'Where this type sits',
     positionNote: 'Positions describe the type, not a score from your answers.',
