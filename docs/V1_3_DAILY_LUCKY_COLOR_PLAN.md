@@ -1,6 +1,6 @@
 # Personal Color Pocket — V1.3 Daily Lucky Color Outfit: Plan
 
-**Status:** Slice 0 product/domain specification complete. No runtime data or product code is included in this document.
+**Status:** Slice 1 canonical knowledge and rule engine complete. Personal Color adaptation, outfits, UI, and visuals remain unimplemented.
 
 ## Purpose and product boundary
 
@@ -119,7 +119,7 @@ V1.2’s `describeColor()` returns a stable, local structured name `{ family, gr
 | Slice | Scope | Completion boundary |
 |---|---|---|
 | 0 | Domain research and product specification | This documentation and frozen decisions only. |
-| 1 | Canonical knowledge module and deterministic weekday/goal rule lookup | Versioned source provenance, table tests; no UI. |
+| 1 | Canonical knowledge module and deterministic weekday/goal rule lookup | **Complete:** versioned frozen provenance, seven-day/goal lookup, validation, and tests; no UI. |
 | 2 | Personal Color adaptation | Same-family candidate/ranking/placement ladder, invalid/no-profile behaviour, deterministic seed tests. |
 | 3 | Outfit recommendation composition | Small pure model for top/layer/bottom/shoes/accent using existing palettes and garment vocabulary. |
 | 4 | Daily experience UI | Goal selector, today card, copy, local goal preference, no-profile CTA. |
