@@ -1,6 +1,10 @@
 # V1.4 Learn — Personal Color Guide: Product Plan
 
-**Status:** Slice 0 (product, content and information architecture) is complete. Slice 1 is next. No Learn UI exists yet.
+**Status:** Slice 0 (product, content and information architecture) and Slice 1 (content foundation, [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md)) are complete. Slice 2 is next. No Learn UI exists yet.
+
+**PO decisions after Slice 0:**
+- **Q1:** Everyday Neutrals stays P1. Learn gets no access to the colour-naming module, its guard is unchanged, and neutral families are never inferred from colour names. Revisit only in Slice 4, if P0 is complete and there is a product reason; dropping the topic is acceptable.
+- **Q2:** the navigation entry is decided in Slice 2, by testing the real 5-item bottom nav at 320 px in Thai against the header fallback. Slice 1 made no navigation decision.
 
 **Entry:** `828b229` (V1.3 closed), after the pre-V1.4 maintenance commit `06c059f` "fix: reject invalid persisted personal color subtype".
 
@@ -461,7 +465,7 @@ Thai titles are drafts and need native review (Q4).
 - `app.color-checker`, `app.lucky`;
 - navigation (bottom nav or header, welcome link) and the 3 contextual links.
 
-**P1 (ship in V1.4 only if P0 is done and QA'd):** `wear.everyday-neutrals` (needs Q1), `wear.same-name`, nearby-type comparison.
+**P1 (ship in V1.4 only if P0 is done and QA'd):** `wear.everyday-neutrals` (Q1 decided: no colour-naming access; Slice 4 at the earliest, or dropped), `wear.same-name`, nearby-type comparison.
 
 **Deferred beyond V1.4:**
 - search, bookmarks and saved articles;
@@ -517,8 +521,8 @@ The following hold for every V1.4 slice:
 
 | # | Item | Proposed default |
 |---|---|---|
-| Q1 | `wear.everyday-neutrals` needs each palette colour's family (white/black/grey/beige/navy). That lives in the guarded `domain/colorNames`. | Keep it P1. Before Slice 4, the PO either approves adding `src/learn/model.ts` to the guard's allow-list, or drops the topic. Do not hand-classify by colour name, which is fragile: for example, Soft Summer's "Soft Navy" names as charcoal. |
-| Q2 | 5-item bottom nav at 320 px in Thai. | Measure in Slice 2; fall back to a header entry. |
+| Q1 | `wear.everyday-neutrals` needs each palette colour's family (white/black/grey/beige/navy). That lives in the guarded `domain/colorNames`. | **Decided (PO, after Slice 0):** stays P1; no colour-naming access and no guard change; no classification by colour name (fragile: Soft Summer's "Soft Navy" names as charcoal). Revisit only in Slice 4 with a product reason, or drop. |
+| Q2 | 5-item bottom nav at 320 px in Thai. | **Open by decision:** Slice 2 tests the real 5-item candidate at 320 px in Thai, then chooses bottom nav or header entry. |
 | Q3 | No URL routing, so the device back button leaves the app. | In-app Back button; native back handling is deferred with native work. |
 | Q4 | Thai copy quality. | Native Thai review before public release (manual checklist). |
 | Q5 | Bundle growth. | Measure in Slice 1; lazy-load only if the gzip delta exceeds ~30 kB. |
@@ -528,6 +532,8 @@ The following hold for every V1.4 slice:
 | R2 | Duplicated truth drifting from palettes. | Id-only references plus tests (Slice 1). |
 
 ## 34. Slice 1 handoff
+
+**Done.** Implemented in Slice 1; see [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md) for the final shape and the few places it differs from the proposal in §22.
 
 1. **Build** only `src/learn/` foundation files (§22), with **no UI** and no App, nav or CSS changes.
 2. **Content:** write TH/EN `LearnCopy` for `home`, `basics.what-is`, `basics.dimensions`, `types.overview` (intro and 4 season lines), `types.detail` template labels, `wear.palette`, `wear.harder`, `app.color-checker` and `app.lucky`. Stay within §25, follow §9 and research §4, and reference colours only by palette id.
