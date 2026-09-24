@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
+import { describeColor } from '../domain/colorNames/colorNames'
 import { getPalette } from '../domain/personalColor/palettes'
 import { subtypeOrder } from '../domain/personalColor/seasons'
 import type { Subtype } from '../domain/personalColor/types'
@@ -47,11 +48,12 @@ const realWithResemblance = (category: PhotoMatchCategory) => {
 }
 
 describe('result card hierarchy', () => {
-  it('orders swatch/HEX → verdict → category → why → action → nearest → placement → pairings → details → caveat', () => {
+  it('orders swatch/name/HEX → verdict → category → why → action → nearest → placement → pairings → details → caveat', () => {
     const matched = real('warm-autumn', 'away-from-face')
     renderCard(selected(matched))
-    expect(text('.photo-summary')).toBe(`${en.photoChecker.sampleLabel}${matched.sample.hex}△${en.colorResult.verdicts.weak}${en.photoChecker.categories['away-from-face']}`)
-    const order = ['.check-hex', '.check-verdict', '.check-category', '.check-reason', '.check-action', '.check-reference', '.check-placement', '.check-pairing', '.check-details', '.check-caveat']
+    const name = describeColor(matched.sample.hex)!
+    expect(text('.photo-summary')).toBe(`${en.photoChecker.sampleLabel}${name.en} · ${name.th}${matched.sample.hex}△${en.colorResult.verdicts.weak}${en.photoChecker.categories['away-from-face']}`)
+    const order = ['.check-name', '.check-hex', '.check-verdict', '.check-category', '.check-reason', '.check-action', '.check-reference', '.check-placement', '.check-pairing', '.check-details', '.check-caveat']
     order.slice(1).forEach((selector, index) => expect(before(order[index], selector), `${order[index]} before ${selector}`).toBe(true))
   })
 
@@ -61,7 +63,9 @@ describe('result card hierarchy', () => {
     expect(verdictText()).toBe(en.colorResult.verdicts.strong)
     expect($('.check-category')).toHaveClass('rating')
     expect($('.check-verdict')!.contains($('.check-category'))).toBe(false)
-    expect($('.check-hex')!.tagName).toBe('STRONG')
+    // Slice 7: the colour name is the emphasised identity; the HEX is a plain secondary detail.
+    expect($('.check-name strong')!.textContent).toBe(describeColor(matched.sample.hex)!.en)
+    expect($('.check-hex')!.tagName).toBe('SPAN')
     expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual([en.colorResult.placementHeading.positive, en.colorResult.pairing.around.heading])
   })
 

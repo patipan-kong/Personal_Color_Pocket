@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describeColor } from '../domain/colorNames/colorNames'
 import { hexToRgb } from '../domain/personalColor/colorUtils'
 import { getPalette } from '../domain/personalColor/palettes'
 import type { Subtype } from '../domain/personalColor/types'
@@ -665,7 +666,7 @@ describe('accessibility and localization', () => {
     expect(feedback().querySelector('.photo-summary')).toHaveAttribute('role', 'status')
     expect(feedback()).toHaveTextContent(copy.instruction)
     tapStage(200, 150)
-    expect(feedback().querySelector('.photo-summary')).toHaveTextContent(`${copy.sampleLabel}${BEST}✨${en.colorResult.verdicts.strong}${copy.categories['near-face']}`)
+    expect(feedback().querySelector('.photo-summary')).toHaveTextContent(`${copy.sampleLabel}${describeColor(BEST)!.en} · ${describeColor(BEST)!.th}${BEST}✨${en.colorResult.verdicts.strong}${copy.categories['near-face']}`)
   })
 
   it('renders Thai copy for the whole flow', async () => {

@@ -125,7 +125,7 @@ export const en: LocaleCopy = {
     choose: 'Choose a photo', change: 'Choose another photo', privacy: 'Your photo stays on this device.',
     preparing: 'Preparing photo…', instruction: 'Tap an evenly lit area of a color to see where it works best.', surfaceLabel: 'Photo to check',
     keyboardHint: 'Keyboard: press Enter to check the center, use the arrow keys to move the marker (hold Shift to move further), then press Enter to check.',
-    pending: 'Press Enter to check this spot.', sampleLabel: 'Color at this spot',
+    pending: 'Press Enter to check this spot.', sampleLabel: 'Color seen in this photo',
     categories: {
       'near-face': 'Great near your face', 'neutral-base': 'Easy neutral', related: 'Works with care',
       'away-from-face': 'Better away from your face', outside: 'Outside your palette',

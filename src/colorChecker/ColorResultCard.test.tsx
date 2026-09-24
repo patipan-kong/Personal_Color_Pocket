@@ -156,7 +156,10 @@ describe('accessibility', () => {
   it('only the summary is a live region; warnings are announced there once', () => {
     renderView(view('conditional', { warnings: ['Shadow may darken this.'] }))
     expect([...document.querySelectorAll('[role="status"], [aria-live]')]).toEqual([$('.check-summary')])
-    expect(text('.check-summary')).toBe('Checked color#A1B2C3△Wearable, but not one of your strongest colorsEngine labelShadow may darken this.')
+    // Slice 7: the colour name follows the label. The Thai name is shown but hidden from the live
+    // region, so the name is announced once, in the page language.
+    expect(text('.check-summary')).toBe('Checked colorLight Blue Gray · เทาอมฟ้าอ่อน#A1B2C3△Wearable, but not one of your strongest colorsEngine labelShadow may darken this.')
+    expect($('.check-name-alt')).toHaveAttribute('aria-hidden', 'true')
     expect($('.check-guidance')!.closest('[role="status"]')).toBeNull()
     expect($('.check-warnings')).toHaveAttribute('aria-hidden', 'true')
   })
@@ -182,7 +185,7 @@ describe('the shared card knows nothing about its source', () => {
   it('has no manual/photo branching, engine calls or storage', () => {
     // Imports are checked separately: the shared tone helper still lives in domain/photoColor.
     const imports = cardSource.match(/^import .*$/gm)!.map((line) => line.replace(/.* from '(.*)'$/, '$1'))
-    expect(imports.sort()).toEqual(['../domain/personalColor/colorUtils', '../domain/personalColor/types', '../domain/photoColor/suitability', '../domain/photoColor/suitability', '../i18n', '../i18n', './resultView', 'react'])
+    expect(imports.sort()).toEqual(['../domain/colorNames/colorNames', '../domain/personalColor/colorUtils', '../domain/personalColor/types', '../domain/photoColor/suitability', '../domain/photoColor/suitability', '../i18n', '../i18n', './resultView', 'react'])
     const code = cardSource.replace(/^import .*$/gm, '').replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
     for (const forbidden of ['mode', 'manual', 'photo', 'checkColor', 'matchPhotoColor', 'getSuitability', 'getColorPlacement', 'pairingSuggestions', 'getPalette', 'score', 'distance', 'localStorage', 'fetch']) {
       expect(code, forbidden).not.toMatch(new RegExp(forbidden, 'i'))

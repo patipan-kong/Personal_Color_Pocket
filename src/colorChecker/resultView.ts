@@ -9,7 +9,8 @@ import type { PositivePaletteGroup } from '../domain/photoColor/types'
 // already decided, and the card only renders it. Source-specific parts are optional slots.
 export interface ColorResultView {
   hex: string
-  // "Selected color" / "Color at this spot".
+  // "Selected color" / "Color seen in this photo". The colour's name is not here: the shared card
+  // derives it from `hex` alone (Slice 7), so no adapter can name the same HEX differently.
   sampleLabel: string
   suitability: Suitability
   // The engine's own label, shown small under the verdict. `key` only feeds a CSS class.

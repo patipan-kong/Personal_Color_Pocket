@@ -817,7 +817,7 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **5e. Real-world sampling investigation** — **done** ([record](V1_2_SLICE_5E_REAL_WORLD_SAMPLING_INVESTIGATION.md)). Investigation only: a white shirt in shade sampled as `#9FABB4`. **This investigation is required before final Photo sampling hardening.** | test-only `photoColor/investigation/*`, docs | findings pinned against the unchanged sampler/matcher | – | Production bundle byte-identical | any production change |
 | **5f. Photo lighting guidance** — **done** ([record](V1_2_SLICE_5F_PHOTO_LIGHTING_GUIDANCE.md)). The 5e outcome: guidance, not correction. Capture tip, evenly-lit tap guidance, a presentation-only note for light near-neutral samples, and honest highlight / shadow copy. | `domain/photoColor/lightingGuidance.ts`, photo adapter, shared card `info` slot, i18n, CSS | `photoLightingGuidance.test.tsx`, domain before/after proof | – | Sample, match, category and Manual outputs identical before and after | sampling, matcher, thresholds, correction, multi-tap |
 | **6. Hardening** — **engineering done; physical QA pending** ([record](V1_2_SLICE_6_HARDENING.md)). Follows 5d and 5f. One production fix (modified keys are left to the browser); `.kilo` excluded from test discovery; timing flake removed; races, ownership, boundaries, privacy and storage guarded. **READY FOR PHYSICAL QA, not release.** | `PhotoSurface.tsx`, `vite.config.ts`, README privacy note, tests | `photoHardening.test.tsx`, `photoPrivacy.test.tsx`, service boundary tests, full regression ×3 | – | §20.1 acceptance criteria met on the device matrix (**pending**: 48–50 MP Android, iPhone HEIC, TalkBack, VoiceOver, Thai review) | Capacitor build, colour names |
-| **7. Human-readable Color Names** (next) | Stable semantic colour names and tone descriptions in EN/TH; how much prominence HEX keeps. Motivated by real use: nearby taps on one light suit gave `#C6CACF`, `#D9DCDF`, `#D0D1D5`, which is technical, over-precise and visually misleading. Handoff: Slice 6 record §39 | i18n, result view, a naming module | naming stability for nearby colours; EN/TH | – | Nearby taps that pass the Slice 6 §28 metric usually share a name | sampler / matcher / threshold changes to stabilise names |
+| **7. Human-readable Color Names** — **engineering done; physical QA pending** ([record](V1_2_SLICE_7_COLOR_NAMES.md)). A pure, local `describeColor(hex)` names every colour in EN and TH (26 families, 76 names across all of sRGB). The shared card shows the bilingual name, page language first, with HEX secondary; Photo says "Color seen in this photo". The three light-suit taps all read **Light Gray · เทาอ่อน**. No engine, threshold or verdict changed (before/after fingerprint identical). **READY FOR PHYSICAL QA, not release.** | `domain/colorNames/*`, `ColorResultCard.tsx`, i18n sample label, CSS | `colorNames.test.ts`, `colorNamesIntegration.test.tsx`, full regression ×3, 18/18 mutations | – | ±2 / ±4 RGB: zero unrelated jumps; same-HEX Manual/Photo names identical (**pending**: native Thai review of the names, with the Slice 6 gates) | sampler / matcher / threshold changes, tone line, lucky colours |
 | **8. Capacitor readiness check** (was 7; when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |
 
 Slices 1–3 are independent of each other and of V1.1 (released), so they can start after Slice 0.
@@ -986,3 +986,27 @@ Full record: [V1_2_SLICE_6_HARDENING.md](V1_2_SLICE_6_HARDENING.md). Written 202
   These human gates are not marked complete.
 - **Status: READY FOR PHYSICAL QA.** Not ready for V1.2 release.
 - **Next:** Slice 7, Human-readable Color Names. HEX display is unchanged until then.
+
+---
+
+## 24. Slice 7 Human-readable Color Names Outcome
+
+Full record: [V1_2_SLICE_7_COLOR_NAMES.md](V1_2_SLICE_7_COLOR_NAMES.md). Written 2026-09-24.
+
+- **Durable decision:** the HEX is the measurement and the name is the user-facing identity. The Color Checker shows
+  **swatch → bilingual name → HEX (quiet)**, then the verdict, which stays the largest text.
+  - Locale controls the order (EN: *Light Gray · เทาอ่อน*, TH: *เทาอ่อน · Light Gray*). Both languages are always shown.
+  - The second language is hidden from screen readers so the name is announced once.
+- **One naming function:** `describeColor(hex)` in `domain/colorNames/colorNames.ts`.
+  - It is pure, deterministic and local, and knows nothing of source, subtype or matcher.
+  - It is called once, in the shared card, so the same HEX has the same name in Manual and Photo.
+  - It returns structured fields (family, group, value, temperature, chroma) as well as EN/TH strings, for later reuse.
+- **Taxonomy and stability:** 26 families. Its gates are naming-only, lightness-dependent chroma gates sized from
+  measured sRGB noise. ±2 and ±4 RGB produce zero unrelated jumps and zero warm↔cool reversals.
+- **No tone line.** The name already carries the meaningful modifiers.
+- **Photo wording:** the sample label is now "Color seen in this photo" / "สีที่เห็นในรูปนี้". The caveat and the 5f
+  note are unchanged.
+- **Not solved (by design):** Manual and Photo can still give different *verdicts* for one HEX; they now share the
+  *name*.
+- **Release gates, still PENDING:** 48–50 MP Android, iPhone HEIC, TalkBack, VoiceOver, and native Thai review, which
+  now includes the colour names. **Status: READY FOR PHYSICAL QA.**

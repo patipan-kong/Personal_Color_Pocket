@@ -296,10 +296,16 @@ h1, h2, h3, p { text-wrap: pretty; }
 .photo-unavailable { color: var(--ink); font-weight: 650; }
 /* Color Checker result, shared by Manual and Photo (Slice 5d). */
 .check-result { display: grid; gap: 10px; justify-items: start; min-width: 0; }
-.check-sample { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; }
+.check-sample { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; width: 100%; }
+.check-identity { min-width: 0; }
 .check-swatch { width: 52px; height: 52px; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
 .check-sample small { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 800; }
-.check-hex { display: block; margin-top: 2px; font-family: ui-monospace, monospace; font-size: 1.05rem; }
+/* Slice 7: the colour name is the identity; the HEX is a quiet technical detail under it. Both stay
+   smaller than the verdict. */
+.check-name { margin: 2px 0 0; color: var(--ink); font-size: 1.05rem; line-height: 1.3; overflow-wrap: anywhere; }
+.check-name strong { font-weight: 800; }
+.check-name-alt { color: var(--muted); font-weight: 600; }
+.check-hex { display: block; margin-top: 2px; color: var(--muted); font-family: ui-monospace, monospace; font-size: .8rem; letter-spacing: .02em; }
 /* Slice 5c verdict: the largest text on the card. Tone styling only reinforces the words. */
 .check-verdict { margin: 0; display: flex; gap: 10px; align-items: flex-start; color: var(--ink); font-size: clamp(1.18rem, 1.05rem + .6vw, 1.4rem); font-weight: 800; line-height: 1.3; letter-spacing: -.01em; }
 .check-verdict-mark { flex: none; display: grid; place-items: center; width: 1.55em; height: 1.55em; margin-top: -.08em; border-radius: 50%; font-size: .82em; line-height: 1; }

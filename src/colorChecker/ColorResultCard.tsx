@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { describeColor } from '../domain/colorNames/colorNames'
 import { readableTextColor } from '../domain/personalColor/colorUtils'
 import type { PaletteColor } from '../domain/personalColor/types'
 import { suitabilityTone } from '../domain/photoColor/suitability'
@@ -16,16 +17,18 @@ const VERDICT_MARKS: Record<Suitability, string> = { strong: '✨', good: '✓',
 // V1.2 Slice 5d: the one Color Checker result, for Manual and Photo alike. It renders a
 // ColorResultView and knows nothing about sampling or scoring.
 
-// Swatch, HEX, verdict and the engine's own label: the part a screen reader hears once per check.
-// The caller puts it inside its live region.
-export function ColorResultSummary({ copy, view }: { copy: ResultCopy; view: ColorResultView }) {
+// Swatch, colour name, HEX, verdict and the engine's own label: the part a screen reader hears
+// once per check. The caller puts it inside its live region.
+export function ColorResultSummary({ copy, language, view }: { copy: ResultCopy; language: Language; view: ColorResultView }) {
   const { hex, suitability } = view
   return <div className={`check-result check-tone-${suitabilityTone(suitability)}`}>
     <div className="check-sample">
       <span className="check-swatch" style={{ background: hex, color: readableTextColor(hex) }} aria-hidden="true" />
-      <div>
+      <div className="check-identity">
         <small>{view.sampleLabel}</small>
-        <strong className="check-hex">{hex}</strong>
+        <ColorNameLine hex={hex} language={language} />
+        {/* Slice 7: the exact measurement stays, as a quiet technical detail under the name. */}
+        <span className="check-hex">{hex}</span>
       </div>
     </div>
     {/* The answer to "is this colour good for me?", before anything about how to wear it. */}
@@ -97,10 +100,23 @@ export function ColorResultGuidance({ copy, garments, language, view }: { copy: 
 // Manual: the whole result, with only the summary as a live region (the same strategy as Photo).
 export function ColorResultCard({ copy, garments, language, view }: { copy: ResultCopy; garments: Garments; language: Language; view: ColorResultView }) {
   return <div className="check-card">
-    <div className="check-summary" role="status"><ColorResultSummary copy={copy} view={view} /></div>
+    <div className="check-summary" role="status"><ColorResultSummary copy={copy} language={language} view={view} /></div>
     {/* Keyed by the colour, so a new check replaces the guidance instead of morphing it. */}
     <ColorResultGuidance key={view.hex} copy={copy} garments={garments} language={language} view={view} />
   </div>
+}
+
+// Slice 7: the colour's everyday name in both languages, the page language first. It comes from the
+// HEX alone, here in the one shared card, so the same HEX gets the same name in Manual and Photo.
+// The second language is visual only: a screen reader hears the name once, in the page language.
+function ColorNameLine({ hex, language }: { hex: string; language: Language }) {
+  const name = describeColor(hex)
+  if (!name) return null
+  const [primary, secondary] = language === 'th' ? [name.th, name.en] : [name.en, name.th]
+  return <p className="check-name">
+    <strong>{primary}</strong>
+    <span className="check-name-alt" lang={language === 'th' ? 'en' : 'th'} aria-hidden="true"> · {secondary}</span>
+  </p>
 }
 
 // Same look as the palette's colour chips: swatch + display name, HEX in the tooltip only.
