@@ -55,51 +55,106 @@ h1, h2, h3, p { text-wrap: pretty; }
 .page-enter { animation: page-in .36s ease both; }
 @keyframes page-in { from { opacity: 0; transform: translateY(8px); } }
 
-/* Daily lucky-color experience: compact, text-first UI. The garment-board visual is Slice 5. */
-.welcome-daily-link { display: block; margin: 10px -14px 0; }
-.daily-page { max-width: 860px; margin: 44px auto 0; }
-.daily-hero { text-align: center; margin: 0 auto 34px; max-width: 660px; }
-.daily-hero h1 { margin: 0; font-size: clamp(2.5rem, 6vw, 4.8rem); letter-spacing: -.055em; line-height: .98; }
-.daily-weekday { margin: 16px 0 8px; font-weight: 800; color: var(--accent); }
-.daily-framing { margin: 0; color: var(--muted); font-size: .92rem; line-height: 1.55; }
-.daily-goals { border: 1px solid var(--line); border-radius: 24px; padding: clamp(18px, 4vw, 28px); background: rgba(255,250,244,.72); }
-.daily-goals h2 { margin: 0 0 16px; font-size: clamp(1.25rem, 3vw, 1.65rem); letter-spacing: -.03em; }
-.daily-goal-limit { margin: -8px 0 14px; color: var(--muted); font-size: .83rem; font-weight: 750; }
-.daily-goal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-.daily-goal-grid button { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 14px; border: 1px solid var(--line); border-radius: 14px; background: #fffdfa; color: var(--ink); font-weight: 750; text-align: left; }
-.daily-goal-grid button[aria-pressed="true"] { border: 2px solid var(--accent); padding: 10px 13px; background: color-mix(in srgb, var(--accent-soft) 46%, white); }
-.daily-goal-grid button span { color: var(--accent); opacity: 0; font-weight: 900; }
-.daily-goal-grid button[aria-pressed="true"] span { opacity: 1; }
-.daily-result { margin-top: 20px; padding: clamp(22px, 4vw, 34px); border-radius: 24px; background: var(--accent); color: #fff; }
-.daily-result .section-number { color: rgba(255,255,255,.7); }
-.daily-family-list { display: grid; gap: 20px; }
-.daily-family-claim + .daily-family-claim { padding-top: 20px; border-top: 1px solid rgba(255,255,255,.24); }
-.daily-family-heading { display: flex; align-items: center; gap: 15px; }
-.daily-family-heading > i { flex: 0 0 52px; width: 52px; height: 52px; border: 3px solid rgba(255,255,255,.7); border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
-.daily-family-heading h2 { margin: 0; font-size: clamp(2rem, 5vw, 3.25rem); letter-spacing: -.045em; line-height: 1; }
-.daily-family-heading p { margin: 5px 0 0; font-size: .78rem; font-weight: 700; color: rgba(255,255,255,.74); text-transform: uppercase; letter-spacing: .08em; }
-.daily-goal-provenance { margin: 9px 0 0; font-weight: 800; color: rgba(255,255,255,.9); }
-.daily-shade, .daily-profile, .daily-placement-note, .daily-general p { margin: 12px 0 0; line-height: 1.5; }
-.daily-shade { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
-.daily-shade span { font-size: .8rem; color: rgba(255,255,255,.72); }
-.daily-general { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
-.daily-general .text-button { color: #fff; text-decoration-color: rgba(255,255,255,.65); }
-.daily-outfit { padding: 38px 0; }
-.daily-section-heading { margin-bottom: 16px; }
-.daily-section-heading h2 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.45rem); letter-spacing: -.04em; }
-.daily-piece-list { display: grid; gap: 8px; }
-.daily-piece { min-height: 76px; display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 13px 15px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,250,244,.6); }
-.daily-piece.is-lucky { border: 2px solid var(--accent); padding: 12px 14px; background: color-mix(in srgb, var(--accent-soft) 42%, white); }
-.daily-piece h3 { margin: 0 0 5px; font-size: .82rem; text-transform: uppercase; letter-spacing: .09em; }
-.daily-piece-color { display: flex; gap: 8px; align-items: center; font-weight: 720; }
-.daily-piece-color i { width: 19px; height: 19px; border: 1px solid rgba(35,20,26,.25); border-radius: 50%; }
-.daily-lucky-badge, .daily-supporting-label { flex: 0 1 auto; border-radius: 999px; padding: 5px 8px; font-size: .7rem; font-weight: 850; white-space: normal; text-align: center; }
-.daily-lucky-badge { background: var(--accent); color: #fff; }
-.daily-supporting-label { color: var(--muted); background: rgba(92,63,74,.08); }
-.daily-sources { margin: 0 0 30px; padding: 17px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; line-height: 1.55; }
+/* Daily lucky-color experience (V1.3 Slice 5): compact goals, an editorial colour summary, and a
+   flat-lay garment board as the hero. Garment fills are the recommendation's colours, unchanged. */
+.daily-page { max-width: 1120px; margin: 30px auto 0; }
+.daily-hero { margin: 0 0 18px; }
+.daily-hero .eyebrow { margin: 0 0 8px; }
+.daily-hero h1 { margin: 0; font-size: clamp(1.95rem, 5.6vw, 3.4rem); letter-spacing: -.045em; line-height: 1.04; }
+.language-th .daily-hero h1 { line-height: 1.28; letter-spacing: -.02em; }
+.daily-layout { display: grid; gap: 26px; }
+.daily-goals-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; margin-bottom: 10px; }
+.daily-goals h2 { margin: 0; font-size: 1rem; letter-spacing: -.01em; line-height: 1.4; }
+.daily-goal-limit { margin: 0; color: var(--muted); font-size: .78rem; font-weight: 700; }
+.daily-goal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.daily-goal-label { text-wrap: balance; }
+.daily-goal-grid button { min-height: 50px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px 8px 13px; border: 1px solid var(--line); border-radius: 16px; background: rgba(255,253,250,.72); color: var(--ink); font-size: .92rem; font-weight: 720; line-height: 1.3; text-align: left; transition: background-color .18s ease, border-color .18s ease; }
+.daily-goal-grid button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent-soft) 55%, white); color: var(--accent-ink); }
+.daily-goal-check { flex: 0 0 20px; width: 20px; height: 20px; display: grid; place-items: center; border: 1.5px solid var(--line); border-radius: 50%; color: transparent; font-size: .72rem; font-weight: 900; }
+.daily-goal-grid button[aria-pressed="true"] .daily-goal-check { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+.daily-result { margin-top: 22px; }
+.daily-kicker { margin: 0 0 10px; color: var(--accent); font-size: .74rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.language-th .daily-kicker { font-size: .86rem; letter-spacing: .02em; }
+.daily-family-list { display: grid; gap: 12px; }
+.daily-family-claim { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 13px; align-items: center; }
+.daily-family-dot { width: 42px; height: 42px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(38,24,32,.2), 0 6px 16px rgba(64,33,45,.14); }
+.daily-family-dot.is-broad { outline: 1.5px dashed rgba(38,24,32,.38); outline-offset: 3px; }
+.daily-family-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.daily-family-heading h3 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.6rem, 6.4vw, 2.1rem); font-weight: 600; letter-spacing: -.02em; line-height: 1.1; }
+.language-th .daily-family-heading h3 { font-family: inherit; font-weight: 760; line-height: 1.3; letter-spacing: 0; }
+.daily-goal-provenance { margin: 0; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent-ink); font-size: .74rem; font-weight: 800; line-height: 1.4; }
+.daily-shade { margin: 2px 0 0; line-height: 1.45; }
+.daily-shade { font-size: .9rem; }
+.daily-shade span, .daily-shade.is-broad { color: var(--muted); }
+.daily-shade strong { font-weight: 780; }
+.daily-notes { display: grid; gap: 8px; margin-top: 16px; }
+.daily-placement-note { margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.55; }
+.daily-placement-note strong { color: var(--ink); font-weight: 800; }
+.daily-story, .daily-general { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
+.daily-story-steps { display: grid; gap: 2px; margin: 0; font-size: .9rem; font-weight: 720; line-height: 1.5; }
+.daily-story-steps span + span { color: var(--accent); }
+.daily-profile { margin: 6px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
+.daily-general p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.55; }
+.daily-general .text-button { margin-left: -14px; }
+
+.daily-section-heading { margin-bottom: 12px; }
+.daily-section-heading .section-number { margin-bottom: 4px; }
+.daily-section-heading h2 { margin: 0; font-size: clamp(1.4rem, 4.6vw, 2rem); letter-spacing: -.035em; line-height: 1.2; }
+.daily-board {
+  --garment-line: rgba(38,24,32,.32); --garment-seam: rgba(38,24,32,.2);
+  list-style: none; margin: 0; padding: clamp(18px, 4.5vw, 34px) clamp(14px, 4vw, 34px);
+  display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); grid-template-areas: "top top" "bottom shoes";
+  gap: 22px 16px; border-radius: 28px; background: #efe4d7; animation: daily-settle .42s ease both;
+}
+.daily-board[data-accessory-count="1"] { grid-template-areas: "top acc1" "bottom shoes"; }
+.daily-board[data-accessory-count="2"] { grid-template-areas: "top acc1" "top acc2" "bottom shoes"; }
+@keyframes daily-settle { from { opacity: 0; transform: translateY(6px); } }
+.daily-piece { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.daily-piece.is-shoes { align-self: end; }
+.daily-piece.is-accessory { align-self: center; }
+.daily-piece[data-tone="light"] { --garment-line: rgba(38,24,32,.52); }
+.daily-piece[data-tone="dark"] { --garment-seam: rgba(255,255,255,.26); }
+.daily-garment-art { position: relative; display: flex; justify-content: center; align-items: flex-end; }
+.daily-garment-figure { position: relative; width: 100%; }
+.daily-garment-art svg { position: relative; z-index: 1; display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 8px 10px rgba(64,33,45,.13)); }
+.is-top .daily-garment-figure { max-width: 196px; }
+.daily-board[data-accessory-count="0"] .is-top .daily-garment-figure { max-width: 214px; }
+.is-bottom .daily-garment-figure { max-width: 118px; }
+.is-shoes .daily-garment-figure { max-width: 124px; }
+.is-accessory .daily-garment-figure { max-width: 70px; }
+/* A soft spotlight bounded by the garment's own box, so it never reaches a neighbouring caption. */
+.is-lucky .daily-garment-art { padding-block: 14px; }
+.is-lucky .daily-garment-figure::before { content: ""; position: absolute; inset: -14px -16px; border-radius: 50%; background: rgba(255,251,246,.9); }
+.daily-board[data-accessory-count="2"] .is-top { align-self: center; }
+.daily-garment-mark { position: absolute; z-index: 2; top: -12px; right: -16px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: #fff; font-size: .78rem; box-shadow: 0 4px 10px rgba(64,33,45,.2); }
+.daily-garment-caption { min-width: 0; }
+.daily-board[data-accessory-count="0"] .is-top .daily-garment-caption { text-align: center; }
+.daily-garment-caption h3 { margin: 0; color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.language-th .daily-garment-caption h3 { font-size: .8rem; letter-spacing: 0; }
+.daily-piece-color { margin: 2px 0 0; font-size: .92rem; font-weight: 760; line-height: 1.35; overflow-wrap: anywhere; }
+.daily-lucky-badge { display: inline-block; margin: 6px 0 0; padding: 4px 10px; border-radius: 12px; background: var(--accent); color: #fff; font-size: .72rem; font-weight: 800; line-height: 1.4; }
+.daily-supporting-label { margin: 3px 0 0; color: var(--muted); font-size: .76rem; font-weight: 650; line-height: 1.4; }
+.daily-framing { max-width: 640px; margin: 26px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.6; }
+.daily-sources { margin: 10px 0 30px; padding: 15px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; line-height: 1.55; }
 .daily-sources summary { color: var(--accent); cursor: pointer; font-weight: 800; }
 .daily-sources a { color: inherit; }
 .daily-error { text-align: center; }
+@media (min-width: 600px) and (max-width: 899px) {
+  .daily-page { max-width: 640px; }
+}
+@media (min-width: 900px) {
+  .daily-page { margin-top: 44px; }
+  .daily-hero { margin-bottom: 30px; }
+  .daily-layout { grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 48px; align-items: start; }
+  .daily-outfit { position: sticky; top: 24px; }
+  .daily-board { gap: 30px 24px; }
+  .is-top .daily-garment-figure { max-width: 250px; }
+  .daily-board[data-accessory-count="0"] .is-top .daily-garment-figure { max-width: 270px; }
+  .is-bottom .daily-garment-figure { max-width: 150px; }
+  .is-shoes .daily-garment-figure { max-width: 160px; }
+  .is-accessory .daily-garment-figure { max-width: 88px; }
+}
 
 /* Welcome */
 .welcome-page { max-width: 1440px; margin: auto; }
@@ -479,9 +534,6 @@ h1, h2, h3, p { text-wrap: pretty; }
   .bottom-nav button { min-width: 0; flex: 1; min-height: 57px; flex-direction: column; gap: 2px; font-size: .68rem; }
   .language-th .bottom-nav button { font-size: .74rem; }
   .bottom-nav svg { width: 19px; height: 19px; }
-  .daily-page { margin-top: 32px; }
-  .daily-piece { align-items: flex-start; }
-  .daily-supporting-label, .daily-lucky-badge { margin-top: 2px; }
   .dialog { padding: 26px 20px; }
   .dialog > div { flex-direction: column-reverse; }
 }
@@ -493,11 +545,6 @@ h1, h2, h3, p { text-wrap: pretty; }
   .presentation-options { gap: 10px; }
   .style-category-grid, .outfit-combo-grid { grid-template-columns: 1fr; }
   .swatch-grid { grid-template-columns: repeat(2, 1fr); }
-  .daily-goal-grid { grid-template-columns: 1fr; }
-  .daily-goal-grid button { min-height: 50px; }
-  .daily-piece { gap: 9px; padding-inline: 11px; }
-  .daily-piece.is-lucky { padding-inline: 10px; }
-  .daily-supporting-label, .daily-lucky-badge { font-size: .62rem; }
 }
 
 @media (min-width: 761px) and (max-width: 1000px) {

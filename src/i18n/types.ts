@@ -180,7 +180,6 @@ export interface LocaleCopy {
   nav: { aria: string; daily: string; colors: string; palette: string; checker: string }
   daily: {
     entryCta: string
-    eyebrow: string
     title: string
     today: string
     weekdays: Record<LuckyWeekday, string>
@@ -199,6 +198,9 @@ export interface LocaleCopy {
     placementNotes: Record<Exclude<LuckyOutfitPlacement, 'top'>, string>
     outfitEyebrow: string
     outfitHeading: string
+    storyFamily: string
+    storyShade: string
+    boardLabel: string
     pieceLabels: Record<LuckyOutfitRole, string>
     luckyBadge: string
     personalSupport: string

@@ -73,7 +73,7 @@ describe('Daily lucky color UI', () => {
     expect(container.querySelector('.daily-piece.is-lucky[data-color-kind="semantic"]')).toBeTruthy()
     expect(screen.getByText(/Lucky color · Work/i)).toBeInTheDocument()
     expect(screen.getByText(/Lucky color · Luck & opportunity/i)).toBeInTheDocument()
-    expect(screen.getAllByText('Personalized expression')).toHaveLength(1)
+    expect(screen.getAllByText('Your shade')).toHaveLength(1)
   })
 
   it('preserves two canonical goals and both families across locale and profile changes', () => {
@@ -85,7 +85,7 @@ describe('Daily lucky color UI', () => {
     expect(rendered.container.querySelectorAll('.daily-goal-grid button[aria-pressed="true"]')).toHaveLength(2)
     expect(rendered.container.querySelectorAll('.daily-family-claim')).toHaveLength(2)
     expect(rendered.container.querySelector('.daily-weekday')).toHaveTextContent('วันนี้')
-    expect(rendered.container.querySelector('.daily-family-heading h2')).toHaveTextContent(/เขียว|เหลือง/)
+    expect(rendered.container.querySelector('.daily-family-heading h3')).toHaveTextContent(/เขียว|เหลือง/)
   })
 
   it('renders useful general guidance with a non-blocking quiz CTA and no fabricated palette shade', async () => {
@@ -95,7 +95,7 @@ describe('Daily lucky color UI', () => {
     expect(container.querySelector('[data-daily-mode="general"]')).toBeTruthy()
     expect(screen.getByText(/personalization is not available/i)).toBeInTheDocument()
     expect(screen.getByText(/Thai lucky-color tradition/i)).toBeInTheDocument()
-    expect(screen.queryByText('Personalized expression')).not.toBeInTheDocument()
+    expect(screen.queryByText('Your shade')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /find your personal color/i }))
     expect(onQuiz).toHaveBeenCalledOnce()
   })
@@ -116,7 +116,7 @@ describe('Daily lucky color UI', () => {
     render(<DailyView copy={getCopy('en')} result={profile('soft-autumn')} onQuiz={vi.fn()} clock={() => monday} />)
     expect(screen.getByText(/small accessory/i)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Purple' })).toBeInTheDocument()
-    expect(screen.queryByText('Personalized expression')).not.toBeInTheDocument()
+    expect(screen.queryByText('Your shade')).not.toBeInTheDocument()
     expect(document.querySelector('.daily-piece.is-lucky')).toHaveAttribute('data-color-kind', 'semantic')
   })
 
@@ -135,10 +135,10 @@ describe('Daily lucky color UI', () => {
 
   it('changes only copy across locales, preserves the canonical recommendation, and localizes Thai text', () => {
     const rendered = render(<DailyView copy={getCopy('en')} result={profile('warm-spring')} onQuiz={vi.fn()} clock={() => monday} />)
-    const en = rendered.container.querySelector('.daily-family-heading h2')!.textContent
+    const en = rendered.container.querySelector('.daily-family-heading h3')!.textContent
     rendered.rerender(<DailyView copy={getCopy('th')} result={profile('warm-spring')} onQuiz={vi.fn()} clock={() => monday} />)
     expect(en).toBe('Green')
-    expect(rendered.container.querySelector('.daily-family-heading h2')).toHaveTextContent('เขียว')
+    expect(rendered.container.querySelector('.daily-family-heading h3')).toHaveTextContent('เขียว')
     expect(rendered.container.querySelector('.daily-weekday')).toHaveTextContent('วันนี้')
   })
 
