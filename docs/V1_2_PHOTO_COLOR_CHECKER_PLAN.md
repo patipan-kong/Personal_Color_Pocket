@@ -818,7 +818,7 @@ jsdom has no canvas and no `createImageBitmap`. The architecture makes that irre
 | **5f. Photo lighting guidance** — **done** ([record](V1_2_SLICE_5F_PHOTO_LIGHTING_GUIDANCE.md)). The 5e outcome: guidance, not correction. Capture tip, evenly-lit tap guidance, a presentation-only note for light near-neutral samples, and honest highlight / shadow copy. | `domain/photoColor/lightingGuidance.ts`, photo adapter, shared card `info` slot, i18n, CSS | `photoLightingGuidance.test.tsx`, domain before/after proof | – | Sample, match, category and Manual outputs identical before and after | sampling, matcher, thresholds, correction, multi-tap |
 | **6. Hardening** — **engineering done; physical QA pending** ([record](V1_2_SLICE_6_HARDENING.md)). Follows 5d and 5f. One production fix (modified keys are left to the browser); `.kilo` excluded from test discovery; timing flake removed; races, ownership, boundaries, privacy and storage guarded. **READY FOR PHYSICAL QA, not release.** | `PhotoSurface.tsx`, `vite.config.ts`, README privacy note, tests | `photoHardening.test.tsx`, `photoPrivacy.test.tsx`, service boundary tests, full regression ×3 | – | §20.1 acceptance criteria met on the device matrix (**pending**: 48–50 MP Android, iPhone HEIC, TalkBack, VoiceOver, Thai review) | Capacitor build, colour names |
 | **7. Human-readable Color Names** — **engineering done; physical QA pending** ([record](V1_2_SLICE_7_COLOR_NAMES.md)). A pure, local `describeColor(hex)` names every colour in EN and TH (26 families, 76 names across all of sRGB). The shared card shows the bilingual name, page language first, with HEX secondary; Photo says "Color seen in this photo". The three light-suit taps all read **Light Gray · เทาอ่อน**. No engine, threshold or verdict changed (before/after fingerprint identical). **READY FOR PHYSICAL QA, not release.** | `domain/colorNames/*`, `ColorResultCard.tsx`, i18n sample label, CSS | `colorNames.test.ts`, `colorNamesIntegration.test.tsx`, full regression ×3, 18/18 mutations | – | ±2 / ±4 RGB: zero unrelated jumps; same-HEX Manual/Photo names identical (**pending**: native Thai review of the names, with the Slice 6 gates) | sampler / matcher / threshold changes, tone line, lucky colours |
-| **8. Capacitor readiness check** (was 7; when the Android shell exists) | none in app code expected | manual | – | File input opens the picker in the WebView, no permissions are declared, 12 MP decodes | native plugins |
+| **8. Capacitor Integration + Release Candidate** — **engineering done; native build ENVIRONMENT BLOCKED (no Android SDK); physical QA pending** ([record](V1_2_SLICE_8_RELEASE_CANDIDATE.md), [QA checklist](V1_2_PHYSICAL_QA.md)). Capacitor 8.5.2 wraps the same `dist` (`io.github.patipankong.personalcolorpocket`); no plugin; manifest declares only `INTERNET`; plain file input → system picker with no permission. `both.png` intermediates moved out of `public/` (local build = clean build, 97 files); the DEV panel is compiled out (−2.38 kB gzip). **READY FOR PHYSICAL QA, not release.** | `capacitor.config.json`, `android/`, `.gitignore`, one expression in `App.tsx` | `releaseCandidate.test.ts`, Chrome smoke from the Android payload (20/20, offline) and web regression (9/9), full regression ×3 | – | picker opens in the WebView, no permission prompt, offline APK (**pending**: needs the SDK + a phone) | native plugins, service worker, version bump |
 
 Slices 1–3 are independent of each other and of V1.1 (released), so they can start after Slice 0.
 Slice 5 (panel + surface) is the first to touch `App.tsx`; Slice 4 stayed pure.
@@ -1010,3 +1010,27 @@ Full record: [V1_2_SLICE_7_COLOR_NAMES.md](V1_2_SLICE_7_COLOR_NAMES.md). Written
   *name*.
 - **Release gates, still PENDING:** 48–50 MP Android, iPhone HEIC, TalkBack, VoiceOver, and native Thai review, which
   now includes the colour names. **Status: READY FOR PHYSICAL QA.**
+
+---
+
+## 25. Slice 8 Capacitor Integration and Release Candidate Outcome
+
+Full record: [V1_2_SLICE_8_RELEASE_CANDIDATE.md](V1_2_SLICE_8_RELEASE_CANDIDATE.md). Human checklist:
+[V1_2_PHYSICAL_QA.md](V1_2_PHYSICAL_QA.md). Written 2026-09-24.
+
+- **Architecture (as §5 planned):** React/Vite → `npm run build` → `dist/` → `npx cap sync android` → Capacitor
+  WebView. One codebase, no native code of our own, no plugins. App code never imports `@capacitor/*`.
+- **Picker:** unchanged `<input type="file" accept="image/*">`, no `capture`. Capacitor 8.5.2 routes it to the system
+  picker (`ACTION_GET_CONTENT`) without requesting a permission.
+- **Permissions:** the manifest declares only `INTERNET` (normal, no prompt; kept for live reload). No camera, media,
+  storage or location.
+- **Offline:** the APK bundles every asset. In a desktop simulation of the Android payload with the server stopped, the
+  photo and Manual flows kept working, and no request left the app origin.
+- **Release hygiene:**
+  - `both.png` intermediates moved to git-ignored `asset-sources/`. Local and clean builds are byte-identical.
+  - The DEV diagnostics panel is compiled out of production.
+  - The spike is kept until the physical matrix is recorded.
+- **Native build:** ENVIRONMENT BLOCKED (JDK present, Android SDK absent). `gradlew assembleDebug` configures, then stops
+  at "SDK location not found". No APK exists yet.
+- **Version:** still `1.1.0`. The bump to 1.2.0 and the tag belong to the release step, after human QA.
+- **Status: READY FOR PHYSICAL QA.**

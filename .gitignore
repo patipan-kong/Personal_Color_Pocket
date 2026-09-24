@@ -10,6 +10,7 @@ vite.config.d.ts
 # Environment/tooling metadata, not part of the app
 .openai/
 
-# Intermediate source images (unused by production code, kept locally only)
-public/img/personal-color/*/both.png
+# Intermediate source images (unused by production code, kept locally only). They live
+# outside public/, because Vite copies public/ into dist wholesale (V1.2 Slice 8).
+asset-sources/
 public/img/example/

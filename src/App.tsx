@@ -488,7 +488,8 @@ function ResultView({ copy, language, result, answers, showDiagnostics, presenta
     </section>
     <div className="result-actions"><button className="primary-button" onClick={onPalette}>{copy.result.paletteCta} <span>→</span></button><button className="text-button" onClick={onRetake}>{copy.result.retake}</button></div>
     <p className="disclaimer">{copy.result.disclaimer}</p>
-    {showDiagnostics && <DiagnosticPanel answers={answers} />}
+    {/* The compile-time DEV check lets the production build drop the panel code (V1.2 Slice 8). */}
+    {import.meta.env.DEV && showDiagnostics && <DiagnosticPanel answers={answers} />}
   </main>
 }
 
