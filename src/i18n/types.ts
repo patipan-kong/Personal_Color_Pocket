@@ -5,6 +5,8 @@ import type { PairingAdvice, PlacementArea, PlacementTier } from '../domain/phot
 import type { Suitability, SuitabilityTone } from '../domain/photoColor/suitability'
 import type { PhotoMatchCategory, PhotoMatchDescriptors, PhotoMatchDirection, PositivePaletteGroup, SampleFlag, SampleUnavailableReason } from '../domain/photoColor/types'
 import type { PhotoImageErrorCode } from '../services/photoImage'
+import type { LuckyGoal, LuckyWeekday, LuckyColorFamily } from '../domain/luckyColor/types'
+import type { LuckyOutfitPlacement, LuckyOutfitRole } from '../domain/luckyColor/outfit'
 
 export type Language = 'en' | 'th'
 
@@ -175,7 +177,37 @@ export interface LocaleCopy {
     areas: Record<PlacementArea, string>
     pairing: Record<PairingAdvice, { heading: string; body: string }>
   }
-  nav: { aria: string; colors: string; palette: string; checker: string }
+  nav: { aria: string; daily: string; colors: string; palette: string; checker: string }
+  daily: {
+    entryCta: string
+    eyebrow: string
+    title: string
+    today: string
+    weekdays: Record<LuckyWeekday, string>
+    framing: string
+    goalPrompt: string
+    goals: Record<LuckyGoal, string>
+    resultEyebrow: string
+    familyLabel: string
+    familyLabels: Record<LuckyColorFamily, string>
+    personalizedShade: string
+    personalizedFor: (subtype: string) => string
+    generalNote: string
+    quizCta: string
+    placementNotes: Record<Exclude<LuckyOutfitPlacement, 'top'>, string>
+    outfitEyebrow: string
+    outfitHeading: string
+    pieceLabels: Record<LuckyOutfitRole, string>
+    luckyBadge: string
+    personalSupport: string
+    neutralSupport: string
+    semanticColors: { 'light-neutral': string; neutral: string }
+    aboutHeading: string
+    aboutBody: string
+    sourcesLabel: string
+    sourceJoin: string
+    dateError: string
+  }
   dialog: { title: string; body: string; cancel: string; confirm: string }
   confidence: Record<ConfidenceLabel, string>
   ratings: Record<MatchRating, string>

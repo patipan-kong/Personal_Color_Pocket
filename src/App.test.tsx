@@ -32,6 +32,14 @@ describe('primary product flow', () => {
     expect(document.body.textContent).not.toMatch(/palette fit|\d+%/)
   })
 
+  it('offers the Daily lucky-color experience from welcome without requiring a quiz profile', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: /today's lucky color/i }))
+    expect(screen.getByRole('heading', { name: /what should i wear today/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('radio')).toHaveLength(4)
+  })
+
   it('can complete all eleven quiz questions with keyboard controls', async () => {
     // No timer between key events (hundreds of Tab presses). With the default delay this ran at
     // ~11 s of its 15 s budget under full-suite load (Slice 6). The behaviour tested is identical.

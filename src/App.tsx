@@ -16,15 +16,17 @@ import type { Language, LocaleCopy } from './i18n'
 import { ColorResultCard } from './colorChecker/ColorResultCard'
 import { toManualResultView } from './colorChecker/manualResult'
 import { PhotoCheckerPanel } from './photoChecker/PhotoCheckerPanel'
+import { DailyView } from './dailyLuckyColor/DailyView'
 import { adService } from './services/ads'
 import { clearState, loadState, saveState } from './services/persistence'
 import { loadPresentationPreference, savePresentationPreference } from './services/presentationPreference'
 import type { PresentationPreference } from './services/presentationPreference'
 
-type View = 'home' | 'presentation' | 'quiz' | 'result' | 'palette' | 'checker'
+type View = 'home' | 'presentation' | 'quiz' | 'result' | 'palette' | 'checker' | 'daily'
 type CheckerMode = 'manual' | 'photo'
 
-const Icon = ({ name }: { name: 'colors' | 'palette' | 'checker' }) => {
+const Icon = ({ name }: { name: 'daily' | 'colors' | 'palette' | 'checker' }) => {
+  if (name === 'daily') return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.8 4.8L19 9.5l-4 3.2 1.3 5.1-4.3-2.7-4.3 2.7 1.3-5.1-4-3.2 5.2-1.7L12 3Z"/></svg>
   if (name === 'colors') return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg>
   if (name === 'palette') return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18h1.2a1.8 1.8 0 0 0 1.4-3c-.7-.9-.1-2.2 1-2.2H18A3 3 0 0 0 21 13c.3-5.5-3.7-10-9-10Z"/><circle cx="7.5" cy="11" r=".8"/><circle cx="10" cy="7" r=".8"/><circle cx="15" cy="7.5" r=".8"/></svg>
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.2 5.4L20 10.6l-5.8 2.2L12 18.5l-2.2-5.7L4 10.6l5.8-2.2L12 3Z"/><path d="m18.5 16 .8 2 .2.5.5.2 2 .8-2 .8-.5.2-.2.5-.8 2-.8-2-.2-.5-.5-.2-2-.8 2-.8.5-.2.2-.5.8-2Z"/></svg>
@@ -96,7 +98,7 @@ function PresentationOptionImage({ src, alt, fallback }: { src: string; alt: str
     : <img className="presentation-option-image" src={src} alt={alt} loading="eager" onError={() => setFailed(true)} />
 }
 
-function Welcome({ copy, hasProgress, onStart }: { copy: LocaleCopy; hasProgress: boolean; onStart: () => void }) {
+function Welcome({ copy, hasProgress, onStart, onDaily }: { copy: LocaleCopy; hasProgress: boolean; onStart: () => void; onDaily: () => void }) {
   return <main className="welcome-page">
     <section className="welcome" id="top">
       <div className="welcome-copy">
@@ -104,6 +106,7 @@ function Welcome({ copy, hasProgress, onStart }: { copy: LocaleCopy; hasProgress
         <h1>{copy.welcome.titleBefore} <em>{copy.welcome.titleEmphasis}</em></h1>
         <p className="lede">{copy.welcome.lede}</p>
         <button className="primary-button" type="button" onClick={onStart}>{hasProgress ? copy.welcome.continue : copy.welcome.start} <span aria-hidden="true">→</span></button>
+        <button className="text-button welcome-daily-link" type="button" onClick={onDaily}>{copy.daily.entryCta}</button>
         <p className="privacy-note">{copy.welcome.privacy}</p>
       </div>
       <figure className="welcome-art">
@@ -614,7 +617,7 @@ function CheckerView({ copy, language, result, presentationPreference }: { copy:
 
 function BottomNav({ copy, view, onView }: { copy: LocaleCopy; view: View; onView: (view: View) => void }) {
   const items = [
-    ['result', 'colors', copy.nav.colors], ['palette', 'palette', copy.nav.palette], ['checker', 'checker', copy.nav.checker],
+    ['daily', 'daily', copy.nav.daily], ['result', 'colors', copy.nav.colors], ['palette', 'palette', copy.nav.palette], ['checker', 'checker', copy.nav.checker],
   ] as const
   return <nav className="bottom-nav" aria-label={copy.nav.aria}>{items.map(([target, icon, label]) => <button key={target} type="button" className={view === target ? 'active' : ''} aria-current={view === target ? 'page' : undefined} onClick={() => onView(target)}><Icon name={icon} /><span>{label}</span></button>)}</nav>
 }
@@ -659,12 +662,13 @@ export default function App() {
 
   return <div className={`app-shell language-${language} ${result ? `has-profile season-${result.season}` : ''}`}>
     <AppHeader copy={copy} language={language} onLanguage={changeLanguage} onHome={goHome} presentationPreference={presentationPreference} onPresentation={changePresentation} />
-    {view === 'home' && <Welcome copy={copy} hasProgress={Object.keys(answers).length > 0} onStart={startQuiz} />}
+    {view === 'home' && <Welcome copy={copy} hasProgress={Object.keys(answers).length > 0} onStart={startQuiz} onDaily={() => void changeView('daily')} />}
     {view === 'presentation' && <PresentationOnboarding copy={copy} onChoose={choosePresentation} />}
     {view === 'quiz' && <Quiz copy={copy} answers={answers} step={quizStep} presentationPreference={presentationPreference ?? 'women'} onAnswer={(questionId, answerId) => setAnswers((current) => ({ ...current, [questionId]: answerId }))} onStep={(next) => setQuizStep(Math.max(0, Math.min(quizQuestions.length - 1, next)))} onComplete={completeQuiz} />}
     {view === 'result' && result && <ResultView copy={copy} language={language} result={result} answers={answers} showDiagnostics={showDiagnostics} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} onPalette={() => void changeView('palette')} onRetake={() => setConfirmRetake(true)} />}
     {view === 'palette' && result && <PaletteView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} />}
     {view === 'checker' && result && <CheckerView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} />}
+    {view === 'daily' && <DailyView copy={copy} result={result} onQuiz={startQuiz} />}
     {result && view !== 'quiz' && view !== 'presentation' && <BottomNav copy={copy} view={view} onView={(next) => void changeView(next)} />}
     {confirmRetake && <RetakeDialog copy={copy} onCancel={() => setConfirmRetake(false)} onConfirm={retake} />}
   </div>

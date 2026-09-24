@@ -1,6 +1,6 @@
 # Personal Color Pocket — V1.3 Daily Lucky Color Outfit: Plan
 
-**Status:** Slice 3 deterministic outfit recommendation is complete. UI and visuals remain unimplemented.
+**Status:** Slice 4 Daily experience UI is complete. Slice 5 deterministic garment-board visuals remain unimplemented.
 
 ## Purpose and product boundary
 
@@ -122,7 +122,7 @@ V1.2’s `describeColor()` returns a stable, local structured name `{ family, gr
 | 1 | Canonical knowledge module and deterministic weekday/goal rule lookup | **Complete:** versioned frozen provenance, seven-day/goal lookup, validation, and tests; no UI. |
 | 2 | Personal Color adaptation | **Complete:** structured V1.2 family mapping, curated same-family candidate ladder, explicit accessory fallback, and exhaustive 120-combination tests. |
 | 3 | Outfit recommendation composition | **Complete:** pure personalized/general outfit structure, Slice 2 placement reuse, curated supports, semantic accessory fallback, and exhaustive audits. |
-| 4 | Daily experience UI | Goal selector, today card, copy, local goal preference, no-profile CTA. |
+| 4 | Daily experience UI | **Complete:** goal selector, local day/rollover orchestration, typed TH/EN copy, local goal preference, semantic family tokens, no-profile CTA, and source disclosure. |
 | 5 | Deterministic outfit visual/card | CSS/SVG board and accessible text alternative; no generative asset. |
 | 6 | Localization, accessibility, and edge cases | TH/EN parity, midnight refresh, source disclosure, storage/date failure paths. |
 | 7 | Hardening and real-use QA | Rule provenance audit, visual review, regression and product closure. |
