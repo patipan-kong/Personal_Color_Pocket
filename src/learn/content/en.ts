@@ -15,6 +15,7 @@ export const learnEn: LearnCopy = {
       cta: 'Find your Personal Color',
     },
   },
+  reader: { back: 'Back to Color Guide', why: 'Why it works', more: 'More detail', takeaway: 'Try this' },
   topics: {
     'basics.what-is': {
       title: 'What is Personal Color?',

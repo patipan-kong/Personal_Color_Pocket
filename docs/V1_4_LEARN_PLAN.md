@@ -1,10 +1,10 @@
 # V1.4 Learn — Personal Color Guide: Product Plan
 
-**Status:** Slice 0 (product, content and information architecture) and Slice 1 (content foundation, [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md)) are complete. Slice 2 is next. No Learn UI exists yet.
+**Status:** Slices 0, 1 (content foundation, [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md)) and 2 (Learn home and navigation, [V1_4_SLICE_2_LEARN_HOME_NAV.md](V1_4_SLICE_2_LEARN_HOME_NAV.md)) are complete. Learn is visible. Slice 3 is next.
 
 **PO decisions after Slice 0:**
 - **Q1:** Everyday Neutrals stays P1. Learn gets no access to the colour-naming module, its guard is unchanged, and neutral families are never inferred from colour names. Revisit only in Slice 4, if P0 is complete and there is a product reason; dropping the topic is acceptable.
-- **Q2:** the navigation entry is decided in Slice 2, by testing the real 5-item bottom nav at 320 px in Thai against the header fallback. Slice 1 made no navigation decision.
+- **Q2:** the navigation entry is decided in Slice 2, by testing the real 5-item bottom nav at 320 px in Thai against the header fallback. Slice 1 made no navigation decision. **Resolved in Slice 2:** Guide / คู่มือ is the fifth bottom-nav item (measured evidence in the Slice 2 doc, §7–11); no-profile users reach Learn from the Welcome link.
 
 **Entry:** `828b229` (V1.3 closed), after the pre-V1.4 maintenance commit `06c059f` "fix: reject invalid persisted personal color subtype".
 
@@ -522,7 +522,7 @@ The following hold for every V1.4 slice:
 | # | Item | Proposed default |
 |---|---|---|
 | Q1 | `wear.everyday-neutrals` needs each palette colour's family (white/black/grey/beige/navy). That lives in the guarded `domain/colorNames`. | **Decided (PO, after Slice 0):** stays P1; no colour-naming access and no guard change; no classification by colour name (fragile: Soft Summer's "Soft Navy" names as charcoal). Revisit only in Slice 4 with a product reason, or drop. |
-| Q2 | 5-item bottom nav at 320 px in Thai. | **Open by decision:** Slice 2 tests the real 5-item candidate at 320 px in Thai, then chooses bottom nav or header entry. |
+| Q2 | 5-item bottom nav at 320 px in Thai. | **Resolved (Slice 2):** 5th bottom-nav item. At 320 px Thai every label fits on one line, with 52.8 × 57 px targets and unchanged text size, after removing the UA side padding from phone nav buttons. Both header candidates overflowed at 320 px. |
 | Q3 | No URL routing, so the device back button leaves the app. | In-app Back button; native back handling is deferred with native work. |
 | Q4 | Thai copy quality. | Native Thai review before public release (manual checklist). |
 | Q5 | Bundle growth. | Measure in Slice 1; lazy-load only if the gzip delta exceeds ~30 kB. |
@@ -544,3 +544,18 @@ The following hold for every V1.4 slice:
 4. **Tests:** those listed for Slice 1 in §32.
 5. **Validation:** `npm test`, the 177,147 audit, `npm run build`, `git diff --check`, and a record of the bundle delta.
 6. **Frozen:** everything in §32. **Stop** if any Learn statement would need a colour fact that does not exist in the palettes or copy.
+
+## 35. Slice 2 result and Slice 3 contract
+
+**Done.** See [V1_4_SLICE_2_LEARN_HOME_NAV.md](V1_4_SLICE_2_LEARN_HOME_NAV.md).
+
+- **Navigation:** Guide / คู่มือ is the fifth bottom-nav item (profile only, as before), plus a secondary Welcome link. There are no contextual links yet (Slice 4 for Palette and Checker; Slice 3 for Result).
+- **Shell:** `src/learn/ui/LearnView.tsx` keeps local page state (`home` / `topic` / `type`) with an in-app Back that restores scroll and focus. There is no router; device back is not handled (Q3).
+- **Reader:** one generic reader renders every P0 topic's three levels from `LearnCopy`. Visuals are not drawn yet.
+- **Type page:** "Learn about your type" opens a minimal page built only from `subtypeGuide()` for the user's own type.
+- **Contract for Slice 3:**
+  - extend the `type` page to any subtype;
+  - render registry visuals by `visual` kind, never by topic id;
+  - replace the minimal type page with the full §14 template;
+  - add an initial-page prop for the Result link.
+  - The UI may import only `react`, the public `src/learn` barrel, and types; the app reaches Learn only through `LearnView` (`boundaries.test.ts`).

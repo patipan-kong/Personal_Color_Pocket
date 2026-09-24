@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { subtypeOrder } from '../domain/personalColor/seasons'
+import { learnTranslations } from './content'
+import { learnTopicOrder } from './registry'
 
-// V1.4 Slice 1: architectural boundaries of the Learn foundation, checked on the source text.
+// V1.4 Slices 1–2: architectural boundaries of the Learn foundation and its UI, checked on the source text.
 
 const learnSources = import.meta.glob(['./**/*.ts', '!./**/*.test.ts'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 const appSources = import.meta.glob(['../**/*.{ts,tsx}', '!../**/*.test.{ts,tsx}', '!./**'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
@@ -50,11 +52,39 @@ describe('R/E. Learn architecture boundaries', () => {
     }
   })
 
-  it('Z. no Learn UI yet: nothing outside src/learn imports it, and it has no components', () => {
+  // Slice 2 replaces Slice 1's "no UI yet" rule: the app may now use Learn, but only through its one
+  // view component, and the UI may use Learn only through the public barrel.
+  it('Z. the app reaches Learn only through LearnView', () => {
     expect(Object.keys(appSources)).toContain('../App.tsx')
-    expect(Object.keys(appSources).some((path) => path.includes('learn'))).toBe(false)
-    const users = Object.entries(appSources).filter(([, source]) => specifiers(source).some((specifier) => /(^|\/)learn(\/|$)/.test(specifier))).map(([path]) => path)
-    expect(users).toEqual([])
-    expect(Object.keys(import.meta.glob('./**/*.tsx'))).toEqual([])
+    const users = Object.entries(appSources).flatMap(([path, source]) => specifiers(source).filter((specifier) => /(^|\/)learn(\/|$)/.test(specifier)).map((specifier) => `${path} -> ${specifier}`))
+    expect(users).toEqual(['../App.tsx -> ./learn/ui/LearnView'])
+    expect(Object.keys(import.meta.glob(['./**/*.tsx', '!./**/*.test.tsx'])).sort()).toEqual(['./ui/LearnHome.tsx', './ui/LearnReader.tsx', './ui/LearnView.tsx'])
+  })
+})
+
+const uiSources = import.meta.glob(['./ui/**/*.tsx', '!./ui/**/*.test.tsx'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+
+describe('E. Learn UI boundaries (Slice 2)', () => {
+  it('uses the public Learn API, React and types only: no domain data, classifier, services or package', () => {
+    const allowed = new Set(['react', '..', '../../i18n', '../../domain/personalColor/types'])
+    for (const [path, source] of Object.entries(uiSources)) {
+      for (const specifier of specifiers(source)) expect(specifier.startsWith('./') || allowed.has(specifier), `${path} imports ${specifier}`).toBe(true)
+      // Type-only imports from i18n and the domain: the UI never calls getCopy, palettes or seasons itself.
+      expect(source, path).not.toMatch(/^import \{[^}]*\} from '\.\.\/\.\.\/(i18n|domain\/personalColor\/types)'/m)
+      expect(code(source), path).not.toMatch(/scoring|diagnostics|classify|analyzeQuiz|colorNames|colorMatch|getPalette|seasonDefinitions|subtypeOrder/)
+    }
+  })
+
+  it('has no storage, network, colour literals or copied Learn data', () => {
+    for (const [path, source] of Object.entries(uiSources)) {
+      expect(source, path).not.toMatch(/\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon|https?:\/\/|localStorage|sessionStorage|indexedDB|import\s*\(/)
+      expect(source, path).not.toMatch(/#[0-9A-Fa-f]{6}\b|rgba?\(|hsla?\(/)
+      for (const subtype of subtypeOrder) expect(source, `${path}: ${subtype}`).not.toMatch(new RegExp(`['"\`]${subtype}['"\`]`))
+      // No topic ids, titles or prose: order, featuring and wording all come from the registry and content.
+      for (const topic of learnTopicOrder) expect(source, `${path}: ${topic}`).not.toContain(`'${topic}'`)
+      for (const language of ['en', 'th'] as const) {
+        for (const text of Object.values(learnTranslations[language].topics).flatMap((topic) => [topic.title, topic.rowAnswer, topic.answer])) expect(source, path).not.toContain(text)
+      }
+    }
   })
 })

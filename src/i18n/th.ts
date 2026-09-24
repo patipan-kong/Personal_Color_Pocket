@@ -32,6 +32,7 @@ export const th: LocaleCopy = {
     profileCount: 'โทนสี Personal Color',
     howItWorks: 'ขั้นตอนการใช้งาน',
     steps: ['ตอบคำถามจากสิ่งที่สังเกตได้ 11 ข้อ', 'ดู Personal Color ที่ใกล้เคียงที่สุด', 'เก็บพาเลตต์สีไว้ใช้เลือกเสื้อผ้า'],
+    learnCta: 'อ่านคู่มือสี',
   },
   quiz: {
     progressLabel: 'สังเกตสีที่เข้ากับคุณ',
@@ -212,7 +213,7 @@ export const th: LocaleCopy = {
     sourcesLabel: 'แหล่งอ้างอิง', sourceJoin: 'และข้อมูลประกอบจาก', sourceEnd: '', sourceNames: { thaiRath: 'ไทยรัฐ', ktc: 'KTC' }, newTab: '(เปิดในแท็บใหม่)',
     dateError: 'อ่านวันที่จากเครื่องไม่ได้ ลองตรวจสอบวันและเวลาในเครื่อง แล้วลองอีกครั้ง', retry: 'ลองอีกครั้ง', resultError: 'ขออภัย ตอนนี้ยังแสดงชุดของวันนี้ไม่ได้',
   },
-  nav: { aria: 'เมนูหลัก', daily: 'วันนี้', colors: 'สีของฉัน', palette: 'พาเลตต์', checker: 'เช็กสี' },
+  nav: { aria: 'เมนูหลัก', daily: 'วันนี้', colors: 'สีของฉัน', palette: 'พาเลตต์', checker: 'เช็กสี', learn: 'คู่มือ' },
   dialog: {
     title: 'เริ่มหาพาเลตต์ใหม่ไหม?',
     body: 'ผลลัพธ์และคำตอบที่บันทึกไว้จะถูกแทนที่เมื่อคุณทำแบบทดสอบใหม่เสร็จ',

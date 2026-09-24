@@ -35,6 +35,7 @@ export const en: LocaleCopy = {
     profileCount: 'thoughtful color profiles',
     howItWorks: 'How it works',
     steps: ['Answer eleven visual questions', 'Meet your closest color season', 'Keep a palette in your pocket'],
+    learnCta: 'Read the color guide',
   },
   quiz: {
     progressLabel: 'Color cues',
@@ -215,7 +216,7 @@ export const en: LocaleCopy = {
     sourcesLabel: 'Sources', sourceJoin: 'supported by', sourceEnd: '.', sourceNames: { thaiRath: 'Thai Rath', ktc: 'KTC' }, newTab: '(opens in a new tab)',
     dateError: "We couldn't read today's date from your device. Check your date and time settings, then try again.", retry: 'Try again', resultError: "Sorry, today's outfit can't be shown right now.",
   },
-  nav: { aria: 'Main navigation', daily: 'Daily', colors: 'My Colors', palette: 'Palette', checker: 'Color Checker' },
+  nav: { aria: 'Main navigation', daily: 'Daily', colors: 'My Colors', palette: 'Palette', checker: 'Color Checker', learn: 'Guide' },
   dialog: {
     title: 'Start with a fresh palette?',
     body: 'Your saved result and quiz answers will be replaced after you complete the quiz again.',

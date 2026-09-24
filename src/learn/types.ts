@@ -70,6 +70,8 @@ export interface LearnCopy {
     profileHero: { eyebrow: string; cta: string }
     generalHero: { title: string; body: string; cta: string }
   }
+  // Labels of the generic topic reader and the Learn shell (Slice 2).
+  reader: { back: string; why: string; more: string; takeaway: string }
   topics: Record<LearnTopicId, LearnTopicCopy>
   // One line per season. Seasons are groupings of the 12 types: there are no season palettes.
   seasons: Record<Season, { name: string; summary: string }>

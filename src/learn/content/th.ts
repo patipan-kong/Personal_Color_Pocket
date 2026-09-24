@@ -16,6 +16,7 @@ export const learnTh: LearnCopy = {
       cta: 'ค้นหา Personal Color ของคุณ',
     },
   },
+  reader: { back: 'กลับไปหน้าคู่มือสี', why: 'ทำไมถึงได้ผล', more: 'รายละเอียดเพิ่มเติม', takeaway: 'ลองทำดู' },
   topics: {
     'basics.what-is': {
       title: 'Personal Color คืออะไร',

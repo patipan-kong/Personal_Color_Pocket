@@ -1,5 +1,5 @@
-// V1.4 Learn: the public surface for the Learn UI (Slice 2 onwards). Slice 1 has no UI, so nothing in
-// the app imports this yet.
+// V1.4 Learn: the public surface of the Learn foundation. The Learn UI (./ui) uses only this; the app
+// itself reaches Learn only through ui/LearnView (enforced by boundaries.test.ts).
 export type * from './types'
 export type { AppCopyRef } from './appCopy'
 export type { LearnClaimId, LearnSourceId, SourceRef, TruthKind } from './sources'

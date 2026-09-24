@@ -53,6 +53,7 @@ export interface LocaleCopy {
     profileCount: string
     howItWorks: string
     steps: [string, string, string]
+    learnCta: string
   }
   quiz: {
     progressLabel: string
@@ -177,7 +178,7 @@ export interface LocaleCopy {
     areas: Record<PlacementArea, string>
     pairing: Record<PairingAdvice, { heading: string; body: string }>
   }
-  nav: { aria: string; daily: string; colors: string; palette: string; checker: string }
+  nav: { aria: string; daily: string; colors: string; palette: string; checker: string; learn: string }
   daily: {
     entryCta: string
     title: string
