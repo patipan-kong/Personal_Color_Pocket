@@ -1,6 +1,7 @@
 import { quizQuestions } from '../domain/personalColor/quiz'
-import type { PersonalColorResult, QuizAnswers } from '../domain/personalColor/types'
+import type { PersonalColorResult, QuizAnswers, Subtype } from '../domain/personalColor/types'
 import { createReasons } from '../domain/personalColor/scoring'
+import { subtypeOrder } from '../domain/personalColor/seasons'
 
 export const STORAGE_KEY = 'personal-color-pocket:v1'
 // v1 = 9-question model. v2 = Model V2 (11 questions: adds 'clarity' and 'depth').
@@ -46,7 +47,9 @@ export function loadState(): StoredState {
     // first newly-added question instead. Answers are preserved untouched either way.
     const isLegacyComplete = parsed.version === 1 && V1_QUESTION_IDS.every((id) => id in answers)
 
-    const storedResult = parsed.result && typeof parsed.result.subtype === 'string' ? parsed.result as PersonalColorResult : null
+    // Only a subtype the app itself defines is a result. Anything else (corrupted, hand-edited or
+    // stale data) is treated as no result, never guessed or mapped to a nearby subtype.
+    const storedResult = parsed.result && subtypeOrder.includes(parsed.result.subtype as Subtype) ? parsed.result as PersonalColorResult : null
     const result = isLegacyComplete ? null : (storedResult ? {
       ...storedResult,
       reasons: !Array.isArray(storedResult.reasons) || storedResult.reasons.some((reason) => typeof reason === 'string')

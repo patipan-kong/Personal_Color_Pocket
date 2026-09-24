@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import App from './App'
 import { quizQuestions } from './domain/personalColor/quiz'
+import { analyzeQuiz } from './domain/personalColor/scoring'
+import { STORAGE_KEY } from './services/persistence'
 
 describe('primary product flow', () => {
   beforeEach(() => localStorage.clear())
@@ -69,4 +71,29 @@ describe('primary product flow', () => {
 
     expect(await screen.findByText(/match$/i)).toBeInTheDocument()
   }, 15_000)
+})
+
+// Pre-V1.4 maintenance: a corrupted stored subtype must not blank the app at start-up.
+describe('corrupted persisted profile', () => {
+  const answers = { undertone: 'golden', metal: 'gold', white: 'ivory', earth: 'glow', 'cool-color': 'drain', hair: 'medium', eyes: 'light-clear', contrast: 'medium', intensity: 'balanced', clarity: 'balanced', depth: 'medium' }
+  const store = (subtype: unknown) => localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, answers, result: { ...analyzeQuiz(answers), subtype }, quizStep: 10 }))
+  beforeEach(() => localStorage.clear())
+  afterEach(cleanup)
+
+  it.each(['bogus-subtype', '', 'constructor'])('starts without a result for subtype %j, and Daily falls back to general mode', async (subtype) => {
+    const user = userEvent.setup()
+    store(subtype)
+    const { container } = render(<App />)
+    // No result: the welcome page offers to continue the saved answers; nothing is guessed.
+    expect(screen.getByRole('button', { name: /continue my quiz/i })).toBeInTheDocument()
+    expect(container.querySelector('.bottom-nav')).toBeNull()
+    await user.click(screen.getByRole('button', { name: /see today's lucky color/i }))
+    expect(container.querySelector('.daily-page')).toHaveAttribute('data-daily-mode', 'general')
+  })
+
+  it('still opens a valid stored profile on its result', () => {
+    store(analyzeQuiz(answers).subtype)
+    const { container } = render(<App />)
+    expect(container.querySelector('.result-page')).toBeInTheDocument()
+  })
 })

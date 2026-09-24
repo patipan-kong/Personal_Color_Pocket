@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { quizQuestions } from '../domain/personalColor/quiz'
 import { analyzeQuiz } from '../domain/personalColor/scoring'
+import { seasonDefinitions, subtypeOrder } from '../domain/personalColor/seasons'
 import { STORAGE_KEY, emptyStoredState, loadState, saveState } from './persistence'
 
 const nineAnswers = { undertone: 'golden', metal: 'gold', white: 'ivory', earth: 'glow', 'cool-color': 'drain', hair: 'medium', eyes: 'light-clear', contrast: 'medium', intensity: 'balanced' }
@@ -76,6 +77,34 @@ describe('local persistence', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, answers: {}, result: null, quizStep: 999 }))
       const restored = loadState()
       expect(restored.quizStep).toBeLessThanOrEqual(quizQuestions.length - 1)
+    })
+  })
+
+  // Pre-V1.4 maintenance: a stored subtype outside the canonical set used to crash app start-up.
+  describe('persisted subtype validation', () => {
+    const elevenAnswers = { ...nineAnswers, clarity: 'balanced', depth: 'medium' }
+    const valid = analyzeQuiz(elevenAnswers)
+    const store = (result: unknown) => localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, answers: elevenAnswers, result, quizStep: 10 }))
+
+    it.each(subtypeOrder)('restores a %s result exactly', (subtype) => {
+      const result = { ...valid, season: seasonDefinitions[subtype].season, subtype }
+      store(result)
+      expect(loadState()).toEqual({ version: 2, answers: elevenAnswers, result, quizStep: 10 })
+    })
+
+    it.each(['bogus-subtype', '', ' warm-spring', 'Warm-Spring', 'spring', 'constructor', '__proto__', 'toString'])('rejects the unknown subtype %j without guessing, keeping the answers', (subtype) => {
+      store({ ...valid, subtype })
+      expect(loadState()).toEqual({ version: 2, answers: elevenAnswers, result: null, quizStep: 10 })
+    })
+
+    it.each([42, null, true, {}, ['warm-spring'], undefined])('rejects a subtype of the wrong shape (%j)', (subtype) => {
+      store({ ...valid, subtype })
+      expect(loadState().result).toBeNull()
+    })
+
+    it.each(['warm-spring', 7, true, ['warm-spring']])('rejects a result that is not an object (%j)', (result) => {
+      store(result)
+      expect(loadState().result).toBeNull()
     })
   })
 })
