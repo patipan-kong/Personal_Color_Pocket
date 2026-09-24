@@ -59,7 +59,7 @@ h1, h2, h3, p { text-wrap: pretty; }
    flat-lay garment board as the hero. Garment fills are the recommendation's colours, unchanged. */
 .daily-page { max-width: 1120px; margin: 30px auto 0; }
 .daily-hero { margin: 0 0 18px; }
-.daily-hero .eyebrow { margin: 0 0 8px; }
+.daily-hero .eyebrow { margin: 0 0 8px; color: var(--accent-ink); }
 .daily-hero h1 { margin: 0; font-size: clamp(1.95rem, 5.6vw, 3.4rem); letter-spacing: -.045em; line-height: 1.04; }
 .language-th .daily-hero h1 { line-height: 1.28; letter-spacing: -.02em; }
 .daily-layout { display: grid; gap: 26px; }
@@ -74,12 +74,12 @@ h1, h2, h3, p { text-wrap: pretty; }
 .daily-goal-grid button[aria-pressed="true"] .daily-goal-check { border-color: var(--accent); background: var(--accent); color: #fff; }
 
 .daily-result { margin-top: 22px; }
-.daily-kicker { margin: 0 0 10px; color: var(--accent); font-size: .74rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.daily-kicker { margin: 0 0 10px; color: var(--accent-ink); font-size: .74rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
 .language-th .daily-kicker { font-size: .86rem; letter-spacing: .02em; }
 .daily-family-list { display: grid; gap: 12px; }
 .daily-family-claim { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 13px; align-items: center; }
 .daily-family-dot { width: 42px; height: 42px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(38,24,32,.2), 0 6px 16px rgba(64,33,45,.14); }
-.daily-family-dot.is-broad { outline: 1.5px dashed rgba(38,24,32,.38); outline-offset: 3px; }
+.daily-family-dot.is-broad { outline: 1.5px dashed rgba(38,24,32,.58); outline-offset: 3px; }
 .daily-family-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .daily-family-heading h3 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1.6rem, 6.4vw, 2.1rem); font-weight: 600; letter-spacing: -.02em; line-height: 1.1; }
 .language-th .daily-family-heading h3 { font-family: inherit; font-weight: 760; line-height: 1.3; letter-spacing: 0; }
@@ -94,13 +94,15 @@ h1, h2, h3, p { text-wrap: pretty; }
 .daily-general { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
 .daily-story { margin-top: 10px; padding: 2px 0 2px 14px; border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); }
 .daily-story-steps { display: grid; gap: 2px; margin: 0; font-size: .9rem; font-weight: 720; line-height: 1.5; }
-.daily-story-steps span + span { color: var(--accent); }
+.daily-story-steps span + span { color: var(--accent-ink); }
 .daily-profile { margin: 6px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .daily-general p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.55; }
 .daily-general .text-button { margin-left: -14px; }
+/* Small accent text on the cream page uses the season ink: the spring accent is below 4.5:1 there. */
+.daily-general .text-button, .daily-error .text-button { color: var(--accent-ink); }
 
 .daily-section-heading { margin-bottom: 12px; }
-.daily-section-heading .section-number { margin-bottom: 4px; }
+.daily-section-heading .section-number { margin-bottom: 4px; color: var(--accent-ink); }
 .daily-section-heading h2 { margin: 0; font-size: clamp(1.4rem, 4.6vw, 2rem); letter-spacing: -.035em; line-height: 1.2; }
 /* V1.3 Slice 5.1: one editorial flat-lay canvas. Each garment and its annotation sit at composition
    coordinates in container-width units (--x/--y/--w for the garment, --ax/--ay/--aw for the note), so
@@ -120,7 +122,7 @@ h1, h2, h3, p { text-wrap: pretty; }
 .daily-garment-figure svg { display: block; width: 100%; height: auto; overflow: visible; filter: drop-shadow(0 7px 9px rgba(64,33,45,.14)) drop-shadow(0 1px 1px rgba(64,33,45,.1)); }
 .is-top .daily-garment-figure { z-index: 3; }
 .is-accessory .daily-garment-figure { z-index: 4; }
-.daily-piece[data-tone="light"] { --garment-line: rgba(38,24,32,.5); }
+.daily-piece[data-tone="light"] { --garment-line: rgba(38,24,32,.56); }
 .daily-piece[data-tone="dark"] { --garment-seam: rgba(255,255,255,.28); --garment-shade: rgba(0,0,0,.22); }
 /* Lucky pieces: a soft light pool on the paper beneath the garment (never over another garment) and a small ✦ tag. */
 .daily-garment-glow { z-index: 1; aspect-ratio: var(--ar); scale: 1.3; background: radial-gradient(closest-side, rgba(255,252,247,.95), rgba(255,252,247,.55) 62%, rgba(255,252,247,0)); }
@@ -142,7 +144,7 @@ h1, h2, h3, p { text-wrap: pretty; }
 .daily-piece.is-shoes { --ar: 150 / 104; --mx: 78%; --my: -6%; --x: 3; --y: 96; --w: 30; --r: -7deg; --ax: 4; --ay: 121; --aw: 44; }
 .daily-piece.is-accessory { --ar: 1; --mx: 70%; --my: -8%; --x: 74; --y: 4; --w: 17; --r: 0deg; --ax: 70; --ay: 25; --aw: 29; }
 .daily-board[data-accessory-count="2"] .is-accessory { --x: 70; --y: 4; --w: 15; --ay: 26; }
-.daily-board[data-accessory-count="2"] [data-board-area="acc2"] { --x: 84; --y: 12; --w: 11; --r: 16deg; --mx: 60%; --my: -30%; --ay: 55; }
+.daily-board[data-accessory-count="2"] [data-board-area="acc2"] { --x: 84; --y: 12; --w: 11; --r: 16deg; --mx: 60%; --my: -30%; --ay: 59; }
 .daily-board[data-accessory-count="2"] .is-bottom { --ay: 98; }
 .daily-board[data-accessory-count="0"] { --canvas-h: 134; }
 .daily-board[data-accessory-count="0"] .is-top { --x: 3; --ax: 70; --ay: 22; --aw: 29; }
@@ -169,11 +171,35 @@ h1, h2, h3, p { text-wrap: pretty; }
   .language-th .daily-garment-caption h3 { font-size: .78rem; }
   .language-th .daily-lucky-badge, .language-th .daily-supporting-label { font-size: .8rem; }
 }
+/* Re-flow (V1.3 Slice 6). The floating notes need a board that is wide for its text: about 19em on phones
+   and 34em in the wide layout. Enlarged text, browser zoom or a very narrow screen falls below that, so the
+   garments keep a composition in an art area and the notes flow beneath it in reading order, at full size,
+   instead of shrinking, clipping or colliding. Container em units follow the text size, not the screen. */
+@container daily-outfit ((width < 19em) or ((width >= 540px) and (width < 34em))) {
+  .daily-board { --art-h: calc(var(--canvas-h) - 10); height: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 8em), 1fr)); align-items: start; gap: 1em 1.1em; padding: calc(var(--art-h) * 1cqw) 1em 1.2em; }
+  .daily-garment-caption { position: static; width: auto; }
+  /* Zoom shrinks the board in CSS pixels, so the tag scales with it and never hides a small accent. */
+  .daily-garment-mark { width: clamp(14px, 7cqw, 24px); height: clamp(14px, 7cqw, 24px); font-size: clamp(8px, 3.4cqw, .7rem); }
+}
+/* On phones the art area drops the space the notes used, so the garments sit closer together. */
+@container daily-outfit (width < 19em) and (width < 540px) {
+  .daily-board { --art-h: 84; }
+  .daily-board .daily-piece.is-top { --x: 3; --y: 3; --w: 58; }
+  .daily-board .daily-piece.is-bottom { --x: 57; --y: 12; --w: 31; }
+  .daily-board .daily-piece.is-shoes { --x: 9; --y: 58; --w: 30; }
+  .daily-board .daily-piece.is-accessory { --x: 62; --y: 62; --w: 19; }
+  .daily-board[data-accessory-count="2"] .daily-piece.is-accessory { --x: 54; --y: 62; --w: 18; }
+  .daily-board[data-accessory-count="2"] .daily-piece[data-board-area="acc2"] { --x: 73; --y: 67; --w: 14; }
+  .daily-board[data-accessory-count="0"] .daily-piece.is-top { --x: 7; }
+  .daily-board[data-accessory-count="0"] .daily-piece.is-bottom { --x: 60; }
+}
 .daily-framing { max-width: 640px; margin: 26px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.6; }
-.daily-sources { margin: 10px 0 30px; padding: 15px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; line-height: 1.55; }
-.daily-sources summary { color: var(--accent); cursor: pointer; font-weight: 800; }
+.daily-sources { margin: 10px 0 30px; padding: 4px 0 15px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; line-height: 1.55; }
+.daily-sources summary { padding: 11px 0; color: var(--accent-ink); cursor: pointer; font-weight: 800; }
+.daily-sources summary:focus-visible { outline: 3px solid #197a78; outline-offset: 3px; border-radius: 4px; }
 .daily-sources a { color: inherit; }
 .daily-error { text-align: center; }
+.daily-error .text-button { margin-top: 4px; }
 @media (min-width: 600px) and (max-width: 899px) {
   .daily-page { max-width: 640px; }
 }
@@ -418,7 +444,7 @@ h1, h2, h3, p { text-wrap: pretty; }
 .photo-marker { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.72), inset 0 0 0 1.5px rgba(0,0,0,.72); pointer-events: none; }
 .photo-layout { display: grid; gap: 18px; min-width: 0; }
 .photo-view { display: grid; gap: 8px; min-width: 0; }
-.photo-hint, .check-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; }
+.photo-hint, .check-sr-only, .daily-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; }
 .photo-stage:focus-visible:not([data-input="pointer"]) + .photo-hint { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal; color: var(--muted); font-size: .82rem; line-height: 1.45; }
 .photo-feedback { display: grid; gap: 16px; min-width: 0; min-height: 64px; align-content: start; }
 .photo-instruction, .photo-unavailable { margin: 0; color: var(--muted); line-height: 1.5; }
@@ -585,6 +611,8 @@ h1, h2, h3, p { text-wrap: pretty; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  /* The Daily board appears in place: no settle movement when goals change. */
+  .daily-board { animation: none; }
 }
 
 /* DEV-only scoring diagnostic panel (?debug=color, dev builds only). Deliberately plain --

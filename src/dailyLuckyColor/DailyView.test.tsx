@@ -93,8 +93,8 @@ describe('Daily lucky color UI', () => {
     const user = userEvent.setup()
     const { container } = render(<DailyView copy={getCopy('en')} result={null} onQuiz={onQuiz} clock={() => monday} />)
     expect(container.querySelector('[data-daily-mode="general"]')).toBeTruthy()
-    expect(screen.getByText(/personalization is not available/i)).toBeInTheDocument()
-    expect(screen.getByText(/Thai lucky-color tradition/i)).toBeInTheDocument()
+    expect(screen.getByText(/no personal color result yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/follow a Thai daily tradition/i)).toBeInTheDocument()
     expect(screen.queryByText('Your shade')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /find your personal color/i }))
     expect(onQuiz).toHaveBeenCalledOnce()
@@ -122,7 +122,7 @@ describe('Daily lucky color UI', () => {
 
   it('falls back to general mode for an invalid persisted subtype', () => {
     render(<DailyView copy={getCopy('en')} result={{ ...profile('warm-spring'), subtype: 'not-a-subtype' as Subtype }} onQuiz={vi.fn()} clock={() => monday} />)
-    expect(screen.getByText(/personalization is not available/i)).toBeInTheDocument()
+    expect(screen.getByText(/no personal color result yet/i)).toBeInTheDocument()
   })
 
   it('recomputes from the current profile rather than retaining a stale subtype', () => {
@@ -162,7 +162,7 @@ describe('Daily lucky color UI', () => {
     expect(screen.getByRole('button', { name: 'Money' })).toHaveFocus()
     expect(screen.getByText(/about today's lucky colors/i)).toBeInTheDocument()
     await user.click(screen.getByText(/about today's lucky colors/i))
-    expect(screen.getByRole('link', { name: 'Thai Rath' })).toHaveAttribute('href', expect.stringContaining('thairath.co.th'))
+    expect(screen.getByRole('link', { name: 'Thai Rath (opens in a new tab)' })).toHaveAttribute('href', expect.stringContaining('thairath.co.th'))
   })
 
   it('has a deterministic display swatch for every broad family', () => {

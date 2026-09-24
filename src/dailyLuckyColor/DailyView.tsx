@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getLuckyColorForDate, luckyWeekdayForDate } from '../domain/luckyColor/luckyColor'
 import { LUCKY_GOALS } from '../domain/luckyColor/types'
-import type { LuckyGoal } from '../domain/luckyColor/types'
+import type { LuckyColorRule, LuckyGoal, LuckyWeekday } from '../domain/luckyColor/types'
 import { recommendLuckyGoalsOutfit } from '../domain/luckyColor/outfit'
 import { subtypeOrder } from '../domain/personalColor/seasons'
 import type { PersonalColorResult, Subtype } from '../domain/personalColor/types'
@@ -27,6 +27,44 @@ function readToday(clock: DailyClock): Date | null {
   }
 }
 
+const localDayKey = (date: Date) => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+// setTimeout is only a hint (sleep, throttling, clock changes), so the clock is re-read at least hourly.
+const MAX_CLOCK_WAIT = 60 * 60 * 1000
+
+// The device-local day, as one stable Date per calendar day. One timer re-reads the clock just after
+// local midnight; returning to the app re-reads it too. A re-read on the same day changes nothing, so
+// focus events never re-render the board, and the selected goals and profile are untouched by a rollover.
+function useLocalToday(clock: DailyClock) {
+  const clockRef = useRef(clock)
+  useEffect(() => { clockRef.current = clock })
+  const [today, setToday] = useState<Date | null>(() => readToday(clock))
+  const refresh = useCallback(() => {
+    const next = readToday(clockRef.current)
+    setToday((current) => current && next && localDayKey(current) === localDayKey(next) ? current : next)
+    return next
+  }, [])
+  useEffect(() => {
+    let timer: number | undefined
+    const schedule = (now: Date | null) => {
+      window.clearTimeout(timer)
+      // Just after the next local midnight; an unreadable clock is simply read again later.
+      const wait = now ? new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime() + 50 : MAX_CLOCK_WAIT
+      timer = window.setTimeout(tick, Math.min(MAX_CLOCK_WAIT, Math.max(1_000, wait)))
+    }
+    const tick = () => schedule(refresh())
+    const onVisibility = () => { if (document.visibilityState !== 'hidden') tick() }
+    schedule(readToday(clockRef.current))
+    window.addEventListener('focus', tick)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('focus', tick)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [refresh])
+  return [today, refresh] as const
+}
+
 function validSubtype(result: PersonalColorResult | null): Subtype | undefined {
   return result && subtypeOrder.includes(result.subtype) ? result.subtype : undefined
 }
@@ -43,12 +81,20 @@ function pieceColorName(piece: OutfitBoardPiece, copy: LocaleCopy): string {
   return copy.daily.semanticColors[fill.token]
 }
 
+// Left/right move one button, up/down one row of the 2 × 2 goal grid.
+const GRID_MOVES: Partial<Record<string, number>> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -2, ArrowDown: 2 }
+
 // Composition slot for CSS; the DOM keeps the recommendation's reading order whatever the layout.
 const boardArea = (piece: OutfitBoardPiece) => piece.role === 'accessory' ? `acc${piece.slot ?? 1}` : piece.role
 
+// A source opens in a new tab, which screen readers are told; the visible text stays the source name.
+function SourceLink({ href, name, newTab }: { href: string; name: string; newTab: string }) {
+  return <a href={href} target="_blank" rel="noreferrer">{name}<span className="daily-sr-only"> {newTab}</span></a>
+}
+
 function TodayColors({ board, copy }: { board: OutfitBoardModel; copy: LocaleCopy }) {
   return <section className="daily-result" aria-labelledby="daily-result-heading">
-    <h2 id="daily-result-heading" className="daily-kicker">{copy.daily.resultEyebrow}</h2>
+    <h2 id="daily-result-heading" className="daily-kicker">{copy.daily.resultEyebrow(board.claims.length)}</h2>
     <div className="daily-family-list" data-lucky-claim-count={board.claims.length}>
       {board.claims.map((claim) => {
         const exact = claim.exactColor
@@ -110,38 +156,35 @@ function OutfitBoard({ board, copy, subtype, onQuiz }: { board: OutfitBoardModel
   </section>
 }
 
+type DailyState =
+  | { readonly status: 'ready'; readonly weekday: LuckyWeekday; readonly board: OutfitBoardModel }
+  | { readonly status: 'date-error' | 'result-error' }
+
+// One resolved recommendation feeds the summary, the board and the notes. A date the domain rejects
+// is reported as a date problem; a recommendation the board contract rejects is reported as such.
+// Neither is ever replaced by a guessed weekday or a fabricated outfit.
+function resolveDaily(today: Date | null, goals: readonly LuckyGoal[], subtype: Subtype | undefined): DailyState {
+  let weekday: LuckyWeekday
+  let rules: LuckyColorRule[]
+  try {
+    if (!today) return { status: 'date-error' }
+    weekday = luckyWeekdayForDate(today)
+    rules = goals.map((goal) => getLuckyColorForDate(today, goal))
+  } catch { return { status: 'date-error' } }
+  try {
+    return { status: 'ready', weekday, board: buildOutfitBoardModel(recommendLuckyGoalsOutfit({ rules, subtype })) }
+  } catch (error) {
+    if (import.meta.env.DEV) console.error(error)
+    return { status: 'result-error' }
+  }
+}
+
 export function DailyView({ copy, result, onQuiz, clock = deviceClock }: { copy: LocaleCopy; result: PersonalColorResult | null; onQuiz: () => void; clock?: DailyClock }) {
   const [goals, setGoals] = useState<LuckyGoal[]>(loadDailyLuckyColorGoals)
-  const [today, setToday] = useState<Date | null>(() => readToday(clock))
+  const [today, refreshToday] = useLocalToday(clock)
   const subtype = validSubtype(result)
-
-  const refreshToday = () => setToday(readToday(clock))
-  useEffect(() => { refreshToday() }, [clock])
-  useEffect(() => {
-    const refreshOnReturn = () => refreshToday()
-    window.addEventListener('focus', refreshOnReturn)
-    document.addEventListener('visibilitychange', refreshOnReturn)
-    if (!today) return () => {
-      window.removeEventListener('focus', refreshOnReturn)
-      document.removeEventListener('visibilitychange', refreshOnReturn)
-    }
-    const nextMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).getTime()
-    const timer = window.setTimeout(refreshOnReturn, Math.max(1_000, nextMidnight - today.getTime() + 50))
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('focus', refreshOnReturn)
-      document.removeEventListener('visibilitychange', refreshOnReturn)
-    }
-  }, [today, clock])
-
-  const board = useMemo(() => {
-    if (!today) return null
-    try {
-      const rules = goals.map((goal) => getLuckyColorForDate(today, goal))
-      return buildOutfitBoardModel(recommendLuckyGoalsOutfit({ rules, subtype }))
-    } catch { return null }
-  }, [today, goals, subtype])
-  const weekday = today ? (() => { try { return luckyWeekdayForDate(today) } catch { return null } })() : null
+  const daily = useMemo(() => resolveDaily(today, goals, subtype), [today, goals, subtype])
+  // Best effort: a blocked or full storage leaves the in-memory selection working for this session.
   useEffect(() => { saveDailyLuckyColorGoals(goals) }, [goals])
   const chooseGoal = (next: LuckyGoal) => {
     setGoals((current) => {
@@ -151,14 +194,22 @@ export function DailyView({ copy, result, onQuiz, clock = deviceClock }: { copy:
     })
   }
   const moveGoal = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return
+    // Arrows follow the visible 2 × 2 grid; Tab still visits every button in order.
+    const change = GRID_MOVES[event.key]
+    if (!change) return
     event.preventDefault()
-    const change = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1
     const next = LUCKY_GOALS[(index + change + LUCKY_GOALS.length) % LUCKY_GOALS.length]
     document.querySelector<HTMLButtonElement>(`[data-daily-goal="${next}"]`)?.focus()
   }
 
-  if (!today || !weekday || !board) return <main className="daily-page page-enter"><section className="daily-error content-card" role="alert"><h1>{copy.daily.title}</h1><p>{copy.daily.dateError}</p></section></main>
+  if (daily.status !== 'ready') return <main className="daily-page page-enter">
+    <section className="daily-error content-card" role="alert">
+      <h1>{copy.daily.title}</h1>
+      <p>{daily.status === 'date-error' ? copy.daily.dateError : copy.daily.resultError}</p>
+      {daily.status === 'date-error' && <button type="button" className="text-button" onClick={refreshToday}>{copy.daily.retry}</button>}
+    </section>
+  </main>
+  const { board, weekday } = daily
 
   return <main className="daily-page page-enter" data-daily-mode={board.mode}>
     <header className="daily-hero">
@@ -178,6 +229,6 @@ export function DailyView({ copy, result, onQuiz, clock = deviceClock }: { copy:
       <OutfitBoard board={board} copy={copy} subtype={subtype} onQuiz={onQuiz} />
     </div>
     <p className="daily-framing">{copy.daily.framing}</p>
-    <details className="daily-sources"><summary>{copy.daily.aboutHeading}</summary><p>{copy.daily.aboutBody}</p><p>{copy.daily.sourcesLabel}: <a href="https://www.thairath.co.th/horoscope/belief/2897832" target="_blank" rel="noreferrer">Thai Rath</a> {copy.daily.sourceJoin} <a href="https://www.ktc.co.th/article/shopping/fashion/birthday-auspicious-color-timetable" target="_blank" rel="noreferrer">KTC</a>.</p></details>
+    <details className="daily-sources"><summary>{copy.daily.aboutHeading}</summary><p>{copy.daily.aboutBody}</p><p>{copy.daily.sourcesLabel}: <SourceLink href="https://www.thairath.co.th/horoscope/belief/2897832" name={copy.daily.sourceNames.thaiRath} newTab={copy.daily.newTab} /> {copy.daily.sourceJoin} <SourceLink href="https://www.ktc.co.th/article/shopping/fashion/birthday-auspicious-color-timetable" name={copy.daily.sourceNames.ktc} newTab={copy.daily.newTab} />{copy.daily.sourceEnd}</p></details>
   </main>
 }

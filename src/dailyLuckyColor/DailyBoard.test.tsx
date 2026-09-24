@@ -42,7 +42,7 @@ describe('V1.3 Slice 5 garment board rendering', () => {
       expect(item.querySelector('.daily-garment-mark') !== null).toBe(lucky)
       expect(item.querySelector('.daily-supporting-label') !== null).toBe(!lucky)
     }
-    expect(within(items[0]).getByText('Personal Color')).toBeInTheDocument()
+    expect(within(items[0]).getByText('From your Personal Color')).toBeInTheDocument()
     expect(within(items[1]).getByText(/Lucky color · Work/)).toBeInTheDocument()
     expect(within(items[3]).getByText(/Lucky color · Money/)).toBeInTheDocument()
   })
@@ -88,9 +88,9 @@ describe('V1.3 Slice 5 garment board rendering', () => {
     rerender(<DailyView copy={getCopy('th')} result={profile('warm-spring')} onQuiz={vi.fn()} clock={() => dateFor('mon')} />)
     const thaiBoard = container.querySelector<HTMLElement>('.daily-board')!
     expect([...thaiBoard.querySelectorAll<HTMLElement>(':scope > li')].map((item) => [item.dataset.pieceKey, item.className, item.dataset.fillKind, item.dataset.luckyFamily, item.querySelector('path')!.getAttribute('fill')])).toEqual(english)
-    expect(within(thaiBoard).getByText('เสื้อท่อนบน')).toBeInTheDocument()
-    expect(within(thaiBoard).getByText(/สีมงคล · งาน/)).toBeInTheDocument()
-    expect(within(container).getByText('Personal Color ช่วยเลือก “เฉดและตำแหน่ง”')).toBeInTheDocument()
+    expect(within(thaiBoard).getByText('ท่อนบน')).toBeInTheDocument()
+    expect(within(thaiBoard).getByText(/สีมงคล · การงาน/)).toBeInTheDocument()
+    expect(within(container).getByText('Personal Color ช่วยเลือกเฉดและตำแหน่งที่ใส่')).toBeInTheDocument()
   })
 
   it('shows general mode with tokens only and a non-blocking quiz CTA after the board', () => {

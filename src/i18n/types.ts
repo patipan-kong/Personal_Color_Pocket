@@ -188,7 +188,8 @@ export interface LocaleCopy {
     goalLimit: string
     goalSeparator: string
     goals: Record<LuckyGoal, string>
-    resultEyebrow: string
+    // Singular for one lucky colour, plural for two.
+    resultEyebrow: (count: number) => string
     familyLabel: string
     familyLabels: Record<LuckyColorFamily, string>
     personalizedShade: string
@@ -210,7 +211,12 @@ export interface LocaleCopy {
     aboutBody: string
     sourcesLabel: string
     sourceJoin: string
+    sourceEnd: string
+    sourceNames: { thaiRath: string; ktc: string }
+    newTab: string
     dateError: string
+    retry: string
+    resultError: string
   }
   dialog: { title: string; body: string; cancel: string; confirm: string }
   confidence: Record<ConfidenceLabel, string>
