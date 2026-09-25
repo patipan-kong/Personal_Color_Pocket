@@ -20,6 +20,16 @@ export function Swatches({ colors, className = '' }: { colors: readonly PaletteC
 }
 
 // The "Your type" marker: always text (with a decorative star), never colour alone.
+// A Thai type name is one word made of two (ซอฟต์ + ซัมเมอร์), and the browser's Thai line breaking can split
+// it mid-syllable in a narrow card. Keep each part whole, so the only place left to wrap is between them
+// (Slice 5). No <wbr> or extra character: the text and the accessible name stay exactly the name.
+// English names, which have a space, render as they are.
+export function TypeName({ name, season }: { name: string; season: string }) {
+  const at = name.length - season.length
+  if (at <= 0 || !name.endsWith(season) || name[at - 1] === ' ') return <>{name}</>
+  return <><span className="learn-nobreak">{name.slice(0, at)}</span><span className="learn-nobreak">{season}</span></>
+}
+
 export function YourTypeMarker({ learn }: { learn: LearnCopy }) {
   return <span className="learn-your-type"><span aria-hidden="true">✦</span> {learn.typeDetail.yourType}</span>
 }
@@ -79,7 +89,7 @@ export function TypeGrid({ learn, language, profile, onOpenType }: {
             <Swatches colors={guide.palette.best.slice(0, 4)} className="learn-type-card-art" />
             <h3>
               <button type="button" className="learn-open" data-learn-open={`type-${subtype}`} onClick={() => onOpenType(subtype)}>
-                {guide.copy.name}{mine && <span className="learn-sr-only">, </span>}
+                <TypeName name={guide.copy.name} season={guide.seasonName} />{mine && <span className="learn-sr-only">, </span>}
                 {mine && <YourTypeMarker learn={learn} />}
               </button>
             </h3>

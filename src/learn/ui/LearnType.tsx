@@ -4,7 +4,7 @@ import type { Language, LocaleCopy } from '../../i18n'
 import { subtypeGuide, typeDetailSections, typeOrientedNote } from '..'
 import type { LearnCopy, LearnProfile, PaletteColorGroupKey, SwatchGroup } from '..'
 import { BackButton } from './LearnReader'
-import { DimensionScales, OutfitFlatLay, Swatches, YourTypeMarker } from './LearnVisuals'
+import { DimensionScales, OutfitFlatLay, Swatches, TypeName, YourTypeMarker } from './LearnVisuals'
 
 // V1.4 Slice 3: the one subtype template (plan §14). The same code renders all 12 types, in the
 // registry's section order, entirely from subtypeGuide(): canonical palette groups and names, bands
@@ -53,7 +53,7 @@ export function LearnTypePage({ copy, learn, language, subtype, profile, backLab
     header: <header className="learn-article-head learn-type-head">
       <Swatches colors={guide.palette.best} className="learn-type-cover" />
       <p className="learn-kicker">{detail.seasonLabel} · {guide.seasonName}</p>
-      <h1 ref={headingRef} tabIndex={-1}>{guide.copy.name}</h1>
+      <h1 ref={headingRef} tabIndex={-1}><TypeName name={guide.copy.name} season={guide.seasonName} /></h1>
       {guide.copy.secondaryName && <p className="learn-hero-secondary" lang="en">{guide.copy.secondaryName}</p>}
       {mine && <p className="learn-type-mine"><YourTypeMarker learn={learn} /></p>}
       {/* The existing characteristic words, labelled as qualities of the colours, not of a person. */}

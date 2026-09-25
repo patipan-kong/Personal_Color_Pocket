@@ -31,19 +31,24 @@ h1, h2, h3, p { text-wrap: pretty; }
 .season-autumn { --accent: #7c4e2e; --accent-soft: #e6cfaf; --accent-ink: #4d311e; }
 .season-winter { --accent: #403a78; --accent-soft: #dad8ea; --accent-ink: #2c2858; }
 
-.app-shell { min-height: 100vh; padding: 0 6vw 130px; }
-.brand-bar { max-width: 1440px; margin: auto; min-height: 88px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); }
-.brand-button { border: 0; padding: 8px 0; background: none; color: inherit; }
+/* The page keeps room below its content for the fixed nav: the normal space, or the nav's measured
+   height when larger text wraps it onto more rows (V1.4 Slice 5; set by BottomNav). */
+.app-shell { min-height: 100vh; padding: 0 6vw max(130px, calc(var(--bottom-nav-height, 0px) + 56px)); }
+/* V1.4 Slice 5: under large text or zoom the header wraps (brand, then the switchers) instead of overflowing. */
+.brand-bar { max-width: 1440px; margin: auto; min-height: 88px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; padding-block: 6px; border-bottom: 1px solid var(--line); }
+/* It takes the space the switchers leave, up to its natural width, so the brand name wraps inside the
+   header row (as before) and the row itself wraps only when even the shortest brand no longer fits. */
+.brand-button { flex: 1 1 0; max-width: max-content; border: 0; padding: 8px 0; background: none; color: inherit; }
 .brand { display: inline-flex; gap: 12px; align-items: center; color: var(--ink); font-weight: 750; letter-spacing: -.025em; }
 .brand-mark { width: 30px; height: 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; transform: rotate(-7deg); }
 .brand-mark i { border-radius: 12px; background: #df6b53; }
 .brand-mark i:nth-child(2) { background: #e7b34d; transform: translateY(4px); }
 .brand-mark i:nth-child(3) { background: #327b72; transform: translateY(8px); }
 .edition { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: #765a65; }
-.header-actions { display: flex; align-items: center; gap: 22px; }
+.header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px 22px; margin-left: auto; }
 .language-switcher { display: inline-flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.42); color: var(--muted); }
 .language-switcher > span { opacity: .36; font-size: .72rem; }
-.language-switcher button { border: 0; min-width: 34px; min-height: 32px; padding: 4px 7px; border-radius: 999px; background: transparent; color: inherit; font-size: .72rem; font-weight: 850; letter-spacing: .04em; }
+.language-switcher button { border: 0; min-width: 34px; min-height: 32px; padding: 4px 7px; border-radius: 999px; background: transparent; color: inherit; font-size: .72rem; font-weight: 850; letter-spacing: .04em; white-space: nowrap; }
 .language-switcher button[aria-pressed="true"] { background: var(--accent); color: #fff; }
 .presentation-switcher button { min-width: auto; padding: 4px 11px; font-size: .7rem; text-transform: uppercase; }
 .eyebrow { margin: 0 0 18px; color: var(--accent); text-transform: uppercase; letter-spacing: .15em; font-size: .78rem; font-weight: 800; }
@@ -220,7 +225,8 @@ h1, h2, h3, p { text-wrap: pretty; }
 .privacy-note { margin: 18px 0 0; color: #7d6972; font-size: .82rem; }
 .welcome-art { margin: 0; position: relative; min-width: 0; }
 .welcome-art img { width: 100%; aspect-ratio: 4 / 4.4; object-fit: cover; object-position: 60% center; display: block; border-radius: 180px 180px 26px 26px; box-shadow: 0 35px 80px rgba(62, 22, 38, .18); }
-.welcome-art figcaption { position: absolute; right: -20px; bottom: 28px; width: 132px; height: 132px; border-radius: 50%; background: var(--cream); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; box-shadow: 0 16px 44px rgba(42, 23, 31, .18); }
+/* Sized in em (V1.4 Slice 5), so the badge grows with its text under large text instead of spilling. */
+.welcome-art figcaption { position: absolute; right: -20px; bottom: 28px; width: 11.46em; height: 11.46em; border-radius: 50%; background: var(--cream); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; box-shadow: 0 16px 44px rgba(42, 23, 31, .18); }
 .welcome-art figcaption span { font-family: Georgia, serif; font-size: 2.3rem; line-height: 1; color: var(--wine); }
 .promise-strip { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); padding-top: 22px; gap: 24px; }
 .promise-strip p { display: flex; gap: 16px; align-items: baseline; margin: 0; color: #715e66; font-size: .9rem; }
@@ -396,7 +402,9 @@ h1, h2, h3, p { text-wrap: pretty; }
 .swatch.selected .swatch-color { outline: 3px solid var(--ink); outline-offset: 3px; }
 .swatch.selected .swatch-color i { display: grid; }
 .swatch strong, .swatch small { display: block; overflow: hidden; }
-.swatch strong { font-size: .82rem; line-height: 1.3; white-space: nowrap; text-overflow: ellipsis; }
+/* A name longer than its tile under large text wraps rather than being cut to "…" (V1.4 Slice 5). At
+   normal text sizes every name fits one line, as before. */
+.swatch strong { font-size: .82rem; line-height: 1.3; overflow-wrap: anywhere; }
 .swatch small { white-space: nowrap; text-overflow: ellipsis; }
 .swatch small { margin-top: 2px; color: var(--muted); font-family: ui-monospace, monospace; font-size: .7rem; }
 .metal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -415,6 +423,8 @@ h1, h2, h3, p { text-wrap: pretty; }
 .hex-field { padding: 18px 0; display: flex; flex-direction: column; justify-content: center; gap: 11px; }
 .hex-field > span { font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 800; color: var(--muted); }
 .hex-field > div { display: grid; grid-template-columns: 34px 1fr auto; border: 1px solid var(--line); background: #fff; border-radius: 14px; overflow: hidden; align-items: center; }
+/* The input draws no outline of its own, so its field shows the focus ring (V1.4 Slice 5 focus audit). */
+.hex-field > div:has(input:focus-visible) { outline: 3px solid #197a78; outline-offset: 3px; }
 .hex-field > div > span { text-align: right; color: var(--muted); font-weight: 700; }
 .hex-field input { min-width: 0; border: 0; padding: 15px 8px; font-family: ui-monospace, monospace; font-size: 1.12rem; font-weight: 800; text-transform: uppercase; outline: none; }
 .hex-field button { align-self: stretch; border: 0; padding: 0 20px; background: var(--accent); color: #fff; font-weight: 750; }
@@ -598,6 +608,8 @@ h1, h2, h3, p { text-wrap: pretty; }
 
 /* V1.4 Slice 3: the 12-type grid, the dimension scales and the one type template. Every swatch keeps
    its canonical colour; light swatches get a neutral hairline instead of a changed colour. */
+/* The two parts of a Thai type name stay whole; the only break is between them (Slice 5). */
+.learn-nobreak { white-space: nowrap; }
 .learn-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; margin: 0; }
 .learn-your-type { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border: 1px solid currentColor; border-radius: 999px; background: var(--cream); color: var(--accent-ink); font-size: .74rem; font-weight: 800; line-height: 1.5; white-space: nowrap; }
 .learn-your-type > span { font-size: .8em; }
@@ -633,7 +645,10 @@ h1, h2, h3, p { text-wrap: pretty; }
 .learn-type-card-art i:first-child, .learn-type-cover i:first-child { border-radius: 6px 0 0 6px; }
 .learn-type-card-art i:last-child, .learn-type-cover i:last-child { border-radius: 0 6px 6px 0; }
 .learn-type-card h3 { margin: 0; font-size: .92rem; line-height: 1.3; overflow-wrap: anywhere; }
-.learn-type-card .learn-your-type { margin-top: 6px; }
+/* In a card the marker is a plain text line (the card has the stronger border), so in a narrow Thai
+   card it wraps like text instead of widening the card (Slice 5). */
+.learn-type-card .learn-open { display: block; max-width: 100%; }
+.learn-type-card .learn-your-type { display: block; margin-top: 4px; padding: 0; border: 0; background: none; white-space: normal; }
 .learn-type-card-secondary { margin: 2px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.35; }
 .learn-type-card:has(.learn-open:focus-visible) { outline: 3px solid #197a78; outline-offset: 2px; }
 .learn-type-card:hover h3 { color: var(--accent-ink); text-decoration: underline; text-underline-offset: 4px; }
@@ -724,13 +739,17 @@ h1, h2, h3, p { text-wrap: pretty; }
   .learn-casts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-/* Lucky colours: family → shade → placement, in one illustration tone family. */
+/* Lucky colours: family → shade → placement. The example shades are one illustration tone family. */
 .learn-illus.is-lucky-flow { --learn-tone-1: #e2eee0; --learn-tone-2: #bcd8b6; --learn-tone-3: #86b88c; --learn-tone-4: #4f8e63; --learn-tone-5: #2d5d45; }
 .learn-flow { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9em), 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; counter-reset: learn-flow; }
 .learn-flow li { counter-increment: learn-flow; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--cream); }
 .learn-flow li::before { content: counter(learn-flow); float: left; display: grid; place-items: center; width: 1.6em; height: 1.6em; margin: 0 10px 0 0; border-radius: 50%; background: var(--accent-ink); color: var(--cream); font-size: .8rem; font-weight: 800; }
 .learn-flow p { clear: left; margin: 10px 0 0; font-size: .88rem; line-height: 1.45; }
 .learn-flow strong { display: block; }
+/* The family step (Slice 5): one token split evenly into six hues and ringed as chosen, meaning "a family
+   is chosen" without favouring any one. The step's text names it; the token itself is decorative. */
+.learn-family { display: flex; align-items: center; height: 48px; padding-left: 4px; }
+.learn-family i { width: 38px; height: 38px; border-radius: 50%; background: conic-gradient(#d86b5e 0 60deg, #e2a649 0 120deg, #8db36a 0 180deg, #5b9cc4 0 240deg, #8b78c4 0 300deg, #d17fae 0); box-shadow: inset 0 0 0 1px rgba(38,24,32,.18); outline: 2px solid var(--accent-ink); outline-offset: 3px; }
 .learn-tones { display: flex; align-items: flex-end; gap: 4px; height: 48px; }
 .learn-tones i { flex: 1; height: 34px; border-radius: 9px; box-shadow: inset 0 0 0 1px rgba(38,24,32,.18); }
 .learn-tones.is-picking i:not(.is-picked) { opacity: .3; }
@@ -742,12 +761,15 @@ h1, h2, h3, p { text-wrap: pretty; }
 .learn-tones .is-tone-5 { background: var(--learn-tone-5); }
 .learn-flow .learn-flatlay { width: auto; height: 56px; margin-top: -8px; }
 
+/* The three links into Learn use the season's darker ink: the Spring accent is 4.34:1 on the page,
+   under the 4.5:1 text minimum (Slice 5 contrast audit). */
+.result-learn-link, .palette-learn-link, .checker-learn-link { color: var(--accent-ink); }
 /* The Palette and Checker links into Learn: text links, secondary to the screen's own task. */
 .palette-learn-link { margin: 10px 0 0 -14px; text-align: left; }
 .checker-learn-link { justify-self: start; margin: 4px 0 0 -14px; text-align: left; }
 
 @media (max-width: 760px) {
-  .app-shell { padding: 0 20px 118px; }
+  .app-shell { padding: 0 20px max(118px, calc(var(--bottom-nav-height, 0px) + 45px)); }
   .brand-bar { min-height: 70px; }
   .edition { display: none; }
   .header-actions { gap: 8px; }
@@ -759,12 +781,15 @@ h1, h2, h3, p { text-wrap: pretty; }
   .language-th .welcome h1 { font-size: clamp(2.8rem, 12vw, 4.1rem); line-height: 1.12; }
   .welcome-art { order: 3; }
   .welcome-art img { aspect-ratio: 16 / 11; border-radius: 88px 88px 18px 18px; }
-  .welcome-art figcaption { width: 92px; height: 92px; right: -4px; bottom: -10px; font-size: .56rem; }
+  .welcome-art figcaption { width: 10.27em; height: 10.27em; right: -4px; bottom: -10px; font-size: .56rem; }
   .welcome-art figcaption span { font-size: 1.7rem; }
   .lede { order: 4; font-size: 1rem; margin-bottom: -6px; }
   .welcome .primary-button { order: 5; justify-content: space-between; width: 100%; }
   /* V1.4: the Learn link sits under the quiz button, secondary to it (Slice 2). */
   .welcome .welcome-learn-link { order: 5; margin-top: -14px; }
+  /* V1.4 Slice 5: the Daily link sits there too, in its DOM (and keyboard) order, instead of above the
+     title, where it had no order of its own and led the page. */
+  .welcome .welcome-daily-link { order: 5; margin-top: -14px; }
   .privacy-note { order: 6; text-align: center; margin: -8px 0 0; }
   .promise-strip { grid-template-columns: 1fr; gap: 10px; padding-top: 18px; }
   .quiz-page { padding: 22px 0; }
@@ -789,8 +814,10 @@ h1, h2, h3, p { text-wrap: pretty; }
   .answer-option.selected { padding: 11px; }
   .result-page { margin-top: 20px; }
   .result-hero { min-height: 640px; grid-template-columns: 1fr; align-content: space-between; padding: 34px 25px 0; border-radius: 28px; }
-  .result-copy h1 { font-size: clamp(4.3rem, 20vw, 6.2rem); }
-  .language-th .result-copy h1 { font-size: clamp(3rem, 14vw, 4.8rem); line-height: 1.08; }
+  /* The floor is capped by the screen width (V1.4 Slice 5), so under large text the type name still
+     fits the hero; at normal text sizes on 320–760 px screens the result is unchanged. */
+  .result-copy h1 { font-size: clamp(min(4.3rem, 21.5vw), 20vw, 6.2rem); }
+  .language-th .result-copy h1 { font-size: clamp(min(3rem, 15vw), 14vw, 4.8rem); line-height: 1.08; }
   .result-fan { width: 260px; height: 280px; margin-top: 18px; }
   .result-fan span { height: 270px; width: 90px; left: 86px; }
   .result-details, .palette-preview { grid-template-columns: 1fr; gap: 26px; }
@@ -821,10 +848,12 @@ h1, h2, h3, p { text-wrap: pretty; }
   .color-form { grid-template-columns: 1fr; }
   .picker-field { min-height: 145px; }
   .checker-workspace { border-radius: 24px; }
-  .bottom-nav { width: calc(100% - 24px); bottom: 10px; justify-content: stretch; }
+  /* V1.4 Slice 5: the label size is set on the nav, so the container queries below measure the nav in
+     label-sized ems. Larger text or zoom wraps the items onto rows instead of pushing past the screen. */
+  .bottom-nav { container: bottom-nav / inline-size; width: calc(100% - 24px); bottom: 10px; flex-wrap: wrap; justify-content: stretch; font-size: .68rem; }
+  .language-th .bottom-nav { font-size: .74rem; }
   /* V1.4 Slice 2: five items. No UA side padding, so the Thai labels keep one line at 320 px (Q2). */
-  .bottom-nav button { min-width: 0; flex: 1; min-height: 57px; flex-direction: column; gap: 2px; padding: 1px 2px; font-size: .68rem; }
-  .language-th .bottom-nav button { font-size: .74rem; }
+  .bottom-nav button { min-width: 44px; flex: 1 1 34%; min-height: 57px; flex-direction: column; gap: 2px; padding: 1px 2px; font-size: inherit; }
   .bottom-nav svg { width: 19px; height: 19px; }
   .dialog { padding: 26px 20px; }
   .dialog > div { flex-direction: column-reverse; }
@@ -837,6 +866,25 @@ h1, h2, h3, p { text-wrap: pretty; }
   .presentation-options { gap: 10px; }
   .style-category-grid, .outfit-combo-grid { grid-template-columns: 1fr; }
   .swatch-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* V1.4 Slice 5: the phone nav under larger text. Widths are in the nav's label ems (and px for zoom).
+   Normal text keeps the five-across row; otherwise two per row, with the icon beside the label when
+   there is room, so no label is clipped, no destination hidden and no target under 44 px. */
+@container bottom-nav (min-width: 23em) {
+  .bottom-nav button { flex-basis: 0; }
+}
+@container bottom-nav (width < 23em) and (min-width: 200px) {
+  .bottom-nav button { flex-direction: row; justify-content: flex-start; gap: 8px; min-height: 48px; padding: 6px 10px; text-align: start; }
+}
+/* From about 150 % zoom a phone is under 250 CSS px wide, where the wrapped nav would cover much of the
+   screen: it joins the end of the page instead of floating over it (WCAG technique C34). */
+@media (max-width: 250px) {
+  .app-shell { padding-inline: 12px; }
+  .app-shell.has-profile { padding-bottom: 12px; }
+  .bottom-nav { position: static; transform: none; width: auto; margin-top: 32px; }
+  /* The links' negative indent (text aligned with the column) would reach past the narrower gutter. */
+  .result-learn-link, .palette-learn-link, .checker-learn-link { margin-left: 0; }
 }
 
 @media (min-width: 761px) and (max-width: 1000px) {

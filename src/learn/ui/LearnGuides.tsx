@@ -149,7 +149,8 @@ export function LightingGuide({ copy, learn }: GuideProps) {
 }
 
 // lucky-flow (the lucky-colour topic): the tradition gives a family, Personal Color picks the shade and where it goes. A
-// concept drawn in illustration tones: no palette, no family data and never today's colour.
+// concept drawn in illustration tones: no palette, no family data and never today's colour. The family step shows no
+// hue of its own, so the example shades that follow never read as "the" lucky family.
 const tones = ['1', '2', '3', '4', '5'] as const
 const picked = '3'
 
@@ -158,7 +159,8 @@ export function LuckyFlow({ learn }: GuideProps) {
   return <Illustration kind="lucky-flow" tag={learn.visuals.illustration} caption={lucky.note}>
     <ol className="learn-flow">
       <li data-step="family">
-        <span className="learn-tones" aria-hidden="true">{tones.map((tone) => <i key={tone} className={`is-tone-${tone}`} />)}</span>
+        {/* Any family, not a particular one (Slice 5): one token split into many hues, ringed as chosen. */}
+        <span className="learn-family" aria-hidden="true"><i /></span>
         <p><strong>{lucky.family}</strong> {lucky.familyBody}</p>
       </li>
       <li data-step="shade">

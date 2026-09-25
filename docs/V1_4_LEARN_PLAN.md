@@ -1,6 +1,6 @@
 # V1.4 Learn — Personal Color Guide: Product Plan
 
-**Status:** Slices 0, 1 (content foundation, [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md)) 2 (Learn home and navigation, [V1_4_SLICE_2_LEARN_HOME_NAV.md](V1_4_SLICE_2_LEARN_HOME_NAV.md)), 3 (types and type guide, [V1_4_SLICE_3_TYPE_GUIDE.md](V1_4_SLICE_3_TYPE_GUIDE.md)) and 4 (practical guides, [V1_4_SLICE_4_PRACTICAL_GUIDES.md](V1_4_SLICE_4_PRACTICAL_GUIDES.md)) are complete. All P0 content and the three contextual links are done. Slice 5 (polish) is next.
+**Status:** Slices 0, 1 (content foundation, [V1_4_SLICE_1_CONTENT_FOUNDATION.md](V1_4_SLICE_1_CONTENT_FOUNDATION.md)) 2 (Learn home and navigation, [V1_4_SLICE_2_LEARN_HOME_NAV.md](V1_4_SLICE_2_LEARN_HOME_NAV.md)), 3 (types and type guide, [V1_4_SLICE_3_TYPE_GUIDE.md](V1_4_SLICE_3_TYPE_GUIDE.md)) and 4 (practical guides, [V1_4_SLICE_4_PRACTICAL_GUIDES.md](V1_4_SLICE_4_PRACTICAL_GUIDES.md)) are complete. All P0 content and the three contextual links are done. **Slice 5 (polish, accessibility and release readiness, [V1_4_SLICE_5_RELEASE_POLISH.md](V1_4_SLICE_5_RELEASE_POLISH.md)) is complete, and V1.4 development is closed** (§38). The planned Slice 6 closure work was folded into Slice 5.
 
 **PO decisions after Slice 0:**
 - **Q1:** Everyday Neutrals stays P1. Learn gets no access to the colour-naming module, its guard is unchanged, and neutral families are never inferred from colour names. Revisit only in Slice 4, if P0 is complete and there is a product reason; dropping the topic is acceptable.
@@ -596,3 +596,23 @@ The following hold for every V1.4 slice:
   - a contrast and screen-reader pass;
   - PO decisions on the lucky diagram's illustration hue, an optional "Open Daily" action (a registry-driven action slot), and `season-strips`;
   - the Welcome Daily-link ordering quirk.
+
+## 38. Slice 5 result: V1.4 closed
+
+**Done.** See [V1_4_SLICE_5_RELEASE_POLISH.md](V1_4_SLICE_5_RELEASE_POLISH.md). V1.4 development is complete; no feature was added in Slice 5.
+
+- **Final P1 decisions (PO):**
+  - Everyday Neutrals: **dropped from V1.4**; the colour-naming guard is unchanged (Q1 stands).
+  - Same name, different shade, and nearby-type comparison: **deferred** beyond V1.4.
+  - No "Open Daily" action and no `season-strips` illustration.
+  - The lucky diagram's family step is an abstract multi-hue token, not one real family.
+- **Delivered:**
+  - large-text and zoom reflow for the app header and bottom nav (app-wide), resolving Q2's open reflow item;
+  - the Thai copy review (Q4, in-house);
+  - contrast, focus and screen-reader audits;
+  - the Welcome Daily-link order.
+- **Final known limitations:**
+  - Back from a contextual entry goes to the Learn home, and device back can leave the app (Q3);
+  - some pre-existing V1.0–V1.3 contrast and target items, and V1.x content at a 180 CSS px zoom layout;
+  - the lucky shade and placement steps use one illustration hue family;
+  - a separate native Thai reviewer and physical-device checks remain worthwhile before public launch.

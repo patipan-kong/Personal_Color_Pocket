@@ -631,7 +631,17 @@ function BottomNav({ copy, view, onView }: { copy: LocaleCopy; view: View; onVie
   const items = [
     ['daily', 'daily', copy.nav.daily], ['result', 'colors', copy.nav.colors], ['palette', 'palette', copy.nav.palette], ['checker', 'checker', copy.nav.checker], ['learn', 'learn', copy.nav.learn],
   ] as const
-  return <nav className="bottom-nav" aria-label={copy.nav.aria}>{items.map(([target, icon, label]) => <button key={target} type="button" className={view === target ? 'active' : ''} aria-current={view === target ? 'page' : undefined} onClick={() => onView(target)}><Icon name={icon} /><span>{label}</span></button>)}</nav>
+  const ref = useRef<HTMLElement>(null)
+  // V1.4 Slice 5: larger text wraps the nav onto more rows, so the page keeps room for its real height.
+  useEffect(() => {
+    const nav = ref.current
+    const shell = nav?.parentElement
+    if (!nav || !shell || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => shell.style.setProperty('--bottom-nav-height', `${Math.ceil(nav.getBoundingClientRect().height)}px`))
+    observer.observe(nav)
+    return () => { observer.disconnect(); shell.style.removeProperty('--bottom-nav-height') }
+  }, [])
+  return <nav ref={ref} className="bottom-nav" aria-label={copy.nav.aria}>{items.map(([target, icon, label]) => <button key={target} type="button" className={view === target ? 'active' : ''} aria-current={view === target ? 'page' : undefined} onClick={() => onView(target)}><Icon name={icon} /><span>{label}</span></button>)}</nav>
 }
 
 function RetakeDialog({ copy, onCancel, onConfirm }: { copy: LocaleCopy; onCancel: () => void; onConfirm: () => void }) {

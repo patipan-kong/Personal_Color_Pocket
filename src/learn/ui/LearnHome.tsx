@@ -4,7 +4,7 @@ import type { Language } from '../../i18n'
 import { learnGroups, learnHomeFeatured, learnTopics, outfitExample, seasonGroups, subtypeGuide } from '..'
 import type { LearnCopy, LearnProfile, LearnTopicId, PaletteColorGroupKey } from '..'
 import type { LearnPage } from './LearnView'
-import { Swatches } from './LearnVisuals'
+import { Swatches, TypeName } from './LearnVisuals'
 
 // The Learn home (plan §11): a compact hero, at most two featured topics, then the remaining topics
 // as rows under their group. Order, grouping and featuring all come from the Slice 1 registry.
@@ -51,7 +51,7 @@ export function LearnHome({ learn, language, profile, headingRef, onOpen, onQuiz
       ? <section className="learn-hero is-profile" aria-labelledby="learn-hero-title" data-learn-subtype={guide.subtype}>
         <Swatches colors={guide.groups.find((entry) => entry.group === 'best')!.colors.slice(0, 5)} className="learn-hero-swatches" />
         <p className="learn-kicker">{learn.home.profileHero.eyebrow} · {guide.seasonName}</p>
-        <h2 id="learn-hero-title">{guide.copy.name}</h2>
+        <h2 id="learn-hero-title"><TypeName name={guide.copy.name} season={guide.seasonName} /></h2>
         {guide.copy.secondaryName && <p className="learn-hero-secondary" lang="en">{guide.copy.secondaryName}</p>}
         <p className="learn-hero-summary">{guide.copy.summary}</p>
         <button type="button" className="primary-button compact" data-learn-open="type" onClick={() => onOpen({ kind: 'your-type' }, 'type')}>{learn.home.profileHero.cta} <span aria-hidden="true">→</span></button>

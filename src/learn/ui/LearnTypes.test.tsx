@@ -258,7 +258,8 @@ describe('D. Navigation, entries and state changes', () => {
     render(<App />)
     await user.click(screen.getByRole('button', { name: 'ไทย' }))
     await user.click(screen.getByRole('button', { name: getCopy('th').result.learnCta }))
-    expect(screen.getByRole('heading', { level: 1, name: getCopy('th').subtypes['soft-summer'].name })).toBeInTheDocument()
+    // By text: jsdom spaces the two parts of a Thai type name in accessible names (Chrome does not).
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(getCopy('th').subtypes['soft-summer'].name)
   })
 
   it('an unknown requested type opens the Learn home, without guessing', () => {
@@ -280,7 +281,7 @@ describe('D. Navigation, entries and state changes', () => {
     await user.click(document.querySelector<HTMLButtonElement>('[data-learn-open="type-warm-autumn"]')!)
     rerender({ language: 'th' })
     expect(typePage()).toHaveAttribute('data-learn-subtype', 'warm-autumn')
-    expect(screen.getByRole('heading', { level: 1, name: getCopy('th').subtypes['warm-autumn'].name })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(getCopy('th').subtypes['warm-autumn'].name)
     expect(screen.getByRole('button', { name: `${getLearnCopy('th').reader.backTo} ${getLearnCopy('th').topics['types.overview'].title}` })).toBeInTheDocument()
   })
 

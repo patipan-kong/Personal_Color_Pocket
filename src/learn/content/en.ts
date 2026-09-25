@@ -177,7 +177,7 @@ export const learnEn: LearnCopy = {
       note: 'The app sees only the photo, not the shirt itself.',
     },
     lucky: {
-      family: 'Color family',
+      family: 'Lucky color family',
       familyBody: 'The Thai daily tradition picks it.',
       shade: 'Shade',
       shadeBody: 'Personal Color picks one that suits you.',

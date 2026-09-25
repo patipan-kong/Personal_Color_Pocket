@@ -58,7 +58,9 @@ describe('A. Learn home', () => {
     expect(page()).toHaveAttribute('data-learn-mode', 'profile')
     expect(screen.getByRole('heading', { level: 1, name: learn.home.title })).toBeInTheDocument()
     const hero = document.querySelector<HTMLElement>('.learn-hero')!
-    expect(within(hero).getByRole('heading', { level: 2, name: subtype.name })).toBeInTheDocument()
+    // By text: jsdom gives spans no display, so its name algorithm spaces the two parts of a Thai type
+    // name; Chrome's accessible name is exact (Slice 5 browser QA).
+    expect(within(hero).getByRole('heading', { level: 2 }).textContent).toBe(subtype.name)
     expect(hero).toHaveTextContent(subtype.summary)
     expect(hero).toHaveTextContent(`${learn.home.profileHero.eyebrow} · ${learn.seasons.summer.name}`)
     expect(within(hero).getByRole('button', { name: learn.home.profileHero.cta })).toBeInTheDocument()
