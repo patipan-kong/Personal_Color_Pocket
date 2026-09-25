@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { AiColorLabView } from './aiLab/AiColorLabView'
 import { checkColor } from './domain/personalColor/colorMatch'
 import { normalizeHex, readableTextColor } from './domain/personalColor/colorUtils'
 import { getPalette } from './domain/personalColor/palettes'
@@ -668,6 +669,18 @@ export default function App() {
     () => import.meta.env.DEV && new URLSearchParams(window.location.search).get('debug') === 'color',
     [],
   )
+  // V2.0 AI Color Lab (Slice 0, plan §22-23): same DEV + explicit query param gate as the color
+  // diagnostic panel above, but a standalone screen rather than an overlay -- it never touches
+  // `view`, BottomNav, or any other production state, and this branch (plus its whole import
+  // chain) is compiled out of a production build by the DEV check.
+  const showAiLab = useMemo(
+    () => import.meta.env.DEV && new URLSearchParams(window.location.search).get('debug') === 'ai',
+    [],
+  )
+  // Stable for the lifetime of this mount (the query param is read once above and never
+  // changes), so returning here always runs the same hooks in the same order across this
+  // instance's own re-renders -- it just never touches quiz/result state or normal navigation.
+  if (showAiLab) return <AiColorLabView />
 
   useEffect(() => { saveState({ answers, result, quizStep }) }, [answers, result, quizStep])
   useEffect(() => { document.documentElement.lang = language }, [language])

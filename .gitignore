@@ -14,3 +14,7 @@ vite.config.d.ts
 # outside public/, because Vite copies public/ into dist wholesale (V1.2 Slice 8).
 asset-sources/
 public/img/example/
+
+.env
+.env.local
+.env.*.local

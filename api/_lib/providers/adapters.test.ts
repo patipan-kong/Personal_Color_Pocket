@@ -1,0 +1,98 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AiColorAnalysisRequest } from '../../../src/domain/aiColorLab/contract'
+
+const REQUEST: AiColorAnalysisRequest = {
+  imageDataUrl: 'data:image/jpeg;base64,AAAA',
+  sample: { hex: '#C08080', rgb: { r: 192, g: 128, b: 128 }, oklabL: 0.6, colorName: null, flags: [] },
+  subtype: null,
+}
+
+const VALID_JSON = JSON.stringify({
+  perceivedColorName: 'Dusty Rose', colorFamily: 'pink', temperature: 'warm', value: 'medium', chroma: 'muted',
+  lighting: { condition: 'soft', cast: 'neutral', severity: 'low' },
+  sampleAssessment: { usable: true, issue: 'none' },
+  suitability: 'workable', confidence: 'medium', reasoning: 'test',
+})
+
+// One case per provider: module path, the env var it needs, and how its response envelope
+// carries the model's text (so a single table-driven suite can exercise all four adapters'
+// SHARED error-handling paths -- classifyHttpStatus, malformed JSON, network throw -- without
+// duplicating the same four assertions by hand).
+const CASES = [
+  { name: 'openai', mod: () => import('./openai'), env: 'OPENAI_API_KEY', okBody: { choices: [{ message: { content: VALID_JSON } }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } } },
+  { name: 'groq', mod: () => import('./groq'), env: 'GROQ_API_KEY', okBody: { choices: [{ message: { content: VALID_JSON } }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } } },
+  { name: 'deepseek', mod: () => import('./deepseek'), env: 'DEEPSEEK_API_KEY', okBody: { choices: [{ message: { content: VALID_JSON } }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } } },
+  { name: 'gemini', mod: () => import('./gemini'), env: 'GEMINI_API_KEY', okBody: { candidates: [{ content: { parts: [{ text: VALID_JSON }] } }], usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 } } },
+] as const
+
+const originalEnv = { ...process.env }
+beforeEach(() => {
+  for (const { env } of CASES) process.env[env] = 'test-key'
+})
+afterEach(() => {
+  process.env = { ...originalEnv }
+  vi.unstubAllGlobals()
+  vi.resetModules()
+})
+
+describe.each(CASES)('$name adapter', ({ mod, okBody }) => {
+  it('returns a valid normalized result on a healthy 200 response', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(okBody), { status: 200 })))
+    const { runProvider } = await mod()
+    const outcome = await runProvider(REQUEST, new AbortController().signal)
+    expect(outcome.ok).toBe(true)
+    if (outcome.ok) {
+      expect(outcome.result.perceivedColorName).toBe('Dusty Rose')
+      expect(outcome.usage).toEqual({ inputTokens: 10, outputTokens: 5, totalTokens: 15 })
+    }
+  })
+
+  it('maps HTTP 401 to an auth error, isolated from other providers (plan §6, §20)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('unauthorized', { status: 401 })))
+    const { runProvider } = await mod()
+    const outcome = await runProvider(REQUEST, new AbortController().signal)
+    expect(outcome).toEqual({ ok: false, error: { kind: 'auth', httpStatus: 401, message: expect.any(String) } })
+  })
+
+  it('maps HTTP 429 to rate-limited', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('slow down', { status: 429 })))
+    const { runProvider } = await mod()
+    const outcome = await runProvider(REQUEST, new AbortController().signal)
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.error.kind).toBe('rate-limited')
+  })
+
+  it('maps HTTP 500 to provider-error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('boom', { status: 500 })))
+    const { runProvider } = await mod()
+    const outcome = await runProvider(REQUEST, new AbortController().signal)
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.error.kind).toBe('provider-error')
+  })
+
+  it('fails as malformed-response (not a crash) when the model text is not valid JSON, and never leaks the raw text (plan §15, §16)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: 'I refuse to answer in JSON today.' } }],
+      candidates: [{ content: { parts: [{ text: 'I refuse to answer in JSON today.' } ] } }],
+    }), { status: 200 })))
+    const { runProvider } = await mod()
+    const outcome = await runProvider(REQUEST, new AbortController().signal)
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) {
+      expect(outcome.error.kind).toBe('malformed-response')
+      expect(outcome.error.message).not.toContain('I refuse to answer')
+    }
+  })
+
+  it('fails as malformed-response when the JSON is valid but does not match the contract (e.g. an invalid enum member)', async () => {
+    const invalidEnum = JSON.stringify({ ...JSON.parse(VALID_JSON), temperature: 'toasty' })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: invalidEnum } }],
+      candidates: [{ content: { parts: [{ text: invalidEnum }] } }],
+    }), { status: 200 })))
+    const { runProvider } = await mod()
+    const outcome = await runProvider(REQUEST, new AbortController().signal)
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.error.kind).toBe('malformed-response')
+  })
+})
