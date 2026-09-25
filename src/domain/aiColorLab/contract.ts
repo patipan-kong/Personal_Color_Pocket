@@ -6,7 +6,10 @@ import type { Season, Subtype } from '../personalColor/types'
 // has no runtime behavior and no secrets, so it is safe to import from both the browser bundle
 // (for display) and the Node-only api/_lib code (for validation).
 
-export const AI_PROVIDER_IDS = ['gemini', 'openai', 'groq', 'deepseek'] as const
+// DeepSeek was evaluated in Slice 0 and removed in Slice 0.1 after its adapter failed
+// structured-output validation on the live canonical prompt (see docs/V2_AI_COLOR_LAB.md §15).
+// The active bake-off is exactly these three.
+export const AI_PROVIDER_IDS = ['gemini', 'openai', 'groq'] as const
 export type AiProviderId = typeof AI_PROVIDER_IDS[number]
 
 export const TEMPERATURES = ['warm', 'neutral', 'cool', 'uncertain'] as const
@@ -42,6 +45,17 @@ export interface AiSampleAssessment {
   issue: AiSampleIssue
 }
 
+// Slice 0.1 grounding audit (docs/V2_AI_COLOR_LAB.md §16-18): the AI Lab previously sent every
+// provider the full photo with no indication of which point was selected, which let providers
+// silently analyze the wrong garment/object. targetAssessment makes what the model believes it
+// looked at explicit and reviewable -- targetMatched is diagnostic (a provider can be confidently
+// wrong), never trusted alone; the UI always shows objectType/objectDescription alongside it.
+export interface AiTargetAssessment {
+  objectType: string
+  objectDescription: string
+  targetMatched: boolean | 'uncertain'
+}
+
 export interface AiLighting {
   condition: string
   cast: AiLightingCast
@@ -54,6 +68,7 @@ export interface AiLighting {
 export interface NormalizedAiColorResult {
   provider: AiProviderId
   model: string
+  targetAssessment: AiTargetAssessment
   perceivedColorName: string
   colorFamily: string
   temperature: AiTemperature

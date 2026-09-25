@@ -167,6 +167,11 @@ export function AiColorLabView() {
           <button type="button" className="primary-button compact" onClick={runAll} disabled={!request}>Run all providers</button>
           {!request && <span className="ai-lab-hint">Select a sample point first.</span>}
         </div>
+        {request && <details className="ai-lab-input-preview">
+          <summary>AI input preview</summary>
+          <p className="ai-lab-hint">The exact image sent to every provider, target marker included.</p>
+          <img src={request.imageDataUrl} alt="AI input preview: photo with the target marker as sent to every provider" />
+        </details>}
         <div className="ai-lab-cards">
           {AI_PROVIDER_IDS.map((provider) => <ProviderCard key={provider} provider={provider} state={providers[provider]} onRetry={() => runProvider(provider)} />)}
         </div>

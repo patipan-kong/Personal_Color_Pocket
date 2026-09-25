@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 // plan §3-4 and §29 warn about.
 
 const ROOT = path.resolve(__dirname, '..', '..')
-const KEY_NAMES = ['OPENAI_API_KEY', 'GEMINI_API_KEY', 'GROQ_API_KEY', 'DEEPSEEK_API_KEY']
+const KEY_NAMES = ['OPENAI_API_KEY', 'GEMINI_API_KEY', 'GROQ_API_KEY']
 
 function listFiles(dir: string, extensions: string[]): string[] {
   const out: string[] = []
@@ -82,5 +82,16 @@ describe('AI Color Lab security audit', () => {
   it('.env.example documents only key NAMES, never values', () => {
     const example = readFileSync(path.join(ROOT, '.env.example'), 'utf8')
     for (const key of KEY_NAMES) expect(example).toMatch(new RegExp(`^${key}=\\s*$`, 'm'))
+  })
+
+  // Slice 0.1 (plan §21): DeepSeek was removed from the active bake-off after failing
+  // structured-output validation live. Nothing runtime should still depend on it.
+  it('DeepSeek is no longer an active provider: no adapter file, no route file, no key advertised', () => {
+    expect(existsSync(path.join(ROOT, 'api', '_lib', 'providers', 'deepseek.ts'))).toBe(false)
+    expect(existsSync(path.join(ROOT, 'api', 'ai-color', 'deepseek.ts'))).toBe(false)
+    const example = readFileSync(path.join(ROOT, '.env.example'), 'utf8')
+    expect(example).not.toContain('DEEPSEEK_API_KEY=')
+    const contract = readFileSync(path.join(ROOT, 'src', 'domain', 'aiColorLab', 'contract.ts'), 'utf8')
+    expect(contract).not.toMatch(/'deepseek'/)
   })
 })

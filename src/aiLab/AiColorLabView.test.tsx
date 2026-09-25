@@ -1,16 +1,17 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { AI_PROVIDER_IDS } from '../domain/aiColorLab/contract'
 import type { AiErrorKind, AiProviderId, AiProviderOutcome } from '../domain/aiColorLab/contract'
 import { hexToRgb } from '../domain/personalColor/colorUtils'
 import type { PixelSource } from '../domain/photoColor/types'
 import { openPhoto } from '../services/photoImage'
 import { AiColorLabView } from './AiColorLabView'
 
-// Plan §31: deterministic mocked tests proving provider isolation. The pipeline is mocked only
-// at the same boundaries PhotoCheckerPanel.test.tsx mocks (openPhoto for the undecoadable-in-
-// jsdom image pipeline, canvas for rendering) -- every domain/aiLab function under test runs for
-// real.
+// Plan §31 (Slice 0) + §21-22 (Slice 0.1): deterministic mocked tests proving provider isolation
+// and the DeepSeek removal / grounding contract. The pipeline is mocked only at the same
+// boundaries PhotoCheckerPanel.test.tsx mocks (openPhoto for the undecodable-in-jsdom image
+// pipeline, canvas for rendering) -- every domain/aiLab function under test runs for real.
 vi.mock('../services/photoImage', async (importOriginal) => ({ ...await importOriginal<object>(), openPhoto: vi.fn() }))
 
 const openPhotoMock = vi.mocked(openPhoto)
@@ -45,7 +46,9 @@ function success(provider: AiProviderId, perceivedColorName: string): AiProvider
   return {
     ok: true, latencyMs: 1200, usage: { inputTokens: 100, outputTokens: 40, totalTokens: 140 }, raw: {},
     result: {
-      provider, model: 'test-model', perceivedColorName, colorFamily: 'pink', temperature: 'warm', value: 'medium', chroma: 'muted',
+      provider, model: 'test-model',
+      targetAssessment: { objectType: 'shirt', objectDescription: 'cream shirt worn by the man on the left', targetMatched: true },
+      perceivedColorName, colorFamily: 'pink', temperature: 'warm', value: 'medium', chroma: 'muted',
       lighting: { condition: 'soft daylight', cast: 'neutral', severity: 'low' },
       sampleAssessment: { usable: true, issue: 'none' }, suitability: 'workable', confidence: 'medium', reasoning: 'Looks like a muted warm pink.',
     },
@@ -68,7 +71,13 @@ beforeEach(() => {
   observers.length = 0
   vi.stubGlobal('ImageData', FakeImageData)
   vi.stubGlobal('ResizeObserver', FakeResizeObserver)
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({ putImageData: vi.fn(), getImageData: vi.fn(), drawImage: vi.fn() }) as never)
+  // Slice 0.1: encodeAnnotatedImageForAiLab also calls beginPath/arc/stroke/fill to burn the
+  // target marker onto the AI-only image copy (imageEncode.ts) -- stubbed here the same way
+  // putImageData/toDataURL already were, since jsdom's canvas has no real 2D context.
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({
+    putImageData: vi.fn(), getImageData: vi.fn(), drawImage: vi.fn(),
+    beginPath: vi.fn(), arc: vi.fn(), stroke: vi.fn(), fill: vi.fn(),
+  }) as never)
   vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/jpeg;base64,AAAA')
   fetchSpy = vi.fn(async (url: string | URL) => {
     const match = /\/api\/ai-color\/(\w+)/.exec(String(url))
@@ -97,6 +106,7 @@ const card = (name: string) => screen.getByRole('heading', { name }).closest('ar
 // also match the word "error" inside an error MESSAGE (e.g. "test message for provider-error").
 const cardColorText = (name: string) => card(name).querySelector('.ai-lab-color')?.textContent ?? ''
 const cardErrorTitle = (name: string) => card(name).querySelector('.ai-lab-error-title')?.textContent ?? ''
+const cardTargetText = (name: string) => card(name).querySelector('.ai-lab-target')?.textContent ?? ''
 
 async function openReady(image: PixelSource) {
   openPhotoMock.mockResolvedValueOnce(image)
@@ -112,33 +122,31 @@ async function runAll() {
   await userEvent.setup({ delay: null }).click(screen.getByRole('button', { name: 'Run all providers' }))
 }
 
-describe('AiColorLabView provider isolation (plan §31)', () => {
-  it('Case A: all four providers succeed independently', async () => {
+describe('AiColorLabView provider isolation (plan §31, §20)', () => {
+  it('Case A: all three active providers succeed independently', async () => {
     render(<AiColorLabView />)
     await openReady(solid(120, 90, '#C08080'))
     selectCenter()
-    for (const provider of ['gemini', 'openai', 'groq', 'deepseek'] as const) queueResponse(provider, () => success(provider, `${provider}-color`))
+    for (const provider of ['gemini', 'openai', 'groq'] as const) queueResponse(provider, () => success(provider, `${provider}-color`))
     await runAll()
     await waitFor(() => expect(cardColorText('Gemini')).toContain('gemini-color'))
-    for (const [name, provider] of [['Gemini', 'gemini'], ['OpenAI', 'openai'], ['Groq', 'groq'], ['DeepSeek', 'deepseek']] as const) {
+    for (const [name, provider] of [['Gemini', 'gemini'], ['OpenAI', 'openai'], ['Groq', 'groq']] as const) {
       expect(cardColorText(name)).toContain(`${provider}-color`)
     }
   })
 
-  it('Case B: Gemini and OpenAI succeed, Groq HTTP 500, DeepSeek times out -- two successes stay rendered, the other two show independent failures', async () => {
+  it('Case B: Gemini and OpenAI succeed, Groq returns HTTP 500 -- the two successes stay rendered, Groq shows an independent failure', async () => {
     render(<AiColorLabView />)
     await openReady(solid(120, 90, '#C08080'))
     selectCenter()
     queueResponse('gemini', () => success('gemini', 'gemini-color'))
     queueResponse('openai', () => success('openai', 'openai-color'))
     queueResponse('groq', () => failure('provider-error', 500))
-    queueResponse('deepseek', () => failure('timeout'))
     await runAll()
     await waitFor(() => expect(cardColorText('Gemini')).toContain('gemini-color'))
     expect(cardColorText('OpenAI')).toContain('openai-color')
     expect(cardErrorTitle('Groq')).toContain('ERROR')
     expect(cardErrorTitle('Groq')).toContain('HTTP 500')
-    expect(cardErrorTitle('DeepSeek')).toContain('ERROR')
   })
 
   it('Case C: one provider returns malformed JSON -- only that provider fails', async () => {
@@ -148,12 +156,10 @@ describe('AiColorLabView provider isolation (plan §31)', () => {
     queueResponse('gemini', () => failure('malformed-response'))
     queueResponse('openai', () => success('openai', 'openai-color'))
     queueResponse('groq', () => success('groq', 'groq-color'))
-    queueResponse('deepseek', () => success('deepseek', 'deepseek-color'))
     await runAll()
     await waitFor(() => expect(cardErrorTitle('Gemini')).toContain('ERROR'))
     expect(cardColorText('OpenAI')).toContain('openai-color')
     expect(cardColorText('Groq')).toContain('groq-color')
-    expect(cardColorText('DeepSeek')).toContain('deepseek-color')
   })
 
   it('Case D: one API key is missing -- that provider shows NOT CONFIGURED, others still run', async () => {
@@ -163,7 +169,6 @@ describe('AiColorLabView provider isolation (plan §31)', () => {
     queueResponse('gemini', () => failure('not-configured'))
     queueResponse('openai', () => success('openai', 'openai-color'))
     queueResponse('groq', () => success('groq', 'groq-color'))
-    queueResponse('deepseek', () => success('deepseek', 'deepseek-color'))
     await runAll()
     await waitFor(() => expect(cardErrorTitle('Gemini')).toContain('NOT CONFIGURED'))
     expect(cardColorText('OpenAI')).toContain('openai-color')
@@ -176,7 +181,6 @@ describe('AiColorLabView provider isolation (plan §31)', () => {
     queueResponse('gemini', () => success('gemini', 'gemini-color'))
     queueResponse('openai', () => success('openai', 'openai-color'))
     queueResponse('groq', () => failure('provider-error', 500))
-    queueResponse('deepseek', () => success('deepseek', 'deepseek-color'))
     await runAll()
     await waitFor(() => expect(cardErrorTitle('Groq')).toContain('ERROR'))
     const callsBeforeRetry = fetchSpy.mock.calls.length
@@ -185,11 +189,10 @@ describe('AiColorLabView provider isolation (plan §31)', () => {
     await userEvent.setup({ delay: null }).click(within(card('Groq')).getByRole('button', { name: /Retry Groq/ }))
     await waitFor(() => expect(cardColorText('Groq')).toContain('groq-color-after-retry'))
 
-    // Exactly one new fetch call (Groq's retry) -- the other three providers were not re-called.
+    // Exactly one new fetch call (Groq's retry) -- the other two providers were not re-called.
     expect(fetchSpy.mock.calls.length).toBe(callsBeforeRetry + 1)
     expect(cardColorText('Gemini')).toContain('gemini-color')
     expect(cardColorText('OpenAI')).toContain('openai-color')
-    expect(cardColorText('DeepSeek')).toContain('deepseek-color')
   })
 
   it('Case F: a still-loading provider does not block already-completed cards from rendering', async () => {
@@ -200,12 +203,10 @@ describe('AiColorLabView provider isolation (plan §31)', () => {
     queueResponse('gemini', () => success('gemini', 'gemini-color'))
     queueResponse('openai', () => slow.promise)
     queueResponse('groq', () => success('groq', 'groq-color'))
-    queueResponse('deepseek', () => success('deepseek', 'deepseek-color'))
     await runAll()
 
     await waitFor(() => expect(cardColorText('Gemini')).toContain('gemini-color'))
     expect(cardColorText('Groq')).toContain('groq-color')
-    expect(cardColorText('DeepSeek')).toContain('deepseek-color')
     expect(within(card('OpenAI')).getByText('Analyzing', { exact: false })).toBeInTheDocument()
 
     await act(async () => { slow.resolve(success('openai', 'openai-color-late')) })
@@ -221,7 +222,6 @@ describe('AiColorLabView provider isolation (plan §31)', () => {
     queueResponse('gemini', () => stalePromise.promise)
     queueResponse('openai', () => success('openai', 'openai-run-1'))
     queueResponse('groq', () => success('groq', 'groq-run-1'))
-    queueResponse('deepseek', () => success('deepseek', 'deepseek-run-1'))
     await runAll()
     await waitFor(() => expect(cardColorText('OpenAI')).toContain('openai-run-1'))
     expect(within(card('Gemini')).getByText('Analyzing', { exact: false })).toBeInTheDocument()
@@ -235,7 +235,6 @@ describe('AiColorLabView provider isolation (plan §31)', () => {
     queueResponse('gemini', () => success('gemini', 'gemini-run-2'))
     queueResponse('openai', () => success('openai', 'openai-run-2'))
     queueResponse('groq', () => success('groq', 'groq-run-2'))
-    queueResponse('deepseek', () => success('deepseek', 'deepseek-run-2'))
     await runAll()
     await waitFor(() => expect(cardColorText('Gemini')).toContain('gemini-run-2'))
 
@@ -244,5 +243,64 @@ describe('AiColorLabView provider isolation (plan §31)', () => {
     await new Promise((resolve) => setTimeout(resolve, 0))
     expect(cardColorText('Gemini')).toContain('gemini-run-2')
     expect(cardColorText('Gemini')).not.toContain('gemini-run-1-STALE')
+  })
+})
+
+describe('DeepSeek removal (plan §21, Slice 0.1)', () => {
+  it('only three providers are active, in this exact order', () => {
+    expect(AI_PROVIDER_IDS).toEqual(['gemini', 'openai', 'groq'])
+  })
+
+  it('no DeepSeek card renders', async () => {
+    render(<AiColorLabView />)
+    await openReady(solid(120, 90, '#C08080'))
+    selectCenter()
+    expect(screen.queryByRole('heading', { name: 'DeepSeek' })).toBeNull()
+    expect(screen.getByRole('heading', { name: 'Gemini' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'OpenAI' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Groq' })).toBeInTheDocument()
+  })
+
+  it('Run All makes exactly three provider requests, and none of them is DeepSeek', async () => {
+    render(<AiColorLabView />)
+    await openReady(solid(120, 90, '#C08080'))
+    selectCenter()
+    queueResponse('gemini', () => success('gemini', 'gemini-color'))
+    queueResponse('openai', () => success('openai', 'openai-color'))
+    queueResponse('groq', () => success('groq', 'groq-color'))
+    await runAll()
+    await waitFor(() => expect(cardColorText('Gemini')).toContain('gemini-color'))
+
+    expect(fetchSpy.mock.calls.length).toBe(3)
+    const calledUrls = fetchSpy.mock.calls.map((call) => String(call[0]))
+    expect(calledUrls.some((url) => url.includes('deepseek'))).toBe(false)
+    expect(calledUrls.sort()).toEqual(['/api/ai-color/gemini', '/api/ai-color/groq', '/api/ai-color/openai'])
+  })
+})
+
+describe('target grounding UI (plan §14, Slice 0.1)', () => {
+  it('a successful card shows the target object, description, and match before the color fields', async () => {
+    render(<AiColorLabView />)
+    await openReady(solid(120, 90, '#C08080'))
+    selectCenter()
+    queueResponse('gemini', () => success('gemini', 'gemini-color'))
+    queueResponse('openai', () => success('openai', 'openai-color'))
+    queueResponse('groq', () => success('groq', 'groq-color'))
+    await runAll()
+    await waitFor(() => expect(cardColorText('Gemini')).toContain('gemini-color'))
+
+    const targetText = cardTargetText('Gemini')
+    expect(targetText).toContain('shirt')
+    expect(targetText).toContain('cream shirt worn by the man on the left')
+    expect(targetText).toContain('Yes')
+  })
+
+  it('renders a collapsed "AI input preview" once a sample point is selected', async () => {
+    render(<AiColorLabView />)
+    await openReady(solid(120, 90, '#C08080'))
+    selectCenter()
+    expect(screen.getByText('AI input preview')).toBeInTheDocument()
+    const preview = screen.getByAltText(/AI input preview/i) as HTMLImageElement
+    expect(preview.src).toContain('data:image/jpeg;base64,AAAA')
   })
 })

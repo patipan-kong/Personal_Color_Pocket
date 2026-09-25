@@ -8,20 +8,21 @@ const REQUEST: AiColorAnalysisRequest = {
 }
 
 const VALID_JSON = JSON.stringify({
+  targetAssessment: { objectType: 'shirt', objectDescription: 'cream shirt worn by the man on the left', targetMatched: true },
   perceivedColorName: 'Dusty Rose', colorFamily: 'pink', temperature: 'warm', value: 'medium', chroma: 'muted',
   lighting: { condition: 'soft', cast: 'neutral', severity: 'low' },
   sampleAssessment: { usable: true, issue: 'none' },
   suitability: 'workable', confidence: 'medium', reasoning: 'test',
 })
 
-// One case per provider: module path, the env var it needs, and how its response envelope
-// carries the model's text (so a single table-driven suite can exercise all four adapters'
+// One case per active provider: module path, the env var it needs, and how its response envelope
+// carries the model's text (so a single table-driven suite can exercise all three adapters'
 // SHARED error-handling paths -- classifyHttpStatus, malformed JSON, network throw -- without
-// duplicating the same four assertions by hand).
+// duplicating the same three assertions by hand). DeepSeek was removed in Slice 0.1
+// (docs/V2_AI_COLOR_LAB.md §15) after its adapter failed structured-output validation live.
 const CASES = [
   { name: 'openai', mod: () => import('./openai'), env: 'OPENAI_API_KEY', okBody: { choices: [{ message: { content: VALID_JSON } }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } } },
   { name: 'groq', mod: () => import('./groq'), env: 'GROQ_API_KEY', okBody: { choices: [{ message: { content: VALID_JSON } }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } } },
-  { name: 'deepseek', mod: () => import('./deepseek'), env: 'DEEPSEEK_API_KEY', okBody: { choices: [{ message: { content: VALID_JSON } }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } } },
   { name: 'gemini', mod: () => import('./gemini'), env: 'GEMINI_API_KEY', okBody: { candidates: [{ content: { parts: [{ text: VALID_JSON }] } }], usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5, totalTokenCount: 15 } } },
 ] as const
 
@@ -43,6 +44,7 @@ describe.each(CASES)('$name adapter', ({ mod, okBody }) => {
     expect(outcome.ok).toBe(true)
     if (outcome.ok) {
       expect(outcome.result.perceivedColorName).toBe('Dusty Rose')
+      expect(outcome.result.targetAssessment).toEqual({ objectType: 'shirt', objectDescription: 'cream shirt worn by the man on the left', targetMatched: true })
       expect(outcome.usage).toEqual({ inputTokens: 10, outputTokens: 5, totalTokens: 15 })
     }
   })
@@ -89,6 +91,34 @@ describe.each(CASES)('$name adapter', ({ mod, okBody }) => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       choices: [{ message: { content: invalidEnum } }],
       candidates: [{ content: { parts: [{ text: invalidEnum }] } }],
+    }), { status: 200 })))
+    const { runProvider } = await mod()
+    const outcome = await runProvider(REQUEST, new AbortController().signal)
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.error.kind).toBe('malformed-response')
+  })
+
+  // Slice 0.1 grounding audit (plan §22 G): a malformed targetAssessment fails safely, isolated
+  // to this one provider's own outcome, exactly like any other invalid field -- never a crash,
+  // never silently coerced to a valid-looking result.
+  it('fails as malformed-response when targetAssessment.targetMatched is not a valid member', async () => {
+    const invalidTarget = JSON.stringify({ ...JSON.parse(VALID_JSON), targetAssessment: { objectType: 'shirt', objectDescription: 'x', targetMatched: 'yes' } })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: invalidTarget } }],
+      candidates: [{ content: { parts: [{ text: invalidTarget }] } }],
+    }), { status: 200 })))
+    const { runProvider } = await mod()
+    const outcome = await runProvider(REQUEST, new AbortController().signal)
+    expect(outcome.ok).toBe(false)
+    if (!outcome.ok) expect(outcome.error.kind).toBe('malformed-response')
+  })
+
+  it('fails as malformed-response when targetAssessment is missing entirely', async () => {
+    const { targetAssessment: _targetAssessment, ...withoutTarget } = JSON.parse(VALID_JSON)
+    const text = JSON.stringify(withoutTarget)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: text } }],
+      candidates: [{ content: { parts: [{ text }] } }],
     }), { status: 200 })))
     const { runProvider } = await mod()
     const outcome = await runProvider(REQUEST, new AbortController().signal)

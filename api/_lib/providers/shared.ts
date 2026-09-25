@@ -18,7 +18,7 @@ export function dataUrlParts(dataUrl: string): { mimeType: string; base64: strin
 }
 
 // HTTP status -> our error taxonomy (plan §6, §20). Providers occasionally use nonstandard
-// codes for account/billing (e.g. DeepSeek's 402); anything unrecognized still lands as a
+// codes for account/billing (e.g. 402 Payment Required); anything unrecognized still lands as a
 // legitimate, isolated per-provider error rather than throwing.
 export function classifyHttpStatus(status: number): AiErrorKind {
   if (status === 401 || status === 403) return 'auth'
@@ -71,8 +71,18 @@ export function modelOutputJsonSchema() {
   return {
     type: 'object',
     additionalProperties: false,
-    required: ['perceivedColorName', 'colorFamily', 'temperature', 'value', 'chroma', 'lighting', 'sampleAssessment', 'suitability', 'confidence', 'reasoning'],
+    required: ['targetAssessment', 'perceivedColorName', 'colorFamily', 'temperature', 'value', 'chroma', 'lighting', 'sampleAssessment', 'suitability', 'confidence', 'reasoning'],
     properties: {
+      targetAssessment: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['objectType', 'objectDescription', 'targetMatched'],
+        properties: {
+          objectType: { type: 'string' },
+          objectDescription: { type: 'string' },
+          targetMatched: { enum: [true, false, 'uncertain'] },
+        },
+      },
       perceivedColorName: { type: 'string' },
       colorFamily: { type: 'string' },
       temperature: { type: 'string', enum: ['warm', 'neutral', 'cool', 'uncertain'] },

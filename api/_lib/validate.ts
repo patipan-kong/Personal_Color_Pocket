@@ -13,6 +13,7 @@ import type {
 // response rather than being guessed at.
 
 export interface ValidatedModelOutput {
+  targetAssessment: { objectType: string; objectDescription: string; targetMatched: boolean | 'uncertain' }
   perceivedColorName: string
   colorFamily: string
   temperature: AiTemperature
@@ -33,10 +34,25 @@ const isMember = <T extends string>(value: unknown, members: readonly T[]): valu
 // dumping megabytes of text into one field (plan §16: keep diagnostics safe and bounded).
 const LABEL_MAX = 80
 const REASONING_MAX = 1200
+// A one-sentence phrase (Slice 0.1's targetAssessment.objectDescription, e.g. "cream short-
+// sleeve shirt worn by the man on the left"; and lighting.condition, e.g. "soft, warm studio
+// light with subtle highlights along the folds") is longer than a short label but still
+// bounded -- never a paragraph. lighting.condition originally shared LABEL_MAX (80) with the
+// genuinely short label fields; a live OpenAI smoke test (docs/V2_AI_COLOR_LAB.md §19) showed
+// that an unprompted, naturally-phrased lighting description routinely exceeds 80 characters and
+// was being rejected as malformed even though it was perfectly valid JSON -- this cap fixes that
+// for all three providers uniformly, it does not relax any enum/shape check.
+const PHRASE_MAX = 240
 
 export function validateModelOutput(json: unknown): ValidatedModelOutput | null {
   if (!isRecord(json)) return null
-  const { perceivedColorName, colorFamily, temperature, value, chroma, lighting, sampleAssessment, suitability, confidence, reasoning } = json
+  const { targetAssessment, perceivedColorName, colorFamily, temperature, value, chroma, lighting, sampleAssessment, suitability, confidence, reasoning } = json
+
+  if (!isRecord(targetAssessment)) return null
+  if (!isNonEmptyString(targetAssessment.objectType, LABEL_MAX)) return null
+  if (!isNonEmptyString(targetAssessment.objectDescription, PHRASE_MAX)) return null
+  const targetMatched = targetAssessment.targetMatched
+  if (typeof targetMatched !== 'boolean' && targetMatched !== 'uncertain') return null
 
   if (!isNonEmptyString(perceivedColorName, LABEL_MAX)) return null
   if (!isNonEmptyString(colorFamily, LABEL_MAX)) return null
@@ -48,7 +64,7 @@ export function validateModelOutput(json: unknown): ValidatedModelOutput | null 
   if (!isNonEmptyString(reasoning, REASONING_MAX)) return null
 
   if (!isRecord(lighting)) return null
-  if (!isNonEmptyString(lighting.condition, LABEL_MAX)) return null
+  if (!isNonEmptyString(lighting.condition, PHRASE_MAX)) return null
   if (!isMember(lighting.cast, LIGHTING_CASTS)) return null
   if (!isMember(lighting.severity, LIGHTING_SEVERITIES)) return null
 
@@ -58,6 +74,11 @@ export function validateModelOutput(json: unknown): ValidatedModelOutput | null 
   if (!isMember(sampleAssessment.issue, SAMPLE_ISSUES)) return null
 
   return {
+    targetAssessment: {
+      objectType: targetAssessment.objectType.trim(),
+      objectDescription: targetAssessment.objectDescription.trim(),
+      targetMatched,
+    },
     perceivedColorName: perceivedColorName.trim(),
     colorFamily: colorFamily.trim(),
     temperature,

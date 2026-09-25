@@ -9,7 +9,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('./providers/gemini', () => ({ runProvider: vi.fn() }))
 vi.mock('./providers/openai', () => ({ runProvider: vi.fn() }))
 vi.mock('./providers/groq', () => ({ runProvider: vi.fn() }))
-vi.mock('./providers/deepseek', () => ({ runProvider: vi.fn() }))
 
 const VALID_BODY = {
   imageDataUrl: 'data:image/jpeg;base64,AAAA',
@@ -66,7 +65,7 @@ describe('handleAiColorRequest', () => {
     const gemini = await import('./providers/gemini')
     vi.mocked(gemini.runProvider).mockResolvedValue({
       ok: true, usage: null, raw: {},
-      result: { provider: 'gemini', model: 'gemini-3.5-flash', perceivedColorName: 'x', colorFamily: 'x', temperature: 'warm', value: 'medium', chroma: 'medium', lighting: { condition: 'x', cast: 'neutral', severity: 'low' }, sampleAssessment: { usable: true, issue: 'none' }, suitability: 'workable', confidence: 'medium', reasoning: 'x' },
+      result: { provider: 'gemini', model: 'gemini-3.5-flash', targetAssessment: { objectType: 'shirt', objectDescription: 'test garment', targetMatched: true }, perceivedColorName: 'x', colorFamily: 'x', temperature: 'warm', value: 'medium', chroma: 'medium', lighting: { condition: 'x', cast: 'neutral', severity: 'low' }, sampleAssessment: { usable: true, issue: 'none' }, suitability: 'workable', confidence: 'medium', reasoning: 'x' },
     })
     const { res, read } = fakeResponse()
     await handleAiColorRequest('gemini', fakeRequest(VALID_BODY), res)

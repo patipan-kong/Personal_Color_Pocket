@@ -8,7 +8,9 @@ const success = (latencyMs = 100): Extract<AiProviderOutcome, { ok: true }> => (
   usage: null,
   raw: {},
   result: {
-    provider: 'gemini', model: 'test-model', perceivedColorName: 'Dusty Rose', colorFamily: 'pink',
+    provider: 'gemini', model: 'test-model',
+    targetAssessment: { objectType: 'shirt', objectDescription: 'test garment', targetMatched: true },
+    perceivedColorName: 'Dusty Rose', colorFamily: 'pink',
     temperature: 'warm', value: 'medium', chroma: 'muted',
     lighting: { condition: 'soft daylight', cast: 'neutral', severity: 'low' },
     sampleAssessment: { usable: true, issue: 'none' },
@@ -20,19 +22,18 @@ const failure = (kind: AiErrorKind = 'provider-error'): Extract<AiProviderOutcom
 })
 
 describe('aiLabProvidersReducer', () => {
-  it('starts idle for every provider', () => {
+  it('starts idle for every provider (Gemini, OpenAI, Groq -- DeepSeek removed in Slice 0.1)', () => {
     expect(initialProvidersState.gemini).toEqual({ status: 'idle' })
     expect(initialProvidersState.openai).toEqual({ status: 'idle' })
     expect(initialProvidersState.groq).toEqual({ status: 'idle' })
-    expect(initialProvidersState.deepseek).toEqual({ status: 'idle' })
+    expect(Object.keys(initialProvidersState).sort()).toEqual(['gemini', 'groq', 'openai'])
   })
 
-  it('started moves only that provider to loading, leaving the other three untouched', () => {
+  it('started moves only that provider to loading, leaving the other two untouched', () => {
     const state = aiLabProvidersReducer(initialProvidersState, { type: 'started', provider: 'gemini', runId: 1 })
     expect(state.gemini).toEqual({ status: 'loading', runId: 1 })
     expect(state.openai).toEqual({ status: 'idle' })
     expect(state.groq).toEqual({ status: 'idle' })
-    expect(state.deepseek).toEqual({ status: 'idle' })
   })
 
   it('completed applies a matching runId as success', () => {
@@ -74,10 +75,9 @@ describe('aiLabProvidersReducer', () => {
     let state = aiLabProvidersReducer(initialProvidersState, { type: 'started', provider: 'gemini', runId: 1 })
     state = aiLabProvidersReducer(state, { type: 'completed', provider: 'gemini', runId: 1, outcome: success() })
     const beforeRetry = state
-    state = aiLabProvidersReducer(state, { type: 'started', provider: 'deepseek', runId: 2 })
+    state = aiLabProvidersReducer(state, { type: 'started', provider: 'groq', runId: 2 })
     expect(state.gemini).toEqual(beforeRetry.gemini)
     expect(state.openai).toEqual(beforeRetry.openai)
-    expect(state.groq).toEqual(beforeRetry.groq)
   })
 
   it('reset clears every provider back to idle', () => {

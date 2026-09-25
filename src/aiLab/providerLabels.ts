@@ -4,7 +4,6 @@ export const PROVIDER_LABELS: Record<AiProviderId, string> = {
   gemini: 'Gemini',
   openai: 'OpenAI',
   groq: 'Groq',
-  deepseek: 'DeepSeek',
 }
 
 // 'more_considered' keeps the app's own canonical term (see contract.ts) -- shown to the PO

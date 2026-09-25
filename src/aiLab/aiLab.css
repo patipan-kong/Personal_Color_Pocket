@@ -32,3 +32,8 @@
 .ai-lab-reasoning { font-size: .85rem; color: #333; margin: 8px 0 0; }
 .ai-lab-debug { margin-top: 8px; font-size: .8rem; }
 .ai-lab-debug pre { white-space: pre-wrap; word-break: break-word; background: #f4f4f4; padding: 8px; border-radius: 6px; max-height: 220px; overflow: auto; }
+.ai-lab-target { background: #f0f4ff; border: 1px solid #ccd6f6; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: .85rem; }
+.ai-lab-target p { margin: 0 0 2px; }
+.ai-lab-target p:last-child { margin-bottom: 0; }
+.ai-lab-input-preview { margin: 0 0 14px; font-size: .85rem; }
+.ai-lab-input-preview img { max-width: 100%; border-radius: 8px; border: 1px solid #ddd; margin-top: 6px; }

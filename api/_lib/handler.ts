@@ -2,7 +2,6 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AiProviderId, AiProviderOutcome } from '../../src/domain/aiColorLab/contract'
 import { hasKey } from './env'
 import { BodyTooLargeError, InvalidJsonError, readJsonBody, sendJson } from './http'
-import * as deepseek from './providers/deepseek'
 import * as gemini from './providers/gemini'
 import * as groq from './providers/groq'
 import * as openai from './providers/openai'
@@ -14,16 +13,18 @@ import { validateAnalysisRequest } from './validateRequest'
 // dev middleware (api/devServer.ts) and the Vercel-style function files (api/ai-color/*.ts) call
 // this with the same (IncomingMessage, ServerResponse) pair -- there is exactly one
 // implementation of "call one provider safely," reused everywhere.
+// (Slice 0.1: DeepSeek's adapter was removed here after failing structured-output validation
+// live -- see docs/V2_AI_COLOR_LAB.md §15. The active bake-off is Gemini/OpenAI/Groq.)
 
-const ADAPTERS: Record<AiProviderId, { runProvider: (request: Parameters<typeof deepseek.runProvider>[0], signal: AbortSignal) => ReturnType<typeof deepseek.runProvider> }> = {
-  gemini, openai, groq, deepseek,
+const ADAPTERS: Record<AiProviderId, { runProvider: (request: Parameters<typeof gemini.runProvider>[0], signal: AbortSignal) => ReturnType<typeof gemini.runProvider> }> = {
+  gemini, openai, groq,
 }
 
 // Always resolves -- this function's job is to turn ANY failure (missing key, network error,
 // timeout, thrown exception, malformed JSON) into a well-formed AiProviderOutcome, never to
 // reject or crash the request (plan §6: no provider failure may take down another; the
 // not-crashing half of that lives here, one provider at a time).
-async function runProviderSafely(provider: AiProviderId, request: Parameters<typeof deepseek.runProvider>[0], parentSignal: AbortSignal | undefined): Promise<AiProviderOutcome> {
+async function runProviderSafely(provider: AiProviderId, request: Parameters<typeof gemini.runProvider>[0], parentSignal: AbortSignal | undefined): Promise<AiProviderOutcome> {
   const start = Date.now()
   if (!hasKey(provider)) {
     return { ok: false, latencyMs: Date.now() - start, error: { kind: 'not-configured', httpStatus: null, message: safeErrorMessage('not-configured') } }

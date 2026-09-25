@@ -7,7 +7,9 @@ import { aiColorLabDevServer } from './api/devServer'
 // Node/config context only -- never through `define` or `import.meta.env`, so these four
 // values never reach the client bundle. Only these exact names are copied into process.env,
 // which is where api/_lib/env.ts (server-only) reads them from.
-const AI_LAB_KEYS = ['OPENAI_API_KEY', 'GEMINI_API_KEY', 'GROQ_API_KEY', 'DEEPSEEK_API_KEY'] as const
+// DeepSeek was removed from the AI Lab in Slice 0.1 (docs/V2_AI_COLOR_LAB.md §15); its key is no
+// longer read even if still present, unused, in a developer's local .env.
+const AI_LAB_KEYS = ['OPENAI_API_KEY', 'GEMINI_API_KEY', 'GROQ_API_KEY'] as const
 const loadedEnv = loadEnv('development', process.cwd(), '')
 for (const key of AI_LAB_KEYS) if (loadedEnv[key] && !process.env[key]) process.env[key] = loadedEnv[key]
 

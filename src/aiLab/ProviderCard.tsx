@@ -1,4 +1,4 @@
-import type { AiProviderId, AiProviderOutcome } from '../domain/aiColorLab/contract'
+import type { AiProviderId, AiProviderOutcome, NormalizedAiColorResult } from '../domain/aiColorLab/contract'
 import type { ProviderCardState } from './aiLabState'
 import { PROVIDER_LABELS, SUITABILITY_LABELS } from './providerLabels'
 
@@ -18,9 +18,21 @@ function ErrorBody({ outcome, label, onRetry }: { outcome: Extract<AiProviderOut
   </>
 }
 
+// Target match is diagnostic, never proof -- a provider can be confidently wrong (plan §13), so
+// objectType/objectDescription are always shown alongside targetMatched, never hidden behind
+// just the boolean.
+function TargetSection({ targetAssessment }: { targetAssessment: NormalizedAiColorResult['targetAssessment'] }) {
+  const matchLabel = targetAssessment.targetMatched === true ? 'Yes' : targetAssessment.targetMatched === false ? 'No' : 'Uncertain'
+  return <div className="ai-lab-target">
+    <p className="ai-lab-target-object"><strong>Target</strong> {targetAssessment.objectType} — {targetAssessment.objectDescription}</p>
+    <p className="ai-lab-target-match"><strong>Target match</strong> {matchLabel}</p>
+  </div>
+}
+
 function SuccessBody({ outcome }: { outcome: Extract<AiProviderOutcome, { ok: true }> }) {
   const { result, usage, latencyMs } = outcome
   return <>
+    <TargetSection targetAssessment={result.targetAssessment} />
     <p className="ai-lab-color">{result.perceivedColorName} <small>({result.colorFamily})</small></p>
     <dl className="ai-lab-fields">
       <div><dt>Temperature</dt><dd>{result.temperature}</dd></div>

@@ -19,7 +19,6 @@ export const initialProvidersState: AiLabProvidersState = {
   gemini: { status: 'idle' },
   openai: { status: 'idle' },
   groq: { status: 'idle' },
-  deepseek: { status: 'idle' },
 }
 
 export type AiLabAction =
