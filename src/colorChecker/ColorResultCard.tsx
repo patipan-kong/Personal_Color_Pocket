@@ -26,6 +26,8 @@ export function ColorResultSummary({ copy, language, view }: { copy: ResultCopy;
       <span className="check-swatch" style={{ background: hex, color: readableTextColor(hex) }} aria-hidden="true" />
       <div className="check-identity">
         <small>{view.sampleLabel}</small>
+        {/* Slice 0.5D: already-translated provenance label, e.g. "AI-assisted" -- see resultView.ts. */}
+        {view.sourceLabel && <span className="check-source-badge">{view.sourceLabel}</span>}
         <ColorNameLine hex={hex} language={language} />
         {/* Slice 7: the exact measurement stays, as a quiet technical detail under the name. */}
         <span className="check-hex">{hex}</span>
@@ -91,6 +93,16 @@ export function ColorResultGuidance({ copy, garments, language, view }: { copy: 
     {view.warnings.length > 0 && <ul className="check-warnings" aria-hidden="true">
       {view.warnings.map((warning) => <li key={warning}>{warning}</li>)}
     </ul>}
+    {/* Slice 0.4: quality advisory from deriveSampleAdvisory() (AI, non-authoritative). Normal
+        reading-order text, not a live region -- same treatment as `info` below, since it is the
+        same kind of "double-check the photo" note, just from a different source. Renders nothing
+        when there is nothing to say (view.aiAdvisory is [] whenever advisory is null/no caveat). */}
+    {view.aiAdvisory.length > 0 && <div className="check-advisory">
+      {view.aiAdvisory.map((item) => <div className="check-advisory-item" key={item.title}>
+        <p className="check-advisory-title"><span aria-hidden="true">💡</span> {item.title}</p>
+        <p className="check-advisory-body">{item.body}</p>
+      </div>)}
+    </div>}
     {/* Informational, normal reading-order text: not announced with the summary. */}
     {view.info && <p className="check-info">{view.info}</p>}
     {view.caveat && <p className="check-caveat">{view.caveat}</p>}

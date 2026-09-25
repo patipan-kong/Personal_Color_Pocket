@@ -7,5 +7,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "api/**/*.ts", "src/domain/aiColorLab/**/*.ts", "src/domain/personalColor/types.ts", "src/domain/personalColor/seasons.ts"]
 }

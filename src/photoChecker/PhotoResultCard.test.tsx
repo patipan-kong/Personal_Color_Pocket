@@ -1,9 +1,12 @@
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { describeColor } from '../domain/colorNames/colorNames'
+import type { SampleAdvisory } from '../domain/photoColor/aiNormalization'
 import { getPalette } from '../domain/personalColor/palettes'
 import { subtypeOrder } from '../domain/personalColor/seasons'
 import type { Subtype } from '../domain/personalColor/types'
+import { resolveAiFallbackSelection } from '../domain/photoColor/aiFallback'
 import { getColorPlacement } from '../domain/photoColor/placement'
 import { getSuitability } from '../domain/photoColor/suitability'
 import { realMatchFor } from '../domain/photoColor/realMatchFixtures'
@@ -13,6 +16,7 @@ import type { Language } from '../i18n'
 import { en } from '../i18n/en'
 import { th } from '../i18n/th'
 import type { PresentationPreference } from '../services/presentationPreference'
+import type { AiPhotoFallbackState } from './aiFallbackState'
 import { PhotoFeedback } from './PhotoResultCard'
 import type { PhotoSelection } from './photoPanelState'
 import sharedCardSource from '../colorChecker/ColorResultCard.tsx?raw'
@@ -24,10 +28,19 @@ afterEach(cleanup)
 const CATEGORIES: PhotoMatchCategory[] = ['near-face', 'neutral-base', 'related', 'away-from-face', 'outside']
 const locales = { en, th } as const
 
-function renderCard(selection: PhotoSelection | null, { language = 'en', presentation = 'women' }: { language?: Language; presentation?: PresentationPreference } = {}) {
+function renderCard(selection: PhotoSelection | null, { language = 'en', presentation = 'women', advisory = null, ai, onRunAi }: { language?: Language; presentation?: PresentationPreference; advisory?: SampleAdvisory | null; ai?: AiPhotoFallbackState; onRunAi?: () => void } = {}) {
   const locale = locales[language]
-  return render(<PhotoFeedback copy={locale.photoChecker} resultCopy={locale.colorResult} garments={locale.styleExamples.garments} language={language} presentation={presentation} selection={selection} />)
+  return render(<PhotoFeedback copy={locale.photoChecker} resultCopy={locale.colorResult} garments={locale.styleExamples.garments} language={language} presentation={presentation} selection={selection} advisory={advisory} ai={ai} onRunAi={onRunAi} />)
 }
+
+// A real, resolved AiFallbackResult for a 'near-face' (Best) colour, reused by the AI fallback tests below.
+const AI_SUBTYPE: Subtype = 'warm-spring'
+const aiSelectedResolution = (() => {
+  const colorId = getPalette(AI_SUBTYPE).best[0].id
+  const resolution = resolveAiFallbackSelection({ subtype: AI_SUBTYPE, colorId })
+  if (!resolution.ok) throw new Error('fixture setup failed')
+  return resolution
+})()
 
 const real = (subtype: Subtype, category: PhotoMatchCategory, where?: (matched: PhotoPointMatched) => boolean) => realMatchFor(subtype, category, where)!
 const selected = (matched: PhotoPointMatched): PhotoSelection => ({ point: matched.point, inspection: matched })
@@ -305,6 +318,202 @@ describe('warnings stay advisory', () => {
   })
 })
 
+describe('AI advisory (Slice 0.4, prototype, not wired to any production AI call)', () => {
+  const REASON_COPY = {
+    'target-mismatch': { en: en.photoChecker.aiAdvisory['target-mismatch'], th: th.photoChecker.aiAdvisory['target-mismatch'] },
+    'sample-unusable': { en: en.photoChecker.aiAdvisory['sample-unusable'], th: th.photoChecker.aiAdvisory['sample-unusable'] },
+    'lighting-cast-corroborated': { en: en.photoChecker.aiAdvisory['lighting-cast-corroborated'], th: th.photoChecker.aiAdvisory['lighting-cast-corroborated'] },
+  } as const
+
+  it('deterministic result preservation: with advisory = null, the result is identical to not passing the prop at all', () => {
+    const matched = real('warm-spring', 'near-face')
+    const stripIds = (html: string) => html.replace(/(?:id|aria-labelledby)="[^"]*"/g, '')
+    renderCard(selected(matched))
+    const withoutProp = stripIds(document.body.innerHTML)
+    cleanup()
+    renderCard(selected(matched), { advisory: null })
+    expect(stripIds(document.body.innerHTML)).toBe(withoutProp)
+    expect($('.check-advisory')).toBeNull()
+  })
+
+  it('a caveat-free SampleAdvisory (deriveSampleAdvisory returning NO_ADVISORY-shaped data) also renders nothing', () => {
+    const matched = real('cool-winter', 'related')
+    renderCard(selected(matched), { advisory: { caveat: false, reasons: [] } })
+    expect($('.check-advisory')).toBeNull()
+  })
+
+  it.each(['target-mismatch', 'sample-unusable', 'lighting-cast-corroborated'] as const)('%s renders its mapped title and body, in EN and TH', (reason) => {
+    const matched = real('soft-autumn', 'related')
+    for (const language of ['en', 'th'] as const) {
+      renderCard(selected(matched), { language, advisory: { caveat: true, reasons: [reason] } })
+      const copy = REASON_COPY[reason][language]
+      expect(text('.check-advisory-title')).toContain(copy.title)
+      expect(text('.check-advisory-body')).toBe(copy.body)
+      cleanup()
+    }
+  })
+
+  it('is a secondary, non-live block: rendered after the deterministic result, not inside the live-region summary', () => {
+    const matched = real('deep-winter', 'near-face')
+    renderCard(selected(matched), { advisory: { caveat: true, reasons: ['lighting-cast-corroborated'] } })
+    expect(before('.check-verdict', '.check-advisory')).toBe(true)
+    expect(before('.check-category', '.check-advisory')).toBe(true)
+    expect($('.check-advisory')!.closest('[role="status"], [aria-live]')).toBeNull()
+    expect(text('.photo-summary')).not.toContain(en.photoChecker.aiAdvisory['lighting-cast-corroborated'].title)
+  })
+
+  it('does not use an icon as the only indication: the title text is present alongside the decorative icon', () => {
+    const matched = real('clear-spring', 'related')
+    renderCard(selected(matched), { advisory: { caveat: true, reasons: ['sample-unusable'] } })
+    const icon = $('.check-advisory-title span')!
+    expect(icon).toHaveAttribute('aria-hidden', 'true')
+    expect(text('.check-advisory-title').replace(icon.textContent ?? '', '').trim()).toBe(en.photoChecker.aiAdvisory['sample-unusable'].title)
+  })
+
+  it('no competing color: the advisory never names a color, even when several reasons fire together', () => {
+    const matched = real('light-summer', 'near-face')
+    renderCard(selected(matched), { advisory: { caveat: true, reasons: ['target-mismatch', 'sample-unusable', 'lighting-cast-corroborated'] } })
+    expect(document.querySelectorAll('.check-advisory-item')).toHaveLength(3)
+    const name = describeColor(matched.sample.hex)!
+    // The detected color/name/category/verdict above stay exactly as they would with no advisory.
+    expect(text('.check-name strong')).toBe(name.en)
+    expect(text('.check-category')).toBe(en.photoChecker.categories['near-face'])
+    expect(verdictText()).toBe(en.colorResult.verdicts.strong)
+    // The advisory text itself never introduces a second color name, hex or "AI" wording.
+    expect(text('.check-advisory')).not.toMatch(/#[0-9a-f]{6}/i)
+    expect(text('.check-advisory')).not.toMatch(/\bAI\b/)
+  })
+
+  it('recommendation isolation: an advisory never changes the verdict, category or hex, whatever reasons fire', () => {
+    const matched = real('warm-autumn', 'outside')
+    renderCard(selected(matched))
+    const before1 = { verdict: verdictText(), category: text('.check-category'), hex: text('.check-hex') }
+    cleanup()
+    renderCard(selected(matched), { advisory: { caveat: true, reasons: ['target-mismatch', 'sample-unusable', 'lighting-cast-corroborated'] } })
+    expect({ verdict: verdictText(), category: text('.check-category'), hex: text('.check-hex') }).toEqual(before1)
+  })
+
+  it('failure/no-AI: advisory omitted entirely (as every current production caller does) renders the normal deterministic UI with no broken/empty advisory state', () => {
+    for (const category of CATEGORIES) {
+      const matched = real('deep-autumn', category)
+      render(<PhotoFeedback copy={en.photoChecker} resultCopy={en.colorResult} garments={en.styleExamples.garments} language="en" presentation="women" selection={selected(matched)} />)
+      expect($('.check-advisory')).toBeNull()
+      expect(verdictText().length).toBeGreaterThan(0)
+      cleanup()
+    }
+  })
+})
+
+describe('AI fallback action (Slice 0.5D, explicit invocation only)', () => {
+  it('is manually accessible whenever there is a matched sample, defaults to idle, and calls onRunAi only on click', async () => {
+    const onRunAi = vi.fn()
+    const matched = real('deep-winter', 'near-face')
+    renderCard(selected(matched), { onRunAi })
+    const button = screen.getByRole('button', { name: en.photoChecker.ai.action })
+    expect(button).toBeEnabled()
+    expect(onRunAi).not.toHaveBeenCalled()
+    await userEvent.setup().click(button)
+    expect(onRunAi).toHaveBeenCalledTimes(1)
+    expect(screen.getByText(en.photoChecker.ai.privacyNote)).toBeInTheDocument()
+  })
+
+  it('is shown even with no measurement issue (real 0.5C validation showed useful AI corrections on clean samples)', () => {
+    const clean = real('deep-winter', 'near-face', (candidate) => candidate.match.warnings.length === 0)
+    renderCard(selected(clean))
+    expect(screen.queryByRole('button', { name: en.photoChecker.ai.action })).toBeInTheDocument()
+  })
+
+  it('is not shown before a point has a matched sample (no selection, pending, or unavailable)', () => {
+    renderCard(null)
+    expect(screen.queryByRole('button', { name: en.photoChecker.ai.action })).toBeNull()
+    cleanup()
+    renderCard({ point: { x: 1, y: 1 }, inspection: null })
+    expect(screen.queryByRole('button', { name: en.photoChecker.ai.action })).toBeNull()
+    cleanup()
+    renderCard({ point: { x: 1, y: 1 }, inspection: { kind: 'unavailable', point: { x: 1, y: 1 }, radius: 3, reason: 'transparent' } })
+    expect(screen.queryByRole('button', { name: en.photoChecker.ai.action })).toBeNull()
+  })
+
+  it('becomes more prominent when the deterministic sample has a measurement issue, never automatically', () => {
+    // Prominence reads assessPhotoMeasurement(sample.diagnostics.flags), not match.warnings (a
+    // separate, carried-through copy) -- withWarnings only sets the latter, so this fixture
+    // overrides diagnostics.flags directly instead.
+    const clean = real('deep-winter', 'near-face', (candidate) => candidate.sample.diagnostics.flags.length === 0)
+    renderCard(selected(clean))
+    expect(document.querySelector('.photo-ai-action')).not.toHaveClass('photo-ai-action-prominent')
+    cleanup()
+    const flagged: PhotoPointMatched = { ...clean, sample: { ...clean.sample, diagnostics: { ...clean.sample.diagnostics, flags: ['highlight'] } } }
+    renderCard(selected(flagged))
+    expect(document.querySelector('.photo-ai-action')).toHaveClass('photo-ai-action-prominent')
+    // The deterministic result is still shown -- prominence changes styling only, never invocation.
+    expect(text('.photo-summary')).toContain(clean.sample.hex)
+  })
+
+  it('loading: the button stays enabled=false with an updated label, no second live region, and the deterministic result stays visible', () => {
+    const matched = real('cool-winter', 'near-face')
+    renderCard(selected(matched), { ai: { status: 'loading' } })
+    const button = screen.getByRole('button', { name: en.photoChecker.ai.actionLoading })
+    expect(button).toBeDisabled()
+    // The card keeps exactly one live region: the deterministic result is untouched, and the
+    // loading label lives on the (non-live) button itself.
+    expect([...document.querySelectorAll('[role="status"], [aria-live]')]).toEqual([document.querySelector('.photo-summary')])
+    expect(text('.photo-summary')).toContain(matched.sample.hex)
+    expect(verdictText()).toBe(en.colorResult.verdicts.strong)
+  })
+
+  it('selected: the AI-resolved color becomes primary, badged, with category/suitability from the app\'s own logic', () => {
+    const matched = real(AI_SUBTYPE, 'away-from-face') // any deterministic starting point
+    renderCard(selected(matched), { ai: { status: 'selected', resolution: aiSelectedResolution } })
+    const result = aiSelectedResolution.result
+    expect(text('.check-hex')).toBe(result.color.hex)
+    expect(text('.check-source-badge')).toBe(en.photoChecker.ai.badge)
+    expect(verdictText()).toBe(en.colorResult.verdicts[result.suitability])
+    expect(text('.check-category')).toBe(en.photoChecker.categories[result.category])
+    // The deterministic sample's own hex is gone from the summary -- AI result is primary, not additive.
+    expect(text('.photo-summary')).not.toContain(matched.sample.hex)
+    // plan §J: the caveat must be honest that this hex is the palette's own, not a pixel measurement.
+    expect(text('.check-caveat')).toBe(en.photoChecker.ai.caveat)
+  })
+
+  it('selected: pairWith chips come from the resolver\'s own pairingSuggestions, never recomputed here', () => {
+    const matched = real(AI_SUBTYPE, 'near-face')
+    renderCard(selected(matched), { ai: { status: 'selected', resolution: aiSelectedResolution } })
+    expect(chipNames('.check-pairs')).toEqual(aiSelectedResolution.result.pairWith.map((color) => colorDisplayName('en', color)))
+  })
+
+  it.each(['uncertain', 'target-mismatch', 'unusable'] as const)('%s: the deterministic result is untouched and a plain-text note explains why, without a fabricated color', (reason) => {
+    const matched = real('soft-autumn', 'related')
+    renderCard(selected(matched), { ai: { status: 'no-replacement', reason } })
+    expect(text('.photo-summary')).toContain(matched.sample.hex)
+    expect(verdictText()).toBe(en.colorResult.verdicts.conditional)
+    const expectedCopy = reason === 'uncertain' ? en.photoChecker.ai.uncertain : reason === 'target-mismatch' ? en.photoChecker.ai.targetMismatch : en.photoChecker.ai.unusable
+    expect(screen.getByText(expectedCopy)).toBeInTheDocument()
+    expect($('.check-source-badge')).toBeNull()
+  })
+
+  it.each(['error', 'unresolved'] as const)('%s: the deterministic result is untouched, a generic failure note is shown, and no provider detail leaks', (status) => {
+    const matched = real('soft-autumn', 'near-face')
+    const ai: AiPhotoFallbackState = status === 'error' ? { status: 'error', error: { kind: 'provider-error', message: 'upstream said 503', httpStatus: 503 } } : { status: 'unresolved' }
+    renderCard(selected(matched), { ai })
+    expect(text('.photo-summary')).toContain(matched.sample.hex)
+    expect(screen.getByText(en.photoChecker.ai.failure)).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/upstream said|503/)
+  })
+
+  it('has complete EN/TH copy, and renders in Thai', () => {
+    for (const locale of [en, th]) {
+      const strings = [locale.photoChecker.ai.action, locale.photoChecker.ai.actionLoading, locale.photoChecker.ai.privacyNote, locale.photoChecker.ai.badge,
+        locale.photoChecker.ai.caveat, locale.photoChecker.ai.uncertain, locale.photoChecker.ai.targetMismatch, locale.photoChecker.ai.unusable, locale.photoChecker.ai.failure,
+        ...(['strong', 'good', 'conditional', 'weak', 'outside'] as const).map((level) => locale.photoChecker.ai.why[level]('X'))]
+      strings.forEach((value) => expect(value.trim().length).toBeGreaterThan(0))
+    }
+    const matched = real(AI_SUBTYPE, 'near-face')
+    renderCard(selected(matched), { language: 'th', ai: { status: 'selected', resolution: aiSelectedResolution } })
+    expect(text('.check-source-badge')).toBe(th.photoChecker.ai.badge)
+    expect(screen.getByRole('button', { name: th.photoChecker.ai.action })).toBeInTheDocument()
+  })
+})
+
 describe('states without a colour', () => {
   it('shows the instruction, then "press Enter" for a moved marker, with no guidance', () => {
     renderCard(null)
@@ -560,11 +769,14 @@ describe('Slice 5c: verdict first', () => {
   })
 
   it('uses one small cue per result, hidden from screen readers, with the verdict in text', () => {
+    // Slice 0.5D: renderCard's default `ai` state has no `onRunAi`, but the AI action button
+    // still renders whenever there is a matched sample (copy.ai.action carries its own ✨), so the
+    // baseline pictographic count is 1 higher than before this slice for every category.
     for (const category of CATEGORIES) {
       renderCard(selected(real('warm-spring', category)))
       expect(document.querySelectorAll('.check-verdict-mark')).toHaveLength(1)
       expect($('.check-verdict-mark')).toHaveAttribute('aria-hidden', 'true')
-      expect(document.body.textContent!.match(/\p{Extended_Pictographic}/gu) ?? []).toHaveLength(category === 'near-face' ? 1 : 0)
+      expect(document.body.textContent!.match(/\p{Extended_Pictographic}/gu) ?? []).toHaveLength(category === 'near-face' ? 2 : 1)
       expect(text('.photo-summary')).toContain(verdictText())
       cleanup()
     }

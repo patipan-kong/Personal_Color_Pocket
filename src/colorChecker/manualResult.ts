@@ -55,5 +55,7 @@ export function toManualResultView(match: ColorMatchResult, copy: LocaleCopy, pr
     warnings: [],
     info: null,
     caveat: null,
+    aiAdvisory: [],
+    sourceLabel: null,
   }
 }

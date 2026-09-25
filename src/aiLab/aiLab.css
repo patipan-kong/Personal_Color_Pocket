@@ -1,0 +1,61 @@
+/* V2.0 AI Color Lab (Slice 0): a dedicated, dev-only stylesheet, imported only by
+   AiColorLabView.tsx -- never global, so it cannot affect the production app (plan §23). */
+
+.ai-lab-page { max-width: 960px; margin: 0 auto; padding: 16px; font-family: system-ui, sans-serif; color: #1a1a1a; }
+.ai-lab-page h1 { font-size: 1.4rem; margin: 0 0 4px; }
+.ai-lab-badge { display: inline-block; background: #402020; color: #fff; font-size: .7rem; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; margin-bottom: 12px; }
+.ai-lab-privacy { background: #fff4e5; border: 1px solid #e0b070; border-radius: 8px; padding: 10px 12px; font-size: .85rem; margin: 12px 0; }
+.ai-lab-picker-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.ai-lab-error-message[role='alert'] { color: #a30000; }
+.ai-lab-layout { display: grid; grid-template-columns: minmax(240px, 360px) 1fr; gap: 20px; align-items: start; }
+@media (max-width: 720px) { .ai-lab-layout { grid-template-columns: 1fr; } }
+.ai-lab-stage-wrap { border: 1px solid #ddd; border-radius: 10px; overflow: hidden; background: #111; position: relative; }
+.ai-lab-stage-wrap .photo-stage { position: relative; width: 100%; }
+.ai-lab-hint { font-size: .8rem; color: #666; margin-top: 6px; }
+.ai-lab-baseline { border: 1px solid #ddd; border-radius: 10px; padding: 12px; margin-top: 12px; }
+.ai-lab-baseline h2 { font-size: 1rem; margin: 0 0 8px; }
+.ai-lab-color { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.ai-lab-swatch { display: inline-block; width: 20px; height: 20px; border-radius: 5px; border: 1px solid #0003; }
+.ai-lab-fields { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: .85rem; margin: 8px 0 0; }
+.ai-lab-fields dt { color: #666; }
+.ai-lab-fields dd { margin: 0; }
+.ai-lab-run-row { display: flex; align-items: center; gap: 10px; margin: 14px 0; }
+.ai-lab-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.ai-lab-card { border: 1px solid #ddd; border-radius: 10px; padding: 12px; }
+.ai-lab-card-error { border-color: #d99; background: #fff6f6; }
+.ai-lab-card-success { border-color: #9c9; background: #f6fff8; }
+.ai-lab-card header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.ai-lab-card h3 { margin: 0; font-size: 1rem; }
+.ai-lab-latency { font-size: .75rem; color: #666; }
+.ai-lab-status { color: #666; font-size: .9rem; }
+.ai-lab-error-title { font-weight: 700; color: #a30000; margin: 0 0 4px; }
+.ai-lab-reasoning { font-size: .85rem; color: #333; margin: 8px 0 0; }
+.ai-lab-debug { margin-top: 8px; font-size: .8rem; }
+.ai-lab-debug pre { white-space: pre-wrap; word-break: break-word; background: #f4f4f4; padding: 8px; border-radius: 6px; max-height: 220px; overflow: auto; }
+.ai-lab-target { background: #f0f4ff; border: 1px solid #ccd6f6; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: .85rem; }
+.ai-lab-target p { margin: 0 0 2px; }
+.ai-lab-target p:last-child { margin-bottom: 0; }
+.ai-lab-input-preview { margin: 0 0 14px; font-size: .85rem; }
+.ai-lab-input-preview img { max-width: 100%; border-radius: 8px; border: 1px solid #ddd; margin-top: 6px; }
+
+/* Slice 0.2: Model Bake-off additions. */
+.ai-lab-review { border: 1px dashed #bbb; border-radius: 8px; padding: 8px 10px; margin-top: 10px; font-size: .8rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px 10px; }
+.ai-lab-review legend { font-weight: 600; padding: 0 4px; }
+.ai-lab-review label { display: flex; flex-direction: column; gap: 2px; color: #555; }
+.ai-lab-review select, .ai-lab-review input { font: inherit; padding: 3px 4px; }
+.ai-lab-review-note { grid-column: 1 / -1; }
+.ai-lab-dimension-table, .ai-lab-flash-lite-table, .ai-lab-session-summary table { width: 100%; border-collapse: collapse; font-size: .8rem; margin: 12px 0; }
+.ai-lab-dimension-table caption, .ai-lab-flash-lite-table caption, .ai-lab-session-summary caption { text-align: left; font-weight: 600; margin-bottom: 6px; color: #444; }
+.ai-lab-dimension-table th, .ai-lab-dimension-table td,
+.ai-lab-flash-lite-table th, .ai-lab-flash-lite-table td,
+.ai-lab-session-summary th, .ai-lab-session-summary td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; }
+.ai-lab-session-summary { margin-top: 24px; border-top: 1px solid #ddd; padding-top: 16px; }
+.ai-lab-session-summary h2 { font-size: 1.1rem; margin: 0 0 4px; }
+.ai-lab-session-summary table { overflow-x: auto; display: block; }
+
+/* Slice 0.4B: AI Advisory Preview controls -- disposable dev tooling, not styled to match
+   production. The result card below them is the one thing worth spending visual effort on. */
+.ai-lab-toggle-group { display: flex; gap: 4px; border: 1px solid #ddd; border-radius: 8px; padding: 3px; }
+.ai-lab-toggle { border: 0; border-radius: 6px; padding: 6px 10px; background: transparent; font: inherit; font-size: .85rem; color: #444; cursor: pointer; }
+.ai-lab-toggle[aria-pressed='true'] { background: #402020; color: #fff; font-weight: 600; }
+.advisory-preview-card { max-width: 420px; }

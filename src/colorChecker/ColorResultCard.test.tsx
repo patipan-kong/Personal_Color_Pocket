@@ -35,6 +35,8 @@ function view(suitability: Suitability, overrides: Partial<ColorResultView> = {}
     warnings: [],
     info: null,
     caveat: null,
+    aiAdvisory: [],
+    sourceLabel: null,
     ...overrides,
   }
 }
@@ -49,9 +51,9 @@ const text = (selector: string) => $(selector)?.textContent ?? ''
 const before = (first: string, second: string) => Boolean($(first)!.compareDocumentPosition($(second)!) & Node.DOCUMENT_POSITION_FOLLOWING)
 
 describe('shared Color Checker result card', () => {
-  it('orders swatch/HEX → verdict → label → why → action → reference → placement → pairing → details → warnings → caveat', () => {
-    renderView(view('conditional', { details: ['A detail'], warnings: ['A warning'], caveat: 'A caveat' }))
-    const order = ['.check-hex', '.check-verdict', '.check-category', '.check-reason', '.check-action', '.check-reference', '.check-placement', '.check-pairing', '.check-details', '.check-warnings', '.check-caveat']
+  it('orders swatch/HEX → verdict → label → why → action → reference → placement → pairing → details → warnings → advisory → caveat', () => {
+    renderView(view('conditional', { details: ['A detail'], warnings: ['A warning'], aiAdvisory: [{ title: 'Advisory title', body: 'Advisory body' }], caveat: 'A caveat' }))
+    const order = ['.check-hex', '.check-verdict', '.check-category', '.check-reason', '.check-action', '.check-reference', '.check-placement', '.check-pairing', '.check-details', '.check-warnings', '.check-advisory', '.check-caveat']
     order.slice(1).forEach((selector, index) => expect(before(order[index], selector), `${order[index]} before ${selector}`).toBe(true))
   })
 
@@ -81,6 +83,18 @@ describe('shared Color Checker result card', () => {
     expect(text('.check-reason')).toBe('A short reason from the engine.')
     const pieces = getPlacementGuide('below-face', 'women').rows[0].examples.slice(0, 3).map((key) => en.styleExamples.garments[key])
     expect(text('.check-action')).toBe(en.colorResult.action.weak(pieces, colorDisplayName('en', palette.neutrals[0])))
+  })
+
+  // Slice 0.5D: an already-translated, source-specific label (e.g. "AI-assisted"). null (the
+  // default from every deterministic adapter) renders no badge at all -- proven by the default
+  // `view()` builder above, whose every other test in this file passes sourceLabel: null.
+  it('shows an already-translated source badge only when the adapter supplies one', () => {
+    renderView(view('good'))
+    expect($('.check-source-badge')).toBeNull()
+    cleanup()
+    renderView(view('good', { sourceLabel: 'AI-assisted' }))
+    expect(text('.check-source-badge')).toBe('AI-assisted')
+    expect(before('.check-source-badge', '.check-hex')).toBe(true)
   })
 
   it('palette reference: labelled by kind, with the group only for a positive verdict', () => {
@@ -126,13 +140,14 @@ describe('shared Color Checker result card', () => {
 
   it('optional slots render only when the source has them', () => {
     renderView(view('good'))
-    for (const selector of ['.check-details', '.check-warnings', '.check-info', '.check-caveat', '.check-note', '.check-sr-only']) expect($(selector), selector).toBeNull()
+    for (const selector of ['.check-details', '.check-warnings', '.check-info', '.check-caveat', '.check-note', '.check-sr-only', '.check-advisory']) expect($(selector), selector).toBeNull()
     cleanup()
     renderView(view('conditional', { details: ['Detail one', 'Detail two'], note: { color: palette.harder[0], text: 'Also close to a Harder colour.' }, warnings: ['Warning one'], caveat: 'Caveat text' }))
     expect([...document.querySelectorAll('.check-details span')].map((node) => node.textContent)).toEqual(['Detail one', 'Detail two'])
     expect(text('.check-note')).toBe('Also close to a Harder colour.')
     expect(text('.check-caveat')).toBe('Caveat text')
     expect(text('.check-warnings')).toBe('Warning one')
+    expect($('.check-advisory')).toBeNull()
   })
 
   it('long Thai text stays whole', () => {

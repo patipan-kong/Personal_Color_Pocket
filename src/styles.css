@@ -459,9 +459,19 @@ h1, h2, h3, p { text-wrap: pretty; }
 .photo-feedback { display: grid; gap: 16px; min-width: 0; min-height: 64px; align-content: start; }
 .photo-instruction, .photo-unavailable { margin: 0; color: var(--muted); line-height: 1.5; }
 .photo-unavailable { color: var(--ink); font-weight: 650; }
+/* V2.0 Slice 0.5D: the explicit, user-invoked AI fallback action. Prominence (near a measurement
+   warning) is a visual-only change -- see PhotoResultCard.tsx's PhotoAiAction. */
+.photo-ai-action { display: grid; gap: 6px; justify-items: start; }
+.photo-ai-action-prominent .photo-ai-button { box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 34%, transparent); }
+.photo-ai-button:disabled { opacity: .7; cursor: default; }
+.photo-ai-privacy { margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.4; }
+.photo-ai-note { margin: 0; color: var(--ink); font-weight: 650; line-height: 1.45; }
 /* Color Checker result, shared by Manual and Photo (Slice 5d). */
 .check-result { display: grid; gap: 10px; justify-items: start; min-width: 0; }
 .check-sample { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; width: 100%; }
+/* V2.0 Slice 0.5D: already-translated provenance badge (e.g. "AI-assisted"), same visual language
+   as .daily-goal-provenance. Only ever rendered when the adapter supplies view.sourceLabel. */
+.check-source-badge { display: inline-block; margin: 2px 0; padding: 2px 9px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent-ink); font-size: .72rem; font-weight: 800; }
 .check-identity { min-width: 0; }
 .check-swatch { width: 52px; height: 52px; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
 .check-sample small { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 800; }
@@ -503,6 +513,13 @@ h1, h2, h3, p { text-wrap: pretty; }
 .check-caveat { margin: 0; color: var(--muted); font-size: .74rem; line-height: 1.4; }
 .check-warnings { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
 .check-warnings li { padding-left: 9px; border-left: 3px solid #d59a3c; color: #7a4a12; font-size: .84rem; line-height: 1.4; }
+/* Slice 0.4: AI quality advisory. Quieter than the amber sampling warnings above -- this is
+   corroborating/secondary evidence, not a direct pixel-level fact -- but still its own note so it
+   reads as "one more thing to check", not merged into the deterministic warnings list. */
+.check-advisory { display: grid; gap: 8px; }
+.check-advisory-item { padding: 8px 10px; border-left: 3px solid #5b8ba8; border-radius: 0 10px 10px 0; background: rgba(91,139,168,.07); }
+.check-advisory-title { margin: 0 0 2px; display: flex; align-items: center; gap: 6px; color: #2f5568; font-size: .82rem; font-weight: 750; }
+.check-advisory-body { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.45; }
 /* Slice 5f lighting note: quiet supporting text, not a warning. */
 .check-info { margin: 0; padding-left: 9px; border-left: 3px solid var(--line); color: var(--muted); font-size: .82rem; line-height: 1.45; }
 @media (min-width: 900px) {

@@ -1,6 +1,8 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { callPaletteSelection } from '../aiLab/aiPaletteApi'
+import type { AiPaletteApiOutcome } from '../domain/aiColorLab/paletteContract'
 import { describeColor } from '../domain/colorNames/colorNames'
 import { hexToRgb } from '../domain/personalColor/colorUtils'
 import { getPalette } from '../domain/personalColor/palettes'
@@ -27,10 +29,15 @@ vi.mock('../domain/photoColor/inspect', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../domain/photoColor/inspect')>()
   return { inspectPhotoTap: vi.fn(actual.inspectPhotoTap), inspectPhotoPoint: vi.fn(actual.inspectPhotoPoint) }
 })
+// V2.0 Slice 0.5D: the explicit AI fallback's own network boundary (the same adapter AI Lab
+// validated in Slice 0.5C). Mocked here exactly like openPhoto/inspect above -- everything
+// upstream and downstream of the network call runs for real.
+vi.mock('../aiLab/aiPaletteApi', () => ({ callPaletteSelection: vi.fn() }))
 
 const openPhotoMock = vi.mocked(openPhoto)
 const tapSpy = vi.mocked(inspectPhotoTap)
 const pointSpy = vi.mocked(inspectPhotoPoint)
+const callPaletteSelectionMock = vi.mocked(callPaletteSelection)
 const copy = en.photoChecker
 const SUBTYPE: Subtype = 'warm-autumn'
 const palette = getPalette(SUBTYPE)
@@ -61,7 +68,11 @@ class FakeResizeObserver {
   disconnect() { this.observed = [] }
 }
 
-let context: { putImageData: ReturnType<typeof vi.fn>; getImageData: ReturnType<typeof vi.fn>; drawImage: ReturnType<typeof vi.fn> } | null
+// V2.0 Slice 0.5D: `beginPath`/`arc`/`stroke`/`fill` are only ever used by the AI fallback's own
+// throwaway marker canvas (aiLab/imageEncode.ts) -- not by the display canvas this file otherwise
+// exercises -- but HTMLCanvasElement.prototype.getContext is mocked globally below, so both
+// canvases share this same fake context.
+let context: { putImageData: ReturnType<typeof vi.fn>; getImageData: ReturnType<typeof vi.fn>; drawImage: ReturnType<typeof vi.fn>; beginPath: ReturnType<typeof vi.fn>; arc: ReturnType<typeof vi.fn>; stroke: ReturnType<typeof vi.fn>; fill: ReturnType<typeof vi.fn> } | null
 let getContextSpy: ReturnType<typeof vi.fn>
 // The stage's layout box in CSS px, as the browser would report it. Offset like a real page.
 let stageBox: Size = { width: 390, height: 292.5 }
@@ -105,8 +116,9 @@ let createUrlSpy: ReturnType<typeof vi.fn>
 beforeEach(() => {
   observers.length = 0
   stageBox = { width: 390, height: 292.5 }
-  context = { putImageData: vi.fn(), getImageData: vi.fn(), drawImage: vi.fn() }
+  context = { putImageData: vi.fn(), getImageData: vi.fn(), drawImage: vi.fn(), beginPath: vi.fn(), arc: vi.fn(), stroke: vi.fn(), fill: vi.fn() }
   getContextSpy = vi.fn(() => context)
+  vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/jpeg;base64,ai-lab-fake')
   vi.stubGlobal('PointerEvent', FakePointerEvent)
   vi.stubGlobal('ImageData', FakeImageData)
   vi.stubGlobal('ResizeObserver', FakeResizeObserver)
@@ -122,6 +134,7 @@ beforeEach(() => {
   openPhotoMock.mockReset()
   tapSpy.mockClear()
   pointSpy.mockClear()
+  callPaletteSelectionMock.mockReset()
   localStorage.clear()
 })
 
@@ -789,6 +802,202 @@ describe('focus styling by input type', () => {
     expect(stage()).toHaveAttribute('data-input', 'pointer')
     fireEvent.keyDown(stage(), { key: 'ArrowLeft' })
     expect(stage()).toHaveAttribute('data-input', 'keyboard')
+  })
+})
+
+describe('explicit AI fallback (Slice 0.5D, plan §Z)', () => {
+  const aiButton = () => document.querySelector<HTMLButtonElement>('.photo-ai-button')
+
+  function selectedOutcome(colorId: string, latencyMs = 12): Extract<AiPaletteApiOutcome, { ok: true }> {
+    return { ok: true, latencyMs, usage: null, raw: {}, result: { status: 'selected', colorId, target: { objectType: 'top', objectDescription: 'a knit top' }, reasoning: 'because' } }
+  }
+  function noReplacementOutcome(status: 'uncertain' | 'target-mismatch' | 'unusable', latencyMs = 12): Extract<AiPaletteApiOutcome, { ok: true }> {
+    return { ok: true, latencyMs, usage: null, raw: {}, result: { status, target: null, reasoning: 'because' } }
+  }
+  function failureOutcome(latencyMs = 12): Extract<AiPaletteApiOutcome, { ok: false }> {
+    return { ok: false, latencyMs, error: { kind: 'provider-error', message: 'upstream said 503', httpStatus: 503 } }
+  }
+
+  describe('deterministic-first', () => {
+    it('renders the deterministic result with no AI call, and selecting a point never calls AI', async () => {
+      renderPanel()
+      await openReady(solid(1600, 1200, BEST), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      expect(feedback()).toHaveTextContent(BEST)
+      expect(callPaletteSelectionMock).not.toHaveBeenCalled()
+      expect(aiButton()).toBeInTheDocument()
+    })
+
+    it('a measurement warning changes only styling, never triggers AI automatically', async () => {
+      renderPanel()
+      const width = 400
+      const image = solid(width, 300, BEST)
+      for (let row = 0; row < 300; row++) for (let col = 0; col < width; col++) if ((col * 7 + row * 13) % 10 < 4) image.data.set([255, 255, 255, 255], (row * width + col) * 4)
+      await openReady(image, { width: 400, height: 300 })
+      tapStage(200, 150)
+      expect(feedback()).toHaveTextContent(copy.warnings.highlight)
+      expect(callPaletteSelectionMock).not.toHaveBeenCalled()
+      expect(document.querySelector('.photo-ai-action')).toHaveClass('photo-ai-action-prominent')
+    })
+
+    it('the AI action stays available with no measurement issue at all', async () => {
+      renderPanel()
+      await openReady(solid(1600, 1200, BEST), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      expect(document.querySelector('.photo-ai-action')).not.toHaveClass('photo-ai-action-prominent')
+      expect(aiButton()).toBeInTheDocument()
+    })
+  })
+
+  describe('explicit invocation', () => {
+    it('calls AI only after the button is clicked, with the active subtype\'s own canonical palette, and never the deterministic sample', async () => {
+      renderPanel()
+      callPaletteSelectionMock.mockResolvedValueOnce(selectedOutcome(palette.best[0].id))
+      await openReady(solid(1600, 1200, BEST), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      expect(callPaletteSelectionMock).not.toHaveBeenCalled()
+      await userEvent.setup({ delay: null }).click(aiButton()!)
+      expect(callPaletteSelectionMock).toHaveBeenCalledTimes(1)
+      const [request] = callPaletteSelectionMock.mock.calls[0]
+      expect(request.subtype).toBe(SUBTYPE)
+      expect(request.palette).toEqual([...palette.best, ...palette.neutrals, ...palette.accents, ...palette.harder].map((color) => ({ colorId: color.id, name: color.name, hex: color.hex })))
+      // Strategy A: no separate deterministic-sample/diagnostics field exists on the request at
+      // all -- exactly imageDataUrl/subtype/palette, nothing else (the candidate list legitimately
+      // contains the sampled hex too, since BEST is itself one of this subtype's own palette colors).
+      expect(Object.keys(request).sort()).toEqual(['imageDataUrl', 'palette', 'subtype'])
+    })
+
+    it('a duplicate click while loading does not start a second request', async () => {
+      renderPanel()
+      const pending = deferred<AiPaletteApiOutcome>()
+      callPaletteSelectionMock.mockReturnValueOnce(pending.promise)
+      await openReady(solid(1600, 1200, BEST), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      const user = userEvent.setup({ delay: null })
+      await user.click(aiButton()!)
+      expect(aiButton()).toBeDisabled()
+      await user.click(aiButton()!) // disabled -- userEvent will not dispatch a click, but assert the guard directly too
+      expect(callPaletteSelectionMock).toHaveBeenCalledTimes(1)
+      await act(async () => { pending.resolve(selectedOutcome(palette.best[0].id)) })
+    })
+  })
+
+  describe('selected', () => {
+    it('resolves through the canonical palette and becomes the primary result, with category/suitability from the app\'s own logic', async () => {
+      renderPanel()
+      const colorId = palette.neutrals[0].id
+      callPaletteSelectionMock.mockResolvedValueOnce(selectedOutcome(colorId))
+      await openReady(solid(1600, 1200, HARDER), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      expect(feedback()).toHaveTextContent(HARDER)
+      await userEvent.setup({ delay: null }).click(aiButton()!)
+      await act(async () => {})
+      expect(feedback()).toHaveTextContent(palette.neutrals[0].hex)
+      expect(feedback()).not.toHaveTextContent(HARDER)
+      expect(feedback()).toHaveTextContent(en.colorResult.verdicts.good) // neutrals -> neutral-base -> 'good'
+      expect(feedback()).toHaveTextContent(copy.ai.badge)
+    })
+  })
+
+  describe.each(['uncertain', 'target-mismatch', 'unusable'] as const)('escape state: %s', (status) => {
+    it('never replaces the deterministic result, and shows the matching note', async () => {
+      renderPanel()
+      callPaletteSelectionMock.mockResolvedValueOnce(noReplacementOutcome(status))
+      await openReady(solid(1600, 1200, BEST), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      await userEvent.setup({ delay: null }).click(aiButton()!)
+      await act(async () => {})
+      expect(feedback()).toHaveTextContent(BEST)
+      const expectedCopy = status === 'uncertain' ? copy.ai.uncertain : status === 'target-mismatch' ? copy.ai.targetMismatch : copy.ai.unusable
+      expect(feedback()).toHaveTextContent(expectedCopy)
+      expect(aiButton()).not.toBeDisabled() // manual retry remains possible, never automatic
+      expect(callPaletteSelectionMock).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('provider/network failure', () => {
+    it('preserves the deterministic result, shows a generic failure note with no provider detail, and allows a manual retry', async () => {
+      renderPanel()
+      callPaletteSelectionMock.mockResolvedValueOnce(failureOutcome())
+      await openReady(solid(1600, 1200, BEST), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      await userEvent.setup({ delay: null }).click(aiButton()!)
+      await act(async () => {})
+      expect(feedback()).toHaveTextContent(BEST)
+      expect(feedback()).toHaveTextContent(copy.ai.failure)
+      expect(document.body.textContent).not.toMatch(/upstream said|503/)
+      callPaletteSelectionMock.mockResolvedValueOnce(selectedOutcome(palette.best[0].id))
+      await userEvent.setup({ delay: null }).click(aiButton()!)
+      expect(callPaletteSelectionMock).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  describe('staleness', () => {
+    it('a new point clears any AI result and a stale response cannot overwrite the new deterministic result', async () => {
+      renderPanel()
+      const pending = deferred<AiPaletteApiOutcome>()
+      callPaletteSelectionMock.mockReturnValueOnce(pending.promise)
+      const image = split(1600, 1200, BEST, HARDER)
+      await openReady(image, { width: 390, height: 292.5 })
+      tapStage(97.5, 73.125) // left half: BEST
+      await userEvent.setup({ delay: null }).click(aiButton()!)
+      tapStage(292.5, 73.125) // right half: HARDER -- while the AI request is still pending
+      expect(feedback()).toHaveTextContent(HARDER)
+      expect(feedback()).not.toHaveTextContent(copy.ai.actionLoading)
+      await act(async () => { pending.resolve(selectedOutcome(palette.best[0].id)) })
+      // The stale response (for the old point) never appears; the new point's deterministic result stands.
+      expect(feedback()).toHaveTextContent(HARDER)
+      expect(feedback()).not.toHaveTextContent(copy.ai.badge)
+    })
+
+    it('choosing a new photo clears any AI result', async () => {
+      renderPanel()
+      const pending = deferred<AiPaletteApiOutcome>()
+      callPaletteSelectionMock.mockReturnValueOnce(pending.promise)
+      await openReady(solid(1600, 1200, BEST), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      await userEvent.setup({ delay: null }).click(aiButton()!)
+      openPhotoMock.mockResolvedValueOnce(solid(1600, 1200, HARDER))
+      await choose(photoFile('next.jpg'))
+      await act(async () => {})
+      tapStage(195, 146.25)
+      expect(feedback()).toHaveTextContent(HARDER)
+      await act(async () => { pending.resolve(selectedOutcome(palette.best[0].id)) })
+      expect(feedback()).not.toHaveTextContent(copy.ai.badge)
+    })
+
+    it('a subtype change clears any AI result', async () => {
+      const view = renderPanel()
+      const pending = deferred<AiPaletteApiOutcome>()
+      callPaletteSelectionMock.mockReturnValueOnce(pending.promise)
+      await openReady(solid(1600, 1200, BEST), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      await userEvent.setup({ delay: null }).click(aiButton()!)
+      const otherSubtype: Subtype = 'cool-winter'
+      view.rerender(<PhotoCheckerPanel copy={copy} resultCopy={en.colorResult} garments={en.styleExamples.garments} language="en" presentation="women" subtype={otherSubtype} />)
+      await act(async () => { pending.resolve(selectedOutcome(palette.best[0].id)) })
+      expect(feedback()).not.toHaveTextContent(copy.ai.badge)
+    })
+  })
+
+  describe('privacy disclosure', () => {
+    it('shows the network-analysis note before/at the action, without claiming the deterministic path also goes online', async () => {
+      renderPanel()
+      await openReady(solid(1600, 1200, BEST), { width: 390, height: 292.5 })
+      tapStage(195, 146.25)
+      expect(screen.getByText(copy.privacy)).toBeInTheDocument() // "Your photo stays on this device" (deterministic default)
+      expect(feedback()).toHaveTextContent(copy.ai.privacyNote) // explicit exception, next to the action
+      expect(callPaletteSelectionMock).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('production isolation', () => {
+    it('does not call fetch/network literally from this component or the shared result card', () => {
+      for (const source of [panelSource, cardSource]) {
+        const code = source.replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+        expect(code, 'fetch').not.toMatch(/\bfetch\b/)
+      }
+    })
   })
 })
 

@@ -139,7 +139,11 @@ describe('X. same HEX + same language → same name, whichever input supplied it
   it('the name is derived in the shared card only: no adapter or input method names a colour', () => {
     const sources = import.meta.glob(['../**/*.{ts,tsx}', '!../**/*.test.{ts,tsx}'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>
     const users = Object.entries(sources).filter(([, source]) => /from '[./]*domain\/colorNames\/colorNames'|from '\.\/colorNames'/.test(source)).map(([path]) => path).sort()
-    expect(users).toEqual(['../domain/colorNames/colorNamesAudit.ts', './ColorResultCard.tsx'])
+    // V2.0 AI Color Lab (Slice 0): aiLabDeterministic.ts is a deliberate, independent, dev-only
+    // consumer of describeColor() for its own baseline display -- it is not a Color Checker
+    // input method or adapter, so it does not violate what THIS invariant actually guards
+    // (Manual/Photo naming staying single-sourced through the shared card).
+    expect(users).toEqual(['../aiLab/aiLabDeterministic.ts', '../domain/colorNames/colorNamesAudit.ts', './ColorResultCard.tsx'])
     // And inside it, one call, from the HEX alone.
     expect(cardSource.match(/describeColor\(/g)).toHaveLength(1)
     expect(cardSource).toContain('describeColor(hex)')
