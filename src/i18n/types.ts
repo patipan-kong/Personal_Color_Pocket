@@ -3,6 +3,7 @@ import type { QuizVisualLabelKey } from '../domain/personalColor/quizVisuals'
 import type { GarmentNounKey, StyleCategoryKey } from '../domain/personalColor/styleGuide'
 import type { PairingAdvice, PlacementArea, PlacementTier } from '../domain/photoColor/placement'
 import type { Suitability, SuitabilityTone } from '../domain/photoColor/suitability'
+import type { SampleAdvisoryReason } from '../domain/photoColor/aiNormalization'
 import type { PhotoMatchCategory, PhotoMatchDescriptors, PhotoMatchDirection, PositivePaletteGroup, SampleFlag, SampleUnavailableReason } from '../domain/photoColor/types'
 import type { PhotoImageErrorCode } from '../services/photoImage'
 import type { LuckyGoal, LuckyWeekday, LuckyColorFamily } from '../domain/luckyColor/types'
@@ -154,6 +155,9 @@ export interface LocaleCopy {
     sampleLabel: string
     categories: Record<PhotoMatchCategory, string>
     warnings: Record<SampleFlag, string>
+    // Slice 0.4: display copy for deriveSampleAdvisory()'s reasons (AI, advisory-only -- see
+    // domain/photoColor/aiNormalization.ts). Never a verdict or a colour name.
+    aiAdvisory: Record<SampleAdvisoryReason, { title: string; body: string }>
     // Slice 5f: shown before choosing a photo, and the note for a light near-neutral colour.
     captureTip: string
     lightingNote: string
@@ -167,6 +171,26 @@ export interface LocaleCopy {
     descriptorsLabel: string
     descriptors: { value: Record<PhotoMatchDescriptors['value'], string>; clarity: Record<PhotoMatchDescriptors['clarity'], string> }
     caveat: string
+    // V2.0 Slice 0.5D: the explicit, user-invoked AI fallback (plan §C-Q). AI never runs
+    // automatically; this copy only appears once the user taps the action button. `why` and
+    // `caveat` describe an AI-SELECTED canonical palette color, never a pixel measurement --
+    // deliberately separate from the deterministic `why`/`caveat` above, which describe a
+    // photo-measured colour instead. 'conditional'/'outside' are unreachable in practice (the
+    // canonical-palette resolver only ever produces near-face/neutral-base/away-from-face, see
+    // aiFallback.ts's categoryFor), kept only so this stays a total Record like its deterministic
+    // counterpart.
+    ai: {
+      action: string
+      actionLoading: string
+      privacyNote: string
+      badge: string
+      why: Record<Suitability, (colorName: string) => string>
+      caveat: string
+      uncertain: string
+      targetMismatch: string
+      unusable: string
+      failure: string
+    }
   }
   // Slice 5d: the one Color Checker result, shared by Manual and Photo. The verdict answers
   // "is this colour good for me?", the action says what to do. Colour and garment names come from

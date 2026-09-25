@@ -1,11 +1,19 @@
 import { useEffect, useId, useReducer, useRef } from 'react'
 import type { ChangeEvent } from 'react'
+// V2.0 Slice 0.5D (plan §X): reuses AI Lab's own validated palette-selection adapter and request
+// builder unchanged -- "the same validated production contract/adapter", not a duplicate. The
+// `aiLab` folder name is historical (Slice 0.5C); this call itself is fully explicit-invocation
+// only (never triggered automatically) and is exercised from both AI Lab and here.
+import { buildPaletteSelectionRequest } from '../aiLab/buildPaletteRequest'
+import { callPaletteSelection } from '../aiLab/aiPaletteApi'
 import type { Subtype } from '../domain/personalColor/types'
 import { inspectPhotoPoint, inspectPhotoTap } from '../domain/photoColor/inspect'
+import { resolvePaletteSelectionResult } from '../domain/photoColor/aiPaletteFallback'
 import type { DisplayTap } from '../domain/photoColor/types'
 import type { Language, LocaleCopy } from '../i18n'
 import { openPhoto, PhotoImageError } from '../services/photoImage'
 import type { PresentationPreference } from '../services/presentationPreference'
+import { aiPhotoFallbackReducer, initialAiPhotoFallbackState } from './aiFallbackState'
 import { PhotoFeedback } from './PhotoResultCard'
 import { PhotoSurface } from './PhotoSurface'
 import type { SurfaceKeyIntent } from './PhotoSurface'
@@ -32,6 +40,14 @@ export function PhotoCheckerPanel({ copy, resultCopy, garments, language, presen
   const slowTimer = useRef<number | undefined>(undefined)
   const hintId = useId()
 
+  // V2.0 Slice 0.5D: the explicit, user-invoked AI fallback. Entirely separate from the reducer
+  // above -- it never runs on its own, only from runAi() below, and its own request id is bumped
+  // independently so a stale AI response can never overwrite a newer point/photo/subtype (plan §H, §M).
+  const [aiState, dispatchAi] = useReducer(aiPhotoFallbackReducer, initialAiPhotoFallbackState)
+  const aiRequest = useRef(0)
+  const aiController = useRef<AbortController | null>(null)
+  const selection = state.status === 'ready' ? state.selection : null
+
   const cancelPending = () => {
     controller.current?.abort()
     controller.current = null
@@ -39,7 +55,38 @@ export function PhotoCheckerPanel({ copy, resultCopy, garments, language, presen
   }
 
   // Unmount (including switching back to Manual): abort, stop the timer, invalidate late results.
-  useEffect(() => () => { cancelPending(); latestRequest.current += 1 }, [])
+  useEffect(() => () => { cancelPending(); latestRequest.current += 1; aiController.current?.abort(); aiController.current = null; aiRequest.current += 1 }, [])
+
+  // plan §M: a new photo, a new/moved point, or a subtype change all invalidate any AI result in
+  // flight or already shown. `selection` is a fresh object every time 'inspected'/'moved' fires
+  // (photoPanelReducer.ts), and null again on a new photo -- so its identity alone is enough to
+  // detect every case the plan lists, without separately tracking which one changed.
+  useEffect(() => {
+    aiController.current?.abort()
+    aiController.current = null
+    aiRequest.current += 1
+    dispatchAi({ type: 'reset' })
+  }, [selection, subtype])
+
+  const runAi = () => {
+    if (!selection || selection.inspection?.kind !== 'matched' || state.status !== 'ready') return
+    if (aiState.status === 'loading') return // plan §H: no duplicate request while one is in flight
+    aiController.current?.abort()
+    const requestId = ++aiRequest.current
+    const nextController = new AbortController()
+    aiController.current = nextController
+    dispatchAi({ type: 'run' })
+    const request = buildPaletteSelectionRequest(state.image, selection.point, selection.inspection.radius, subtype)
+    callPaletteSelection(request, nextController.signal).then((outcome) => {
+      if (requestId !== aiRequest.current) return // superseded by a context change or a newer run
+      aiController.current = null
+      if (!outcome.ok) { dispatchAi({ type: 'error', error: outcome.error }); return }
+      const resolved = resolvePaletteSelectionResult(outcome.result, subtype)
+      if (resolved.kind === 'result') dispatchAi({ type: 'selected', resolution: resolved.resolution })
+      else if (resolved.kind === 'unresolved') dispatchAi({ type: 'unresolved' })
+      else dispatchAi({ type: 'no-replacement', reason: resolved.status })
+    })
+  }
 
   const choose = (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget
@@ -114,7 +161,7 @@ export function PhotoCheckerPanel({ copy, resultCopy, garments, language, presen
         />
         <p id={hintId} className="photo-hint">{copy.keyboardHint}</p>
       </div>
-      <PhotoFeedback copy={copy} resultCopy={resultCopy} garments={garments} language={language} presentation={presentation} selection={state.selection} />
+      <PhotoFeedback copy={copy} resultCopy={resultCopy} garments={garments} language={language} presentation={presentation} selection={state.selection} ai={aiState} onRunAi={runAi} />
     </div>}
   </section>
 }

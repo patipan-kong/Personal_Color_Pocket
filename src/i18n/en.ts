@@ -137,6 +137,20 @@ export const en: LocaleCopy = {
       highlight: 'This spot contains very bright pixels, which may make the color look lighter. Try an evenly lit spot.',
       shadow: 'This spot contains very dark pixels, which may make the color look darker. Try an evenly lit spot.',
     },
+    aiAdvisory: {
+      'target-mismatch': {
+        title: 'Check the selected area',
+        body: 'The selected point may not be on the clothing item you intended to check. Try selecting the fabric again.',
+      },
+      'sample-unusable': {
+        title: 'Try selecting another area',
+        body: 'This part of the photo may not represent the clothing color clearly. Choose a flatter, evenly lit area of the fabric.',
+      },
+      'lighting-cast-corroborated': {
+        title: 'Lighting may affect this result',
+        body: 'This area contains shadow or a noticeable color cast. The clothing color may appear different from how it looks under neutral lighting. Try another photo in soft natural light.',
+      },
+    },
     captureTip: 'For a more accurate color, use a photo with even lighting and avoid deep shade, glare or strong reflections.',
     lightingNote: "White and light colors can look darker or pick up a color cast in a photo. If this doesn't look like the real color, try another evenly lit spot on the same color.",
     unavailable: {
@@ -168,6 +182,24 @@ export const en: LocaleCopy = {
     descriptorsLabel: 'Color character',
     descriptors: { value: { light: 'Light', medium: 'Medium', deep: 'Deep' }, clarity: { soft: 'Soft', moderate: 'Moderate', clear: 'Clear' } },
     caveat: 'Based on how the color appears in this photo.',
+    ai: {
+      action: '✨ Ask AI to analyze',
+      actionLoading: '✨ AI is analyzing…',
+      privacyNote: 'AI assistance sends this photo for online analysis.',
+      badge: 'AI-assisted',
+      why: {
+        strong: (name) => `AI identified this fabric color as ${name} in your palette, one of your strongest colors near your face.`,
+        good: (name) => `AI identified this fabric color as ${name}, an easy neutral in your palette.`,
+        conditional: (name) => `AI identified this fabric color as ${name}, wearable but not one of your strongest colors.`,
+        weak: (name) => `AI identified this fabric color as ${name}, a color that suits you better away from your face.`,
+        outside: (name) => `AI identified this fabric color as ${name}, outside the main colors recommended for you.`,
+      },
+      caveat: "Identified by AI from this photo. The color and HEX shown are your palette's own color, not a pixel measurement.",
+      uncertain: 'AI could not confidently match this to a color in your palette. The result from your selected spot is still shown above.',
+      targetMismatch: 'AI thinks the selected spot may not be on the clothing you meant to check. Try tapping the fabric again.',
+      unusable: "AI couldn't judge this photo clearly enough. Try another spot or another photo.",
+      failure: "AI analysis didn't work this time. Your on-device result is still available.",
+    },
   },
   colorResult: {
     verdicts: {

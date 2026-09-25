@@ -60,15 +60,21 @@ describe('AI Color Lab security audit', () => {
     expect(offenders).toEqual([])
   })
 
-  it('provider adapter modules are only imported from api/_lib/handler.ts (their intended single entry point)', () => {
+  // V2.0 Slice 0.5C: paletteHandler.ts is a second, equally single, intended entry point --
+  // the canonical-palette-selection task's own adapter (providers/geminiPalette.ts) is only ever
+  // imported from there, exactly as the four free-form adapters are only ever imported from
+  // handler.ts. Two single-entry-point handlers, not a hole in the "only one entry point per
+  // adapter" guarantee this test enforces.
+  it('provider adapter modules are only imported from their one intended handler entry point', () => {
     const providerFiles = listFiles(path.join(ROOT, 'api', '_lib', 'providers'), ['.ts']).filter((file) => !file.endsWith('.test.ts') && !file.endsWith('shared.ts'))
     const consumers = [...listFiles(path.join(ROOT, 'api'), ['.ts']), ...srcFiles].filter((file) => !file.includes(`${path.sep}providers${path.sep}`) && !file.endsWith('.test.ts'))
+    const allowedEntryPoints = [`${path.sep}handler.ts`, `${path.sep}paletteHandler.ts`]
     const offenders: string[] = []
     for (const file of consumers) {
       const text = readFileSync(file, 'utf8')
       for (const providerFile of providerFiles) {
         const name = path.basename(providerFile, '.ts')
-        if (new RegExp(`providers/${name}(['"]|\\.ts)`).test(text) && !file.endsWith(`${path.sep}handler.ts`)) offenders.push(`${file} imports providers/${name}`)
+        if (new RegExp(`providers/${name}(['"]|\\.ts)`).test(text) && !allowedEntryPoints.some((suffix) => file.endsWith(suffix))) offenders.push(`${file} imports providers/${name}`)
       }
     }
     expect(offenders).toEqual([])

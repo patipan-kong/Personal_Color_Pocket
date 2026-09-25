@@ -616,3 +616,965 @@ including the original two-person/two-garment scenario that motivated Slice 0.1,
 summary (§25) and the Flash-vs-Flash-Lite table (§26) to compare candidates systematically. Only
 after that manual review should a default model be chosen — this slice deliberately stops short of
 recommending one (plan §25).
+
+## 31. Slice 0.3B — AI-assisted normalization contract spike (2026-09-25, design only, not wired in)
+
+Contract/design spike, not integration. Question: how could AI vision evidence safely influence
+the deterministic photo pipeline (`samplePhotoRegion` → `matchPhotoColor` → `getSuitability`)
+without replacing or duplicating it? Entry state: branch `feature/v2-ai-lab`, HEAD `a638210`,
+clean tree — no contradiction found before starting.
+
+**Architecture finding.** The spike's own proposed diagram (AI sitting *between* sampling and
+classification) turned out not to match what the evidence supports. `NormalizedAiColorResult`
+(§5) has never returned a numeric color — `temperature`/`value`/`chroma` are coarse bins, a Slice
+0 decision (§14 of the original plan: "no claim of recovering the garment's true physical color").
+Turning those bins into a numeric correction applied before `matchPhotoColor` would require
+inventing an unvalidated bin→number mapping — exactly the fake precision Slice 0 already rejected.
+So the boundary sits **after** classification, not between sampling and matching: AI evidence can
+only *annotate* an already-computed deterministic result, never feed into its math.
+
+**Contract** (`src/domain/photoColor/aiNormalization.ts`, spike code, not called from the app):
+- `AiColorNormalization` — the observational subset of `NormalizedAiColorResult` (`targetAssessment`,
+  `perceivedColorName`, `colorFamily`, `temperature`, `value`, `chroma`, `lighting`,
+  `sampleAssessment`, `confidence`), picked field-by-field so a future field must be explicitly
+  triaged in or out. `suitability` and `reasoning` are excluded — they are the AI's own personal-
+  color opinion and must never reach the one production classifier.
+- `deriveSampleAdvisory(sample, normalization)` — returns `{ caveat, reasons }` only, never a
+  color/category field. `target-mismatch` and `sample-unusable` are trusted directly from AI (pixel
+  sampling has no equivalent signal). A `lighting-cast-corroborated` reason requires the
+  **deterministic** sampler to have *already* flagged the region (`mixed`/`highlight`/`shadow`,
+  see `sampling.ts`) — AI corroborates existing uncertainty, it never manufactures doubt about a
+  clean sample. `confidence` alone never triggers anything.
+- `suggestsAiAssist(sample)` — documents candidate gating signals, reusing constants the
+  classifier already computes for other reasons (`NEUTRAL_CHROMA_MAX`, `LIGHT_VALUE_MIN`,
+  `DEEP_VALUE_MAX`, the sampler's own flags). Not called from the app. "Disagreement among sampled
+  regions" (one of the spike's candidate signals) has no existing implementation — only one region
+  is ever sampled per tap — and was left undocumented as available rather than invented.
+
+**Deterministic authority (D1-D5).** Held structurally, not by convention: `deriveSampleAdvisory`'s
+return type has no color/category field, so there is no code path by which it could change
+`sample`, `match`, `category`, or `colorName` even if called. `null` normalization (AI disabled,
+unavailable, timeout, malformed) always collapses to `NO_ADVISORY` — the same value as "AI said
+nothing," so the existing deterministic result is byte-for-byte unchanged whenever AI doesn't run.
+
+**No persisted fixtures.** By design (no photo persistence, §29), none of the PO's manual bake-off
+runs exist as files in this repo — they only ever lived in the PO's own browser session and the
+optional JSON export (§25). The spike's example walkthroughs are therefore synthetic, built on the
+real sampler/matcher via `realMatchFixtures.ts`, not a replay of the PO's actual 14 cases.
+
+**Tests.** `src/domain/photoColor/aiNormalization.test.ts`, 14 cases, all against the real
+`samplePhotoRegion`/`matchPhotoColor` engine (via `realMatchFixtures.inspectHex`/`solidImage`), not
+mocks: no-AI/AI-unavailable → no advisory; target mismatch and unusable-sample flagged regardless
+of confidence; a lighting-cast concern on a clean sample is NOT flagged even at high AI severity/low
+AI confidence (D5), the same report IS flagged once the deterministic sampler independently flags
+the region; low confidence alone never triggers a caveat; recommendation isolation (`suitability`/
+`reasoning` changes never change the derived normalization); gating signals reproduce on real
+near-neutral/near-white/near-black/mixed-region samples and stay empty for an ordinary saturated
+color. Full regression: 67 files / 1850 passed / 1 skipped (was 66/1836 before this spike — exactly
+the 14 new tests). `tsc -b` clean. `npm run build` output hash unchanged
+(`dist/assets/index-B_gq-POk.js`) — nothing new is reachable from any app entry point, confirming
+zero behavior change. No file outside the two new ones was touched.
+
+**Recommendation: C.** AI should remain advisory/fallback, never a second color normalizer — this
+was the open question and the evidence now supports it structurally (no numeric bin→correction
+mapping exists or was validated) as well as by prior Slice 0 decision. The advisory layer itself
+(`deriveSampleAdvisory`) is a *candidate* next step, not yet warranted for production wiring: its
+corroboration heuristic (§ "lighting-cast-corroborated") has not been checked against any real
+photo where AI and the deterministic sampler actually disagree, because no such case is persisted
+anywhere. Before any UI wiring, replay it against a handful of the PO's real ~15-20 photo bake-off
+exports (§27/§30) to see whether the caveat fires at a sensible rate — a small offline check, not
+a new provider integration or a new production code path.
+
+## 32. Slice 0.3C — Real bakeoff advisory replay (2026-09-25, offline, no API calls, no production changes)
+
+The PO supplied one real export, `tmp/ai-color-bakeoff-*.json` (gitignored, never read by any
+production code — confirmed: `dist/assets/*.js` contains no reference to the file's contents or
+path, only the pre-existing literal filename PREFIX `ai-color-bakeoff-` from §25's
+`downloadBakeoffExport`, which was already in the bundle before this slice): 14 real photo/point
+cases × up to 4 candidates = 56 runs (groq failed once with a provider 5xx; every other candidate
+succeeded on every case), from a real wedding-day photo series against a Warm Spring profile.
+
+**Critical finding: the export cannot fully exercise `deriveSampleAdvisory`.** `BakeoffExportRun`
+(§25's leak-safety allowlist) never included a deterministic `sample` field — by design, only
+`result`/`usage`/`review`/etc. So `sample.diagnostics.flags`, the one input the advisory's
+`lighting-cast-corroborated` branch depends on, cannot be reconstructed from this file at all. The
+other two branches (`target-mismatch`, `sample-unusable`) depend only on the AI's own normalized
+result and WERE fully replayable.
+
+**Result for Gemini Flash-Lite** (the current production candidate, all 14 cases): `targetMatched`
+was `true` and `sampleAssessment.usable` was `true` in every single case, so the two testable
+branches never fired — the advisory was silent (no caveat) on all 14 real cases. The PO's own
+review agreed on 13/14 (color rated good/acceptable, never wrong). On the one exception — Case 8,
+a beige necktie under warm studio light — the PO rated Flash-Lite's color reading **wrong**, and
+the advisory stayed silent. This is not provably a heuristic bug: Flash-Lite's own `lighting.cast`
+(`warm`) and `severity` (`medium`) on that case satisfy the corroboration branch's condition
+exactly — if the deterministic sampler had flagged that region (plausible for a small, textured,
+sheen-prone necktie sample), the advisory as currently written would have caught it. Whether it
+actually would have cannot be answered without the missing deterministic flags. The same Case 8
+also independently confirms the pre-existing Slice 0.1 lesson (§18): groq self-reported
+`targetMatched: true` while sampling the wrong garment entirely, which the PO's review caught and
+groq's own confidence score did not — self-reported target/confidence remains diagnostic only.
+
+**Decision: C — evidence insufficient**, specifically for the one branch that matters
+(`lighting-cast-corroborated`); the other two branches behaved correctly everywhere they had a
+chance to fire (e.g. groq's Case 14 `sampleUsable: false` correctly triggers). No heuristic was
+changed — 14 cases with zero real Flash-Lite target-mismatch/unusable events is not a basis to
+tune anything, and the one interesting miss (Case 8) is structurally untestable from this export.
+**Exact evidence needed**: extend `exportBakeoff.ts`'s allowlist to also carry
+`sample.diagnostics` (hex/oklab/flags — already proven safe to export, nothing new to leak-test)
+per run, so a future replay of a new PO export can actually exercise the corroboration branch.
+Not done in this slice (would be a production code change, out of scope for a C decision).
+
+**Slice 0.3 conclusion**: closed. Final architectural decision — the deterministic classifier
+(`matchPhotoColor`/`getSuitability`) remains the sole, unmodified authority over color
+classification, palette mapping, and suitability; AI vision evidence may only ever attach a
+non-authoritative advisory caveat to an already-computed deterministic result, never alter it;
+`null`/failed/timeout AI evidence always collapses to the same no-op as "AI didn't run"; no numeric
+RGB/hex/OKLab normalization is ever fabricated from AI's coarse observational bins. Wiring the
+advisory into any production UI, and extending the export format to make the corroboration branch
+fully testable, are both explicitly deferred to a later slice.
+
+## 33. Slice 0.4 — AI advisory UI prototype (2026-09-25, UX integration, no new AI network call)
+
+Slice 0.3's `deriveSampleAdvisory()` (`{caveat, reasons}`, `domain/photoColor/aiNormalization.ts`)
+had no presentation. This slice designs and builds the smallest production-facing UI for it,
+without wiring anything to a real AI call. Production photo-checker result flow traced first:
+`PhotoCheckerPanel` (mount, tap/keyboard handling) → `PhotoFeedback`
+(`photoChecker/PhotoResultCard.tsx`, the result area) → `toPhotoResultView()`
+(`photoChecker/photoResult.ts`, engine output → the shared `ColorResultView`) →
+`ColorResultSummary`/`ColorResultGuidance` (`colorChecker/ColorResultCard.tsx`, the actual render,
+shared with Manual). Production already has an established secondary/advisory tier for photo
+quality: `.check-warnings` (amber, from `sample.diagnostics.flags` via `SampleFlag`) and
+`.check-info` (quiet gray, the Slice 5f lighting note) — both plain reading-order text below the
+placement/pairing guidance, never inside the live-region summary.
+
+**Design**: `ColorResultView` gained one new optional-by-emptiness slot,
+`aiAdvisory: { title: string; body: string }[]` (`colorChecker/resultView.ts`) — Photo only, `[]`
+for Manual, exactly the same pattern as the existing `warnings`/`info` slots. `toPhotoResultView()`
+(`photoChecker/photoResult.ts`) gained a 5th, optional, defaulted parameter,
+`advisory: SampleAdvisory | null = null`; when given a real advisory it maps `reasons` through new
+copy (`photoChecker.aiAdvisory: Record<SampleAdvisoryReason, {title, body}>`, added to
+`i18n/types.ts` + `en.ts`/`th.ts`) — a static per-reason template, never an AI-supplied string, so
+it is structurally impossible for this block to surface a competing color name, hex or "AI"
+wording. `PhotoFeedback` (`photoChecker/PhotoResultCard.tsx`) gained the same optional
+`advisory?: SampleAdvisory | null` prop and threads it through. `ColorResultGuidance`
+(`colorChecker/ColorResultCard.tsx`) renders it as a new `.check-advisory` block — one boxed
+`.check-advisory-item` per reason (title with a decorative, non-sole `💡` icon + body), placed
+after `.check-warnings` and before `.check-info`/`.check-caveat`, styled with its own quiet
+soft-blue tint (`styles.css`) so it reads as one more "double-check the photo" note, not a second
+engine's opinion competing with the deterministic one. It renders nothing when `aiAdvisory` is `[]`
+(no caveat, or `advisory` was never passed) — no empty card, no confidence meter, no AI badge. Not
+a live region, matching `.check-info`'s existing convention exactly (accessibility §L: no
+unnecessary `aria-live` announcements).
+
+**Production AI boundary**: **no new AI network call**. `PhotoCheckerPanel.tsx` (the only real
+mount site) is untouched — confirmed via `git diff` showing zero changes to that file — so it still
+never passes an `advisory` prop, meaning `toPhotoResultView`'s default (`null`) always applies in
+production today and `aiAdvisory` is always `[]`. The four advisory states (no advisory / lighting
+/ sample-unusable / target-mismatch) are exercised only through component props in the test suite
+(`PhotoResultCard.test.tsx`, `ColorResultCard.test.tsx`), per plan §I — no permanent production
+toggle was added.
+
+**Tests** (all in the existing files, no new test file needed): `PhotoResultCard.test.tsx` gained a
+dedicated "AI advisory" describe block — `advisory: null` renders identically (DOM-diffed, ignoring
+generated `useId` values) to omitting the prop entirely; a caveat-free advisory renders nothing;
+each of the three reasons renders its mapped EN/TH copy; the block sits after the deterministic
+result and outside any live region; the icon is `aria-hidden` with the title text still present
+alongside it; three reasons firing together render three boxes and never introduce a hex code or
+the word "AI"; an advisory never changes the verdict/category/hex of the same match (recommendation
++ color isolation); omitting `advisory` (every current production call) never produces a broken or
+empty advisory state, across all five categories. `ColorResultCard.test.tsx`'s shared-card ordering
+and "optional slots render only when the source has them" tests were extended to include
+`.check-advisory`. `manualResult.ts`/its test were updated for the new required `aiAdvisory: []`
+field.
+
+**Verification**: focused suite (`PhotoResultCard.test.tsx`: 80/80,
+`ColorResultCard.test.tsx`, `manualResult.test.ts`, `photoLightingGuidance.test.tsx`,
+`aiNormalization.test.ts`) green; full suite 67 files / 1860 passed / 1 skipped (was 1850 before
+this slice — the +10 are this slice's new tests); `tsc -b --noEmit` clean; `npm run build`
+succeeds (bundle legitimately changed this time, unlike 0.3B/0.3C's spike files, because
+`ColorResultCard.tsx`/`PhotoResultCard.tsx`/`styles.css` ARE imported into the app — verified
+instead by compiling the new `.check-advisory*` CSS rules out of `dist/assets/*.css` and confirming
+they match what was written, and by the `advisory: null` DOM-identity test above proving today's
+actual render path is unchanged); `git diff --check` clean (pre-existing CRLF warnings only, same
+as prior slices).
+
+**Visual verification — honest limitation**: this session has no browser/screenshot tool
+available, so "rendered and inspected in an actual browser at mobile/desktop widths" was not
+literally done. What was verified instead: (1) DOM structure and render order via jsdom-based
+RTL tests, including that `.check-advisory` sits after `.check-warnings`/before `.check-caveat`,
+outside the live region, and that omitting/nulling `advisory` reproduces the pre-slice DOM exactly;
+(2) the compiled CSS pulled from `dist/assets/*.css` to confirm the new rules parsed and match
+source; (3) the existing, unmodified `.photo-layout`/`.check-guidance`/`.check-card` grid rules
+that the new block inherits — single-column stack below 900px, two-column (photo | result, min
+280px) at ≥900px, `.check-guidance` a 14px-gap vertical grid of full-width blocks — read directly
+from the compiled CSS to reason about both breakpoints. This is a narrower guarantee than an actual
+screenshot; a later slice (or a manual check by the PO in a real browser) should confirm the visual
+read before this prototype is treated as final.
+
+**Architecture verification**: deterministic result remains authoritative — `aiAdvisory` items are
+static per-reason template strings with no color/category/suitability field anywhere in their type
+(`{title: string; body: string}`), so there is no code path by which this UI could display a second
+detected color or change the verdict, category, or hex shown above it (proven by type shape, same
+structural argument as Slice 0.3B's `SampleAdvisory`, and confirmed by the "recommendation
+isolation"/"no competing color" tests). AI failure remains a no-op: `advisory = null` (every
+current caller) yields `aiAdvisory: []` and an unchanged render, identical to before this slice
+existed.
+
+**Recommendation: A — the UX contract works, ready for a later production AI invocation slice.**
+The advisory renders as one quiet, secondary note under the single deterministic result, never as
+a second engine's competing answer; it is invisible whenever there is nothing to say; and nothing
+in today's production path calls AI or changes behavior. The one open item before a real invocation
+slice is unrelated to this UI: Slice 0.3C's finding that `BakeoffExportRun` (and, by the same gap,
+any future logging) cannot currently carry `sample.diagnostics.flags`, so the
+`lighting-cast-corroborated` branch stays evidence-light until that's addressed — a data-plumbing
+question, not a presentation one.
+
+## 34. Slice 0.4B — AI advisory visual QA preview (2026-09-25, dev-only, no new AI network call)
+
+Slice 0.4 implemented the presentation contract but could not be visually verified in a browser
+(§33's honest-limitation note). This slice adds the smallest possible dev-only screen so a real
+browser can be pointed at the actual four advisory states.
+
+**Location and reuse.** Extended the existing dev-only screen family in `App.tsx` rather than
+inventing new infrastructure: `AiColorLabView` is already reached only via
+`import.meta.env.DEV && ?debug=ai`; a second branch, `showAdvisoryPreview`, adds the identical
+gate for `?debug=advisory`, rendering a new `src/aiLab/AdvisoryPreview.tsx`. Same file family
+(`src/aiLab/`), same CSS file (`aiLab.css`, with four new rules appended for the preview's own
+toggle buttons), same never-in-normal-navigation guarantee.
+
+**What it renders.** The real production path, not a mock: `AdvisoryPreview` calls the exact same
+`PhotoFeedback` component (`src/photoChecker/PhotoResultCard.tsx`) that `PhotoCheckerPanel` mounts
+in production, which internally still goes through `toPhotoResultView` →
+`ColorResultSummary`/`ColorResultGuidance` — the identical Slice 0.4 code path, unmodified. No
+advisory copy is duplicated in the preview file; it only passes a `{caveat: true, reasons: [...]}`
+object shaped exactly like `deriveSampleAdvisory()`'s return value, and the card renders the
+existing `en.ts`/`th.ts` copy itself.
+
+**Fixture.** `realMatchFor('warm-spring', 'related')` from
+`src/domain/photoColor/realMatchFixtures.ts` — the same TEST-ONLY helper the Slice 0.4 tests
+already use, which runs a real curated palette colour through the unchanged sampler + matcher
+(`inspectPhotoPoint`), never a hand-built category. This is the one new consumer of that
+"TEST-ONLY" helper outside `*.test.ts(x)`; its file comment was updated to record the exception
+(dev-only, DEV+query-gated, never a production-facing screen). No second result engine was
+invented for the preview.
+
+**Controls.** Four buttons (None / Lighting / Sample / Target) map directly to
+`SampleAdvisoryReason` values; an EN/TH toggle exists because `AiColorLabView`'s screen family has
+no language control of its own to reuse (it renders `getCopy('en')` only, for one label). No new
+localization mechanism — the toggle just switches which existing locale object (`en`/`th`) is
+passed to the real card.
+
+**Production isolation.** `PhotoCheckerPanel.tsx` is untouched (confirmed: `AdvisoryPreview` does
+not appear in its source). No AI network call is added — `AdvisoryPreview.tsx` contains no
+`fetch`/`XMLHttpRequest`/API-client import (asserted by test). The preview fixture cannot leak into
+Manual Checker, Photo Checker, or normal navigation: it is a separate branch in `App()`, gated the
+same way as the existing `?debug=ai`/`?debug=color` panels, before any quiz/result state is
+touched.
+
+**Bundling, reported accurately (not claimed as excluded).** As with the existing `AiColorLabView`
+branch, `import.meta.env.DEV` is statically inlined to `false` in the production build, so the
+`if (showAdvisoryPreview) return <AdvisoryPreview />` branch never executes at runtime — but a
+`grep` of the built `dist/assets/index-*.js` after `vite build` shows the literal strings "AI
+Advisory Preview" and "Advisory preview state" ARE present in the shipped JS (count 1 each), same
+as "AI Color Lab" / "Model Bake-off" already are for the pre-existing AI Lab screen. The dev-only
+code is therefore runtime-inaccessible in production but not bytes-excluded from the bundle — an
+existing, already-accepted trade-off in this codebase, not a new one introduced here.
+
+**Tests.** New `src/aiLab/AdvisoryPreview.test.tsx`, 9 tests: renders the real result path
+(verdict/category/placement present); defaults to no advisory; each of the three reason buttons
+renders the existing EN copy verbatim; toggling back to "None" clears the block; the TH toggle
+switches the whole card (advisory included) to Thai; a source-text check confirms the file imports
+the real `PhotoFeedback` and does not hand-roll any `check-*` markup or duplicate advisory copy
+strings; a source-text check confirms no `fetch`/`XMLHttpRequest`/AI-API-client reference and that
+`PhotoCheckerPanel.tsx` never imports this preview. Deliberately does not re-assert the full Slice
+0.4 card-rendering behavior already covered by `PhotoResultCard.test.tsx`.
+
+**Verification.** Focused: 9/9 passed. Full suite: 68 files / 1869 passed / 1 skipped (up from
+67/1860 before this slice). `tsc -b --noEmit`: clean. `npm run build` (`vite build`): succeeded,
+bundle size 498.87 kB JS / 70.12 kB CSS. `git diff --check`: clean after trimming one pre-existing
+trailing blank line at the end of this doc file (unrelated to this slice's own edits).
+
+**PO instructions.** Run `npm run dev`, then open `http://localhost:5173/?debug=advisory` (adjust
+the port to whatever the dev server prints). Click **None / Lighting / Sample / Target** to switch
+the advisory state, and **EN / TH** to switch language. The card shown is the real Photo Checker
+result card with a fixed sample match (a Warm Spring "related" colour) — only the advisory block
+changes between states.
+
+**Recommendation:** ready for PO visual sign-off. No production behavior, deterministic logic, AI
+contract, or advisory heuristic was touched in this slice.
+
+## 35. Slice 0.5A — Deterministic measurement confidence spike (2026-09-25, audit + pure evaluator, no wiring)
+
+**Direction change.** After reviewing Slice 0.4B, the product direction moved away from calling AI
+automatically on every sample merely to warn it might disagree, toward: deterministic measurement
+first, an explicit user-triggered "✨ ask AI to analyze" fallback only when the deterministic
+measurement itself looks unreliable. This slice answers the prerequisite question — can the
+deterministic engine tell whether its own photo measurement is trustworthy? — without implementing
+any UI or AI fallback.
+
+**Evidence inventory** (`samplePhotoRegion`, `src/domain/photoColor/sampling.ts`):
+
+| signal | what it measures | continuous? | usable for measurement quality? |
+| --- | --- | --- | --- |
+| `diagnostics.spread` | RMS OKLab distance of retained pixels from the mean — internal heterogeneity of the sampled disc | yes, thresholded at `MIXED_SPREAD` (.045) into the `mixed` flag | **yes** — directly answers "is this evidence internally consistent," independent of what colour it is |
+| `diagnostics.highlightFraction` / `shadowFraction` | share of pixels with every channel ≥250 / ≤5 | yes, thresholded at `CLIPPED_FRACTION_WARN` (.35) into `highlight`/`shadow` | **caveated** — see below |
+| `regionPixelCount` / `opaquePixelCount` / `retainedPixelCount` | population size and how much transparency/trimming removed | yes, but trim is a fixed 20% whenever a sample succeeds, so the retained/opaque ratio carries no extra information beyond `opaquePixelCount` itself | limited — mainly gates the separate `insufficient-pixels`/`transparent` unavailable outcomes, not a graded quality signal |
+| `matchPhotoColor()`'s `nearest.distance` (palette distance) | how close the sample sits to a curated colour | yes | **no for measurement quality** — see §I below; this is a classification-ambiguity signal, not a measurement-quality one |
+
+No signal is discarded-but-useful that isn't already in `SampleDiagnostics`; the sampler already
+exposes everything it computes.
+
+**Diagnostic flag audit** (`mixed` / `highlight` / `shadow`):
+
+- `mixed` (from `spread`): triggers on real heterogeneity — two-colour stripes, garment/background
+  boundaries, high-contrast checks — and, per the existing test suite
+  (`sampling.test.ts`), does **not** trigger on benign texture, sensor-noise-like variation, knit
+  shading, or a thin trimmed-away pinstripe. This is well-evidenced, real measurement-quality
+  evidence: it answers exactly "is the sampled disc internally consistent," with no dependency on
+  what colour the fabric actually is.
+- `highlight` / `shadow` (from channel-extreme fraction): designed to catch camera clipping/
+  crushed-black exposure, and the sampler's own comment already guards against one false positive
+  (a single saturated channel, e.g. pure red fabric, is not flagged). But auditing the actual
+  threshold (`HIGHLIGHT_CHANNEL_MIN=250`, `SHADOW_CHANNEL_MAX=5`) against this slice's own new
+  tests (`measurementQuality.test.ts`) shows a **real, unfixed false positive**: a perfectly
+  uniform, zero-spread sample of literal `#FFFFFF` or near-`#000000` still trips the flag, because
+  the threshold only looks at channel extremity, not at whether the extremity comes with any of the
+  noise/heterogeneity that real clipping produces. In practice, a correctly-exposed photo of a real
+  light/dark garment rarely lands exactly at the channel ceiling/floor (confirmed: curated palette
+  colours like `#F5E6D3` and realistic dark fabrics like `#141414` are never flagged), so this is a
+  narrow edge case rather than a everyday problem — but it means `highlight`/`shadow`, unlike
+  `mixed`, cannot be asserted as pure measurement-quality evidence without this caveat.
+- All three flags are binary only because the UI currently needs a binary warning; the underlying
+  values (`spread`, `highlightFraction`, `shadowFraction`) are already continuous and already in
+  `SampleDiagnostics` — no new computation would be needed to grade them, only a second threshold,
+  which does not currently exist and would need new calibration.
+- They are not equally trustworthy: `mixed` is the strongest, cleanest measurement-quality evidence
+  available; `highlight`/`shadow` are directionally right but demonstrably imperfect.
+- **These flags are already shown to the user in production** — `en.photoChecker.warnings.{mixed,
+  highlight,shadow}` (`src/i18n/en.ts:135-139`), rendered via `ColorResultCard`'s `.check-warnings`,
+  alongside the full result (category, placement, pairings still shown; nothing is hidden). This is
+  worth stating plainly: a "retry-flavoured" signal already exists and already ships — what's new in
+  the target UX is only the "✨ ask AI" affordance and (possibly) a stricter, blocking `retry` tier,
+  neither of which exists today.
+
+**Measurement quality vs. classification confidence.** `matchPhotoColor()`'s `nearest.distance` (how
+close the sample sits to the closest palette colour) is a real, useful signal — but for a different
+question: "how easily could this sample be misclassified," not "was this a clean measurement." A
+sample can be a perfect, zero-spread measurement of a colour that happens to sit exactly between two
+palette references (high classification ambiguity, high measurement quality), and equally a sample
+can be a noisy, mixed-region measurement that still happens to land close to a palette colour by
+coincidence (low measurement quality, low apparent classification ambiguity). Conflating the two —
+"the engine is confident because its answer resembles its own taxonomy" — is exactly the circularity
+the spike brief warns against, and this audit did not build any evaluator that touches palette
+distance. `docs/V2_AI_COLOR_LAB.md §31`'s existing `suggestsAiAssist()` (`aiNormalization.ts`) mixes
+the two: its `ambiguous-neutral` and `extreme-lightness` signals are classification-difficulty
+signals (a near-neutral or very light/dark colour is more likely to have a near-tie between palette
+candidates), not measurement-quality signals — and critically, `extreme-lightness` is proven by its
+own existing test (`aiNormalization.test.ts`, "flags extreme lightness for near-white/near-black") to
+trigger on exactly the clean, uniform near-white/near-black samples that this slice's brief (Case
+2/3) says must **not** be treated as low-confidence measurements. `suggestsAiAssist()` is therefore
+not reusable as-is for measurement-quality gating; it answers a related but genuinely different
+question and should stay separate (or be relabeled) rather than repurposed.
+
+**Percentage-confidence decision: No.** No calibration data exists connecting any current signal to
+an actual correctness rate (no ground truth of "was the deterministic answer right" has ever been
+collected), so a number like "82%" would carry no real statistical meaning — it would be fake
+precision. The evidence does support unweighted, binary issue detection (a flag fired or it didn't),
+not a calibrated score.
+
+**Proposed contract (implemented, Option 4 — reasons only).** `src/domain/photoColor/measurementQuality.ts`:
+
+```ts
+export interface MeasurementQuality { issues: SampleFlag[] }
+export function assessPhotoMeasurement(sample: PhotoColorSample): MeasurementQuality {
+  return { issues: sample.diagnostics.flags }
+}
+```
+
+No `state` field (`reliable`/`caution`/`retry`) and no numeric score: only one threshold exists per
+underlying signal, so a defensible second or third tier cannot be built without inventing new,
+uncalibrated thresholds, which the brief explicitly rules out. `issues` is exactly
+`sample.diagnostics.flags`, carried through unchanged — the function adds a stable, tested, named
+seam for a future gating slice to import, without adding any new computation, threshold, or
+vocabulary. It is pure, deterministic, makes no network calls, and structurally cannot see subtype,
+category, palette distance, or suitability (verified by both its own type signature and a
+module-boundary test).
+
+**Tests** (`measurementQuality.test.ts`, 10/10 passing, against the real sampler via
+`inspectHex`/`solidImage`/`realMatchFor`): clean uniform fabric not penalized; realistic clean
+near-black not penalized; realistic clean near-white not penalized; **documented** literal
+sensor-saturated white still trips `highlight` (the known limitation above, asserted rather than
+hidden); mixed boundary sample degraded; shadow/highlight surfaced unchanged from the sampler's own
+semantics; low-chroma neutral not penalized; a clean sample in the "outside" (far-from-palette)
+category not penalized, proving independence from palette distance; deterministic on repeat calls;
+module-boundary test proving no import of `photoMatch`/`suitability`/palette/subtype/AI.
+
+**Relationship to Slice 0.3/0.4.** `deriveSampleAdvisory()` and `SampleAdvisory` (0.3B/0.4) answer a
+different question — "does an AI opinion, once obtained, corroborate or contradict this
+deterministic result" — and stay relevant unchanged if/when a later slice lets the user request AI
+fallback and wants to annotate its result. They are not replaced by `assessPhotoMeasurement()`, which
+answers "should the AI fallback option even be offered" and runs *before* any AI call, using only
+already-computed deterministic diagnostics. `suggestsAiAssist()` (0.3B), however, should be treated
+as likely obsolete under the new direction: it was written as a candidate *AI-call-worthy* signal set
+that conflates measurement quality with classification ambiguity (see above), predates the explicit
+"AI is user-requested, never automatic" decision, and is not called from anywhere in the app. A later
+integration slice should decide whether to delete it, split it into two honestly-named concepts, or
+fold its classification-ambiguity half into a separate, explicitly-named signal — but that decision
+is out of scope here and nothing was deleted or refactored in this spike.
+
+**Future gating (not implemented).** The deterministic evidence that exists today already supports a
+narrow, non-numeric gate: `assessPhotoMeasurement(sample).issues.length === 0` → nothing new to show
+beyond today's behavior; `.length > 0` → the existing warning copy already fires today, and *could*
+additionally surface a later slice's "✨ ask AI to analyze" affordance next to it. What the evidence
+does **not** support yet is a hard `retry` tier that hides or blocks the deterministic result:
+nothing audited in this slice justifies suppressing a result that today is still shown (with a
+warning) even when flagged. Whether `caution` and `retry` should be the same tier, and whether
+`highlight`/`shadow`'s known false-positive caveat is acceptable for gating an optional AI button
+(lower stakes than gating the whole result), are UX/policy decisions for a later integration slice,
+not evidence questions this spike can resolve.
+
+**Decision: B — existing evidence supports only limited issue detection.** Use the existing, already
+partly-shipped binary reasons (`mixed`/`highlight`/`shadow`, now also available through
+`assessPhotoMeasurement()`) rather than a calibrated multi-level confidence system. `mixed` is
+strong, well-evidenced measurement-quality evidence; `highlight`/`shadow` are directionally useful
+but carry a documented, unfixed false-positive edge case; no signal in the codebase supports a
+defensible three-tier `reliable`/`caution`/`retry` ladder or any numeric score without inventing new,
+uncalibrated thresholds.
+
+**Verification.** Focused: 10/10 passed. Full suite: 69 files / 1879 passed / 1 skipped (up from
+68/1869 before this slice). `tsc -b --noEmit`: clean. `npm run build` (`vite build`): succeeded,
+identical bundle size (498.87 kB JS / 70.12 kB CSS) — the new module is not imported by any
+production-reachable path. `git diff --check`: clean (only pre-existing LF/CRLF advisories).
+
+## 36. Slice 0.5B — Explicit AI fallback result contract spike (2026-09-25, audit + pure resolver, no wiring)
+
+**Question.** If AI says a garment looks like "Warm Cream," how does that become a Personal Color
+suitability verdict without inventing a second classification system? Traced the deterministic path
+(`PhotoColorSample → matchPhotoColor() → category → getSuitability() → ColorResultView`) and the
+current AI contract (`NormalizedAiColorResult`, `api/_lib/prompt.ts`) to answer this before any UI or
+network work.
+
+**Deterministic taxonomy.** `getSuitability()` (`suitability.ts`) is a fixed 1:1 relabelling of
+`PhotoMatchCategory` — nothing is computed there. `PhotoMatchCategory` itself comes ONLY from
+`matchPhotoColor()`'s OKLab-distance comparison against the user's curated palette
+(`getPalette(subtype)`, ~22 named `PaletteColor { id, name, hex }` entries per subtype across
+best/accents/neutrals/harder). There is no path to a category, and therefore no path to a
+suitability verdict, without either (a) a real OKLab point to measure a distance from, or (b)
+directly selecting one of the existing canonical colors (whose distance to itself is trivially 0).
+
+**AI semantic compatibility.** `perceivedColorName` and `colorFamily` are freeform strings (not
+enums); `temperature`/`value`/`chroma` are coarse 4-value enums (incl. `uncertain`) with **no
+existing resolver anywhere in the repo** mapping them to a canonical category — the only comparable
+structure, `DimensionVector` (`temperature/value/chroma/contrast`, continuous 0–1) in
+`seasons.ts`, scores the USER's own quiz answers against a subtype target, an entirely different
+system from matching a garment color. Building a bins→category resolver would mean authoring a new,
+uncalibrated mapping table from nothing, which the brief explicitly rules out. Canonical colour names
+like "Warm Cream" DO exist verbatim in the data (`deep-autumn.neutrals`), but only for that one
+subtype/hex pair (`#E9D8B7`) — a different subtype's cream is named "Cream" (`warm-spring`, `#FFF0CF`)
+or "Warm Ivory" (`light-spring`), so even exact-string name matching cannot uniquely resolve a
+canonical color across subtypes without an equally uncalibrated lookup.
+
+**Strategy comparison.**
+- **Option 1** (AI's free semantic result becomes authoritative) — rejected: would require a
+  second, AI-only suitability system, since nothing in the app can turn "Warm Cream / warm / light /
+  muted" into a `Suitability` without a resolver that doesn't exist.
+- **Option 2** (AI selects a canonical color ID from the app's own palette) — **strategically
+  favoured**. Existing `getPalette()` colors already have stable `id`/`name`/`hex`; a closed-set
+  choice among ~22 options is a small, well-defined forced-choice problem, and resolution needs
+  zero new suitability logic (see prototype below). Trade-off: loses AI's free descriptive
+  expressiveness, and today's prompt (`api/_lib/prompt.ts`) does not send the palette or ask for an
+  ID — that is new prompt surface, not something already proven live.
+- **Option 3** (map AI's temperature/value/chroma bins to a category via a resolver) — rejected for
+  now: no evidence in the repo that such a resolver can be built without inventing arbitrary bin
+  boundaries; the 14-case bakeoff replay (below) shows the *same* perceived colour landing in
+  different suitability-relevant zones across candidates, which is exactly the ambiguity a resolver
+  would have to arbitrate with no calibration data to do it honestly.
+- **Option 4** (AI returns semantic result + suitability directly) — rejected: creates a second
+  classification authority whose verdicts, per the bakeoff replay, are NOT a stable function even of
+  AI's own reported dimensions (case 6: four candidates describing essentially the same warm beige
+  color returned `recommended`/`workable`/`more_considered`/`recommended`) — the risk section E asked
+  to evaluate is real and evidenced, not hypothetical.
+- **Option 5** (hybrid: AI observation → resolver → suitability only if uniquely resolvable) —
+  collapses to Option 2 once you accept Option 3's resolver isn't buildable today: the only
+  currently-resolvable case is "AI names/selects an existing canonical color."
+
+**Bakeoff evidence (Gemini Flash-Lite, all 14 cases, replayed offline from
+`tmp/ai-color-bakeoff-1790321320793.json`, no new API calls).** All 14 `targetAssessment` calls were
+human-reviewed "correct"; `color` review was "good"/"acceptable" on 13/14 and "wrong" on exactly one
+— **case 8**, a warm ivory/beige/white garment, where all four candidates disagreed
+(`champagne beige`/`Warm Beige`/`warm ivory light beige`/`White`, `family` = beige/beige/ivory-beige/
+white) and 3 of 4 candidates' `color` review was "wrong" (one also failed `target`). This is exactly
+the cream/ivory/beige/white boundary the brief flagged as high-risk, and it is where the deterministic
+sampler ALSO already struggles (`docs/V2_AI_COLOR_LAB.md` prior slices; see the `groq` "Light Blue
+Gray" cast-lighting example logged in this same file). `confidence` was `"high"` on **all 14 of 14**
+Gemini Flash-Lite cases, including case 8's incorrect one — see next section. `colorFamily` is
+demonstrably noisy free text even within one candidate's own high-confidence answers: casing is
+inconsistent (`"white"` vs `"White"`), and one `groq` run filed a literal "Cream" perceived color
+under `family: "orange"` — unusable as a lookup key without normalization work this spike was told
+not to invent.
+
+**AI confidence semantics.** `api/_lib/prompt.ts`'s `CANONICAL_INSTRUCTION` never once explains what
+`confidence` should measure — it appears only in the trailing JSON shape with no scope (target?
+color? lighting? suitability? overall?). The bakeoff replay shows the practical consequence: across
+14 diverse real Flash-Lite cases spanning easy (pure red) and hard (case 8) targets alike, the field
+took exactly one value, `"high"`, zero times discriminating a later-reviewed-wrong answer from a
+correct one. Current `confidence` is not usable as a gating signal for anything, and — consistent
+with Slice 0.5A's percentage-confidence finding — must not be treated as calibrated. Splitting it
+into `targetConfidence`/`colorConfidence` is not recommended from this evidence: the problem observed
+is that the single field doesn't discriminate at all, not that it conflates two dimensions that
+individually would.
+
+**Recommended contract (prototype implemented, Option 2's resolution half only).**
+`src/domain/photoColor/aiFallback.ts`:
+
+```ts
+export type ColorResultSource = 'deterministic' | 'ai-fallback'
+export interface AiFallbackSelection { subtype: Subtype; colorId: string }
+export interface AiFallbackResult {
+  source: 'ai-fallback'; subtype: Subtype; color: PaletteColor; group: PositivePaletteGroup | 'harder'
+  category: PhotoMatchCategory; suitability: Suitability; pairWith: PaletteColor[]
+}
+export type AiFallbackResolution = { ok: true; result: AiFallbackResult } | { ok: false; reason: 'unknown-color-id' }
+export function resolveAiFallbackSelection(selection: AiFallbackSelection): AiFallbackResolution
+export function attemptAiFallback(input: AiFallbackAttemptInput): AiFallbackAttemptOutcome // single terminal step, see §10 below
+```
+
+`colorId` is what a FUTURE, narrow prompt revision would need to add to `NormalizedAiColorResult` —
+this spike does not touch the prompt, the request contract, or any provider. The resolver takes a
+group (best/accents/neutrals/harder) straight from which palette array the id was found in, and
+derives the category structurally (best/accents → `near-face`, neutrals → `neutral-base`, harder →
+`away-from-face`) — no distance is computed, none is needed, because a canonical color's distance to
+itself is 0. `getSuitability()` and `pairingSuggestions()` are called completely unmodified.
+
+**Suitability ownership.** After a successful AI fallback, suitability is determined by the exact
+same, unmodified `getSuitability(category)` the deterministic path uses — from the category implied
+by which palette group AI's selected color belongs to, never from AI's own `suitability` field
+(`AiSuitabilityVerdict`), which is deliberately never read by this resolver. This was proven, not just
+argued: a test sweeps **every canonical color in every subtype** (all ~260) through
+`resolveAiFallbackSelection` and independently through the real `inspectHex → matchPhotoColor` path,
+asserting the two category values are identical every time — see Tests below.
+
+**Result replacement semantics: (C/D) — a complete alternative result object, in the existing
+canonical representation.** Not (A) color-description-only (there is no separate "description" slot
+to replace — category and suitability follow from the very same selection). Not (B) reusing
+deterministic suitability (there is no deterministic result to reuse when the user chose AI because
+the deterministic measurement was the problem). `AiFallbackResult` deliberately shares its
+`category`/`suitability`/`pairWith` field shapes with the deterministic `PhotoColorMatch` model
+(same `Suitability`, `PhotoMatchCategory`, `PaletteColor[]` types) rather than being a parallel
+result shape — the smallest honest difference is the `source` tag and the absence of
+`difference`/`direction`/`descriptors` (which describe how a MEASURED point differs from its
+nearest match; meaningless when the color IS the match, distance 0).
+
+**Failure/terminal states (§I, one step, no retry loop).** `attemptAiFallback()` takes the three facts
+a gating slice already has (provider call ok/not, `targetMatched`, `sampleUsable`) plus a hypothetical
+`colorId`, and resolves ONCE: provider failure → `terminal: 'provider-failed'`; `targetMatched ===
+false` → `terminal: 'target-mismatch'`; `sampleUsable === false` → `terminal: 'sample-unusable'`;
+missing or unrecognized `colorId` → `terminal: 'unknown-color-id'`. No branch calls AI again or calls
+itself again (verified by a source-text test). All four terminal reasons map to the same conceptual
+UI outcome the brief sketched: "AI couldn't confidently analyze this item" + [select another area] /
+[choose another photo] — exact wording is a later UI slice's decision, not made here.
+
+**Provenance.** `AiFallbackResult.source` is a literal `'ai-fallback'`, never `'deterministic'` — the
+two are structurally different result shapes (`AiFallbackResult` vs `PhotoColorMatch`), not a shared
+object with a mutable tag, so accidental mixing (deterministic color + AI suitability, or vice versa)
+is not constructible without deliberately writing new code to do it.
+
+**Slice 0.3/0.4 disposition:**
+- `AiColorNormalization`/`toAiColorNormalization` — **repurpose**. Still the right boundary for
+  *observational* AI fields, but `suitability`/`reasoning` are already excluded from it (Slice 0.3B
+  design), which is now additionally justified: AI's own suitability must never reach a fallback
+  result per the ownership finding above.
+- `deriveSampleAdvisory()` / `SampleAdvisory` — **keep**. Answers a different, still-relevant
+  question (does an AI opinion corroborate a DETERMINISTIC result the app is still showing), separate
+  from what happens once the user explicitly requests AI fallback.
+- `ColorResultView.aiAdvisory` / `AdvisoryPreview` — **keep**, same reasoning; no UI decision here
+  should touch them.
+- `suggestsAiAssist()` — **likely obsolete** (flagged already in Slice 0.5A §35): predates
+  user-requested-only AI, conflates measurement quality with classification ambiguity, called from
+  nowhere.
+
+**Tests** (`aiFallback.test.ts`, 14/14 passing): successful best/neutrals/harder selections resolve to
+the correct category/suitability; the resolved color is the exact palette object (identity-equal, not
+a re-derived copy); an unknown/hallucinated `colorId` fails safely (`ok: false`, no throw); the
+category-parity sweep across all ~260 canonical colors in all 12 subtypes against the real
+`inspectHex`/`matchPhotoColor` path; a clean `attemptAiFallback` success; provider failure, target
+mismatch, unusable sample, missing colorId, and hallucinated colorId are each terminal without
+attempting resolution; a source-text check that `attemptAiFallback` contains no loop, no recursive
+call, and no `fetch`; a module-boundary check that the file never imports the sampler/matcher and
+never calls `rgbToOklab`/`hexToOklab` (no fabricated numeric color).
+
+**Verification.** Focused: 14/14 passed. Full suite: 70 files / 1893 passed / 1 skipped (up from
+69/1879 before this slice). `tsc -b --noEmit`: clean. `npm run build` (`vite build`): succeeded,
+identical bundle size (498.87 kB JS / 70.12 kB CSS) — neither new module is imported by any
+production-reachable path. `git diff --check`: clean (only pre-existing LF/CRLF advisories).
+
+**Decision: C — current AI semantic contract is insufficient, but the needed revision is narrow and
+already identified.** Options 1/3/4 all require either an uncalibrated new mapping table or a second
+suitability authority whose real-world instability the bakeoff replay demonstrates directly (case 6,
+case 8). Option 2 resolves cleanly into the existing canonical model with zero new suitability logic
+— proven by the category-parity sweep — but requires the AI response contract to gain a
+palette-aware `colorId` selection field and the prompt to be given the user's own canonical palette,
+neither of which exists yet and neither of which was touched in this spike (scope guard: no prompt
+tuning, no contract changes, no API calls). A future integration slice should implement exactly that
+narrow revision — not a broader one — before wiring any explicit AI fallback button to production.
+
+## 37. Slice 0.5C — Canonical palette AI selection contract + AI Lab validation (2026-09-25, contract + resolver + AI Lab wiring, no production wiring)
+
+**Question.** Slice 0.5B concluded that AI should select a canonical `colorId` from the user's own
+subtype palette rather than describing a color freely, and prototyped the resolution half
+(`aiFallback.ts`) using a hypothetical field. This slice builds the missing half — the actual
+request/response contract, prompt, and AI Lab wiring needed to ask "can AI reliably choose a
+`colorId` from the real palette?" — as an experimental AI-Lab-only task, never wired to production
+Photo Checker.
+
+**Canonical palette identity audit (§B).** `PaletteColor.id` (`palettes.ts`:
+`` `${subtype}-${category}-${index+1}` ``, e.g. `warm-spring-best-3`) already exists and is a stable
+identifier — no new ID scheme was invented. Proved computationally, not just by inspection
+(`paletteIdentity.test.ts`, run against the real seed data for all 12 subtypes): every colorId is
+unique within its own subtype, unique across the ENTIRE app (subtype-namespaced), and — as an
+informational finding, not a requirement, since colorId is the only identity AI is ever given —
+names and hex values are *also* already unique within every subtype's own palette, so no accidental
+same-subtype collision exists even at the name/hex level.
+
+**New AI fallback request contract** (`src/domain/aiColorLab/paletteContract.ts`):
+```ts
+export interface AiPaletteCandidate { colorId: string; name: string; hex: string } // no group, no suitability (§H)
+export interface AiPaletteSelectionRequest { imageDataUrl: string; subtype: Subtype; palette: AiPaletteCandidate[] }
+```
+Deliberately a SEPARATE contract from `contract.ts`'s free-form `AiColorAnalysisRequest` (§C) — this
+is closed-set color identification, not open-ended description, and the two request shapes need
+different fields (a palette list vs. none) and different anti-bias instructions.
+
+**New AI fallback response contract** (same file):
+```ts
+export const PALETTE_SELECTION_STATUSES = ['selected', 'uncertain', 'target-mismatch', 'unusable'] as const
+export type AiPaletteSelectionResult =
+  | { status: 'selected'; colorId: string; target: { objectType: string; objectDescription: string }; reasoning: string }
+  | { status: 'uncertain' | 'target-mismatch' | 'unusable'; target: {...} | null; reasoning: string }
+```
+Only `'selected'` can structurally carry a `colorId` (§E: "no valid selection is better than a
+confidently fabricated forced choice") — a non-selected status carrying one is a TypeScript type
+error, not just a runtime check, and the server-side validator (`validatePaletteSelection.ts`)
+rejects it defensively anyway since the model output is untrusted JSON, not a typed value. No
+confidence field (§F, Option 1): Slice 0.5B's bakeoff replay showed the old `confidence` field was
+`"high"` on 14/14 real cases including the one known-wrong answer — zero discriminative power — so
+`status` itself (`selected` vs `uncertain`) is the decision boundary, not a resurrected confidence
+score with no evidence it would behave any differently here. Provider/network/malformed-response
+failures stay transport failures (`AiPaletteApiOutcome`, reusing `contract.ts`'s existing
+`AiErrorInfo`/`AiUsage`), never a model semantic state.
+
+**Deterministic-context decision (§D): Strategy A — independent.** The request sent to AI carries
+only the marked photo, subtype, and candidate list — deliberately NOT the deterministic sample's
+hex/rgb/colorName/flags. Rationale: the product intent this slice is built for is "the deterministic
+measurement may be unreliable; inspect the image context and help me choose" — sending AI the very
+measurement the user is asking it to reconsider risks anchoring it toward repeating that measurement
+instead of judging the image independently. No evidence in this repo suggests Strategy B (informed)
+would perform better, and §D's own instruction is to prefer independence absent such evidence. The
+validation EXPORT (below) still records the deterministic sample/diagnostics for human review context
+— that is a reviewer-facing record, not something sent to the model (§N).
+
+**Prompt design** (`api/_lib/palettePrompt.ts`, `buildPaletteSelectionPrompt`). Reuses the existing
+target-marker convention (bright ring + dot burned into the image, `imageEncode.ts`, unchanged) but
+is otherwise a dedicated instruction, never sharing text with `CANONICAL_INSTRUCTION`. Anti-bias
+constraints, stated explicitly and repeatedly (§G): choose based ONLY on perceived color identity,
+never on which candidate would look best on this person; never invent a color outside the supplied
+list; never return a hex/RGB/OKLab correction; never judge suitability. Category/suitability group
+labels (`best`/`accents`/`neutrals`/`harder`) are deliberately never sent (§H) — only
+`colorId`/`name`/`hex` per candidate — so nothing in the prompt lets the model infer which answer is
+"the flattering one."
+
+**Resolver integration (§I)** (`src/domain/photoColor/aiPaletteFallback.ts`,
+`resolvePaletteSelectionResult`): a thin function feeding a `'selected'` result's `colorId` straight
+into Slice 0.5B's UNCHANGED `resolveAiFallbackSelection()` — no new suitability logic, no
+bins→category mapping, no AI suitability. Every non-`'selected'` status maps to `{ kind:
+'no-replacement' }` (§Q): the deterministic result, if any, is never touched.
+
+**AI Lab workflow (§J).** Extends the existing `?debug=ai` AI Lab (`AiColorLabView.tsx`) rather than
+building new debug architecture: choose/tap a photo and sample point exactly as for the existing
+bake-off, then a new "Canonical palette selection (Gemini Flash-Lite)" card appears alongside the
+four free-form candidate cards with its own "Run canonical palette selection" button (only enabled
+once a saved subtype and sample point exist). On success it shows status, the resolved canonical
+color's swatch/name/hex, resolved category/suitability (explicitly labeled as coming from the app's
+own `getSuitability()`, never AI), reasoning, a PO review control (target/color/note, mirroring the
+existing bake-off's review pattern), and a debug JSON panel. A separate "Export palette-selection
+validation" button (only shown once at least one run exists) downloads a JSON file
+(`exportPaletteValidation.ts`) with one record per run: deterministic sample context (hex/name/flags,
+recorded for review only, never sent to AI), AI status/reasoning, resolved color/category/suitability,
+latency, and the PO's review — never the image itself.
+
+**Validation evidence (§L, §9) — automated contract tests only; no real AI/photo validation was
+performed in this environment.** This coding environment has no browser, camera, or existing garment
+photo file to drive the AI Lab UI end-to-end (checked: the repository's only image assets are app
+icons/splash screens and personal-color palette reference swatches — no real garment photographs).
+`.env` does have a real `GEMINI_API_KEY` configured locally, so the endpoint IS callable, but calling
+it without a real photo would only prove the transport works, not that canonical selection is
+reliable — that would misrepresent automated plumbing tests as real validation, which §9 explicitly
+warns against ("do not claim real validation if the environment could not perform it"). What WAS
+verified automatically: the full request/response contract, prompt construction, server-side request
+validation, response validation (including all six required rejection cases from §S), the resolver
+integration, and the AI Lab wiring compiling and rendering correctly. Real-photo validation — the six
+priority cases from §L (white/off-white under cool/mixed lighting, cream/ivory, warm/cool pink
+disagreement, near-black, beige, and the original problematic case 8 image if it can be reproduced) —
+must be run manually by the PO through the AI Lab UI, exactly as §L's own fallback anticipates.
+
+**Failure/escape-hatch behavior (§Q).** `selected` → resolves through `resolveAiFallbackSelection()`
+to a complete result. `uncertain` / `target-mismatch` / `unusable` → no replacement result; the
+deterministic result, if any, stays untouched — verified by `aiPaletteFallback.test.ts`. Provider
+failure, timeout, or a malformed/invalid response are all surfaced as `ok: false` transport failures
+by `paletteHandler.ts` (mirrors `handler.ts`'s not-configured/timeout/internal handling exactly) —
+never retried automatically, never a model semantic state.
+
+**Old-field disposition (§T).**
+- `perceivedColorName`/`colorFamily` — still useful for free-form AI Lab (kept there, untouched);
+  not needed for the closed-set fallback task at all (the new contract has no equivalent field).
+- `temperature`/`value`/`chroma`/`lighting` — still useful for free-form AI Lab and fallback
+  DIAGNOSTICS (visible in the free-form cards a PO can compare against); not part of the new
+  fallback result itself.
+- `sampleAssessment` — superseded for the fallback task by the new contract's own
+  `target-mismatch`/`unusable` statuses, which serve the same purpose in the closed-set task.
+- `suitability` (AI's own) — **should never reach a production fallback path** (confirmed again this
+  slice: the new contract has no such field, and the resolver never reads one even if it existed
+  elsewhere on the free-form result).
+- `confidence` — **not needed for fallback** (§F, Option 1 chosen; see above); still shown as-is in
+  free-form AI Lab cards since removing it there is out of scope for this slice.
+
+**Files changed:** `src/domain/aiColorLab/paletteContract.ts` (new contract), `api/_lib/palettePrompt.ts`
+(prompt), `api/_lib/validatePaletteSelection.ts` (response validator), `api/_lib/validatePaletteRequest.ts`
+(request validator), `api/_lib/providers/geminiPalette.ts` (dedicated minimal adapter, Gemini
+Flash-Lite only), `api/_lib/paletteHandler.ts` (route handler), `api/ai-palette/gemini-flash-lite.ts`
+(Vercel-style function file), `api/devServer.ts` (dev-server route wiring, edited),
+`src/domain/photoColor/aiPaletteFallback.ts` (resolver integration),
+`src/domain/personalColor/paletteIdentity.test.ts` (identity audit), `src/aiLab/aiPaletteApi.ts`
+(client fetch), `src/aiLab/buildPaletteRequest.ts` (request builder), `src/aiLab/paletteSelectionState.ts`
+(reducer), `src/aiLab/PaletteSelectionCard.tsx` (UI), `src/aiLab/exportPaletteValidation.ts` (export),
+`src/aiLab/AiColorLabView.tsx` (wiring, edited), `tsconfig.node.json` (added `seasons.ts` to the
+node project's include list, edited), `api/_lib/security.test.ts` (widened the "one entry point per
+adapter" check to recognize `paletteHandler.ts` as a second legitimate entry point, edited).
+
+**Tests / build.** New focused tests: 39/39 passed across `paletteIdentity.test.ts`,
+`validatePaletteSelection.test.ts`, `validatePaletteRequest.test.ts`, `paletteHandler.test.ts`,
+`buildPaletteRequest.test.ts`, `aiPaletteFallback.test.ts` — covering every §S requirement (palette
+scoped to the active subtype only, unambiguous identity, no group/suitability leak into the AI choice
+list, valid selection resolves through 0.5B, unknown/invented colorId rejected, non-selected status
+carrying a colorId rejected, missing status rejected, `selected` without colorId rejected,
+uncertain/target-mismatch/unusable all produce no replacement result, provider failure/timeout/crash
+all contained without leaking, no RGB/HEX/OKLab fabrication, no sampler/matcher import). Full suite:
+**76 files / 1932 passed / 1 skipped** (up from 75/1893 before this slice; one pre-existing security
+test was updated, not weakened, to recognize the second legitimate handler entry point — see Files
+changed). `tsc -b --noEmit`: clean. `vite build`: succeeded — **507.52 kB JS / 70.12 kB CSS**, up from
+498.87 kB/70.12 kB. Unlike 0.5A/0.5B (pure spikes wired into nothing), this slice deliberately wires
+new code into `AiColorLabView.tsx`, which IS part of the production JS bundle already (the whole AI
+Lab, including the existing 4-candidate bake-off, ships in the bundle and is gated at RUNTIME by
+`import.meta.env.DEV && ?debug=ai`, not by code-splitting) — the ~8.6 kB increase is the expected,
+proportionate cost of the new AI Lab card, table-driven state, and export code, not evidence of
+anything reaching production. `git diff --check`: clean (only pre-existing LF/CRLF advisories).
+
+**Production isolation (§R).** Confirmed by grep: no file under `src/photoChecker/` references
+`aiPaletteApi`, `aiColorLabApi`, `aiFallback`, `aiPaletteFallback`, `paletteContract`, or any
+`/api/ai-color/` or `/api/ai-palette/` path. `PhotoCheckerPanel` makes no new AI request. The new
+`/api/ai-palette/gemini-flash-lite` route only exists behind the same dev-server middleware and
+Vercel-style function file pattern as the existing AI Lab routes — reachable only from the AI Lab UI,
+itself only reachable via `?debug=ai` in a dev build (`import.meta.env.DEV`).
+
+**Decision: B — the contract is structurally sound but needs more PO real-photo validation; keep it
+in AI Lab.** Every automated guarantee this slice CAN prove — contract shape, closed-set enforcement,
+anti-bias prompt constraints, resolver correctness, escape-hatch behavior, production isolation — is
+proven and passing. What remains unproven is the one thing that actually matters for a fallback
+feature: whether Gemini Flash-Lite, given a real ambiguous photo (cream/ivory/beige/white being the
+exact boundary Slice 0.5B's bakeoff replay showed it struggling with in free-form mode) and a closed
+list of ~22 subtype colors, reliably picks a defensible one or honestly declines. This environment had
+no real garment photo to test that with. The PO should run the six priority validation cases from §L
+manually through the AI Lab's new card before this graduates toward a narrow production
+explicit-fallback integration slice (Decision A territory) — or, if closed-set selection turns out to
+still force bad choices on the hard boundary cases, before concluding Decision C and revisiting the
+fallback strategy instead.
+
+## 38. Slice 0.5D — Production explicit AI fallback integration (2026-09-25, wired into the real Photo Checker, still user-invoked only)
+
+**Gate.** The PO's own real-photo validation of Slice 0.5C's canonical-palette task (~10 runs across
+cream/off-white, beige/taupe, navy/denim, pink, red, a deliberate target mismatch, and palette
+reference material) found multiple `Good`, two `Acceptable`, no PO-reviewed `Wrong` canonical
+selections, and correct real `target-mismatch`/`uncertain` behavior. That result is the explicit
+authorization for this slice: promote the already-validated canonical-selection contract from AI
+Lab-only into a real, explicit, user-invoked action inside the production Photo Checker. The prompt
+itself was **not** re-tuned based on those runs (plan §AD forbids it) — this slice is UX integration
+of the exact contract §37 already validated.
+
+**Product flow.** Unchanged deterministic-first behavior, plus one new explicit step:
+
+```
+tap garment → immediate on-device deterministic result (unchanged, no network)
+                        ↓
+           "✨ Ask AI to analyze" (always available; more prominent near a measurement warning)
+                        ↓ (only on click)
+              AI analyzes (Gemini Flash-Lite, same 0.5C contract/adapter)
+                        ↓
+        selected            uncertain / target-mismatch / unusable / provider failure
+           ↓                              ↓
+  AI result becomes primary      deterministic result stays untouched, explains why
+  (deterministic result kept
+   internally, not shown)
+```
+
+AI **never** runs automatically — not on point selection, not because a measurement flag (`mixed`/
+`highlight`/`shadow`) fired, not on a timer. `assessPhotoMeasurement()` (Slice 0.5A) only changes the
+action's visual prominence (a CSS modifier class), never whether or when it fires. The action stays
+manually available even with **no** measurement issue at all: the PO's own 0.5C validation showed AI
+corrections on clean samples too (e.g. a light-gray sample AI identified as the subtype's actual
+cream), so hiding it on a "clean" deterministic read would have hidden exactly the useful case.
+
+**Integration boundary.** The smallest boundary that keeps `matchPhotoColor()`, the sampler, the
+palette definitions and `getSuitability()` completely untouched: a second, independent
+`useReducer` (`aiFallbackState.ts`'s `aiPhotoFallbackReducer`) inside `PhotoCheckerPanel.tsx`,
+alongside the existing deterministic `photoPanelReducer` — never merged into it. `runAi()` builds
+the request with the *same* `buildPaletteSelectionRequest()`/`callPaletteSelection()` AI Lab already
+validated (imported from `src/aiLab/`, not duplicated — plan §X: "the same validated production
+contract/adapter... do not duplicate prompt logic"; the `aiLab` folder name is now historical, not a
+statement that this call is lab-only). The response is resolved through Slice 0.5B/0.5C's own
+`resolvePaletteSelectionResult()` → `resolveAiFallbackSelection()`, unmodified.
+
+**State model.** `PhotoFeedback` never mutates the deterministic view into an AI one. It derives:
+
+```ts
+const view = ai.status === 'selected' ? toPhotoAiResultView(ai.resolution.result, ...) : deterministicView
+```
+
+`toPhotoAiResultView()` (new, in `photoResult.ts`) builds a `ColorResultView` straight from the
+already-resolved `AiFallbackResult` — `category`/`suitability`/`pairWith` are exactly what
+`resolveAiFallbackSelection()` (Slice 0.5B, unmodified) already decided; `hex` is the canonical
+palette entry's own hex, never a fabricated measurement. `direction`/`descriptors`/`warnings`/`info`
+are empty/null: those describe how a *measured* sample differs from its nearest palette color, which
+has no meaning for a direct canonical pick. Every other AI status (`loading`, `no-replacement`,
+`unresolved`, `error`, `idle`) leaves `deterministicView` exactly as it was — proven directly in both
+`PhotoResultCard.test.tsx` and `PhotoCheckerPanel.test.tsx` (deterministic hex/verdict/category
+present, AI badge absent, for every non-`selected` status).
+
+**Provenance without a source enum on the shared card.** Rather than teach the shared
+`ColorResultCard`/`ColorResultSummary` about an `AiFallbackSource` type, `ColorResultView` gained one
+new field, `sourceLabel: string | null` — exactly the existing `aiAdvisory` pattern (the adapter bakes
+final, already-translated copy; the shared card only renders it, never re-derives it). `null` for
+every deterministic adapter (manual, photo); only `toPhotoAiResultView()` ever sets it, to
+`copy.photoChecker.ai.badge` ("AI-assisted" / "วิเคราะห์เพิ่มเติมด้วย AI"), rendered as a small pill
+next to the sample label. The provider/model name (`Gemini Flash-Lite`) is never shown in this
+production label — that detail stays in AI Lab/debug tooling only (plan §I).
+
+**Stale-response protection.** `PhotoCheckerPanel` bumps an independent `aiRequest` ref and aborts
+the in-flight `AbortController` whenever `selection` (a fresh object on every tap/keyboard move, from
+the existing `photoPanelReducer`) or `subtype` changes identity — one `useEffect`, one dependency
+list, covering every case plan §M lists (new point, new photo, subtype change) without separately
+tracking *which* one changed, because a new photo already nulls `selection` and a new/moved point
+already replaces it. A completion whose captured request id no longer matches the current ref is
+silently dropped, mirroring the existing photo-decode staleness guard already in this file. Tested
+directly: a pending AI call for the old point, when the user taps a new point before it resolves,
+never overwrites the new point's deterministic result even after the stale promise resolves with a
+"successful" `selected` answer.
+
+**Escape / failure behavior (all verified, all leave the deterministic result untouched):**
+
+| AI status | Production behavior |
+|---|---|
+| `selected` | AI result becomes primary via the resolver; deterministic result kept in component state (not shown), source-labeled "AI-assisted" |
+| `uncertain` | No replacement; plain-text note: *"AI could not confidently match this to a color in your palette. The result from your selected spot is still shown above."* |
+| `target-mismatch` | No replacement; plain-text note asking the user to tap the fabric again |
+| `unusable` | No replacement; plain-text note suggesting another spot/photo |
+| provider/network/timeout/malformed | No replacement; generic *"AI analysis didn't work this time. Your on-device result is still available."* — no provider status code, message, or stack ever reaches this copy (tested: a real `httpStatus: 503`/upstream message never appears in the rendered DOM) |
+
+No automatic retry in any case. The action button re-enables afterward (idle again) so a manual retry
+is always possible, but nothing in the UI encourages repeating an identical call (plan §R).
+
+**Suitability invariant, proven not just asserted.** `PhotoAiAction`/`toPhotoAiResultView()` read
+only `AiPaletteSelectionResult.status`/`.colorId`/`.target`/`.reasoning` from the AI response — never
+a `suitability`/`confidence`/`verdict` field (the contract doesn't even have one). Category and
+suitability in the rendered result are `resolveAiFallbackSelection()`'s own, unmodified output. A
+dedicated `PhotoCheckerPanel.test.tsx` case asserts the AI-resolved verdict for a `neutrals` colorId
+is exactly `en.colorResult.verdicts.good` (i.e. `neutral-base` → `good`, the app's own fixed mapping),
+never something derived from the AI response.
+
+**Privacy/network disclosure.** The existing blanket `copy.photoChecker.privacy` ("Your photo stays
+on this device.") remains true by default and is left unchanged — deterministic photo checking is
+still fully on-device. A new, adjacent line (`copy.photoChecker.ai.privacyNote`, "AI assistance sends
+this photo for online analysis." / "การให้ AI ช่วยวิเคราะห์จะส่งรูปนี้ไปวิเคราะห์ออนไลน์") sits next
+to the AI action itself (Option A from plan §U — copy adjacent to the button, not a modal), so the one
+path that does leave the device is disclosed right where the user opts into it, without adding a
+consent-dialog system that doesn't exist elsewhere in the app.
+
+**Accessibility.** The AI action is a real, focusable `<button>` that stays mounted and merely
+disables/relabels itself while loading (`disabled` + `aria-busy` + a changed label), so focus is never
+lost or moved. The card deliberately keeps exactly **one** live region — `.photo-summary`, unchanged
+from before this slice — proven by an explicit test; the AI action's own notes (privacy line,
+uncertain/mismatch/unusable/failure copy) are plain reading-order text, matching how this component
+already treats `warnings`/`info`/`caveat`. Mobile/desktop visual layout was **not** browser-verified
+in this environment (no browser tooling available here); the new elements reuse the existing
+`primary-button compact` button style and a narrow, single-column `.photo-ai-action` block, so no new
+layout primitive was introduced — PO visual verification at real widths is still needed (§AB below).
+
+**Old Slice 0.4 advisory path.** `ColorResultView.aiAdvisory` / `PhotoFeedback`'s `advisory` prop are
+untouched and still **not** wired to anything in production (no caller passes a real
+`SampleAdvisory`) — this slice does not activate it and does not delete it, per plan §Y. It is now
+clearly superseded by the explicit-fallback UX for the "should I double-check this photo" concern;
+removing it is deferred cleanup (§16 below), not done here.
+
+**Files changed.**
+- New: `src/photoChecker/aiFallbackState.ts` (+ `.test.ts`) — the production AI action's own state machine.
+- Edited: `src/photoChecker/PhotoCheckerPanel.tsx` — second reducer, staleness effect, `runAi()`.
+- Edited: `src/photoChecker/PhotoResultCard.tsx` — `PhotoAiAction` component; `PhotoFeedback` picks AI vs. deterministic view; `ai`/`onRunAi` props (optional, defaulted, so every pre-existing caller/test is unaffected).
+- Edited: `src/photoChecker/photoResult.ts` — new `toPhotoAiResultView()`; `sourceLabel: null` added to the existing deterministic adapter.
+- Edited: `src/colorChecker/resultView.ts` — new `sourceLabel: string | null` field on `ColorResultView`.
+- Edited: `src/colorChecker/manualResult.ts` — `sourceLabel: null` (manual is always deterministic).
+- Edited: `src/colorChecker/ColorResultCard.tsx` — renders `view.sourceLabel` as a small badge.
+- Edited: `src/i18n/types.ts`, `en.ts`, `th.ts` — new `photoChecker.ai.*` copy block.
+- Edited: `src/styles.css` — `.photo-ai-*` and `.check-source-badge` rules only.
+- Test-only edits: `ColorResultCard.test.tsx` (new `sourceLabel` default + badge test), `PhotoResultCard.test.tsx` (new AI-action describe block; two pre-existing assertions updated for the AI button's own icon/live-region footprint — see below), `PhotoCheckerPanel.test.tsx` (new AI-integration describe block; canvas mock extended with `beginPath`/`arc`/`stroke`/`fill` + `toDataURL`, since the AI request now shares this file's mocked canvas).
+- Nothing in `api/`, the provider adapters, the prompt, or the response validator changed — this slice is client-side wiring only, reusing 0.5C's server-side path exactly as-is.
+
+**Two pre-existing tests updated, not weakened.** `PhotoResultCard.test.tsx`'s "uses one small cue per
+result" test counted pictographic emoji and expected exactly one (the verdict mark); the AI button's
+own `✨` is now always present alongside a matched sample, so the expected count became `category ===
+'near-face' ? 2 : 1` (comment explains why). The accessibility "only one live region" test was **not**
+changed — instead, the implementation was: the AI action's loading state was moved onto the button's
+own label (no second `role="status"` element) specifically so that pre-existing invariant would keep
+holding without modification.
+
+**Production isolation, confirmed.** `PhotoCheckerPanel`/`PhotoResultCard`/`photoResult.ts` contain no
+literal `fetch` (checked via the same source-text module-boundary tests this codebase already uses;
+the network call lives one layer down, in `aiLab/aiPaletteApi.ts`, exactly like every other network
+call in this codebase). The "stores nothing and makes no network request during a full photo flow"
+test (pre-existing, unmodified) still passes unchanged, because it never clicks the AI button. A new
+test drives the full flow up to and past tapping a point and confirms `callPaletteSelection` was still
+not called; only an explicit click invokes it.
+
+**Tests/build.** New/updated focused suites: `aiFallbackState.test.ts` (8 tests), `PhotoResultCard.test.tsx`
+AI-action block (13 tests) + 2 pre-existing assertions updated, `PhotoCheckerPanel.test.tsx` AI-integration
+block (15 tests) + canvas-mock extension, `ColorResultCard.test.tsx` (+1 test). Full suite:
+**77 files / 1970 passed / 1 skipped** (up from 76/1932). `tsc -b --noEmit`: clean. `vite build`:
+succeeded — **514.13 kB JS / 70.71 kB CSS**, up from 507.52 kB/70.12 kB. Unlike 0.5C, this increase IS
+new production-reachable code (the whole point of this slice), and is proportionate: one new reducer,
+one new subcomponent, one new adapter function, and the reused (not duplicated) 0.5C client call.
+`git diff --check`: clean (only pre-existing LF/CRLF advisories).
+
+**Manual PO test steps (§AB).**
+1. **Normal deterministic**: choose a photo, tap a garment → deterministic result appears immediately; open devtools Network tab and confirm no request fires from the tap alone.
+2. **Successful AI fallback**: tap "✨ Ask AI to analyze" → privacy note is visible next to it → button shows "✨ AI is analyzing…" and disables → on success, the result card updates in place to the AI-picked color with the "AI-assisted" badge.
+3. **New target after success**: tap a different garment/point → the AI-assisted result disappears immediately, replaced by the new point's plain deterministic result.
+4. **Target mismatch**: point at skin/background if your test photo allows it → deterministic result is retained, and the AI note explains the point may not be on the intended clothing.
+5. **Offline/provider failure**: disconnect network (or use devtools' offline mode) before clicking the AI action → deterministic result remains, a generic failure note appears, and the app stays fully usable; reconnecting and clicking again retries manually.
+
+**16. Deferred cleanup (identified, not removed):** `ColorResultView.aiAdvisory` / `SampleAdvisory` /
+`deriveSampleAdvisory()` (Slice 0.4) are now superseded by this slice's explicit fallback for the
+"should I trust this photo" concern, but still compile, still test green, and are left in place per
+plan §Y/AD. The free-form AI Color Lab bake-off (Slices 0/0.1/0.2) and its four-candidate comparison
+remain useful research/debug tooling and are unaffected by this slice.
+
+**17. Decision: A — production explicit AI fallback integration is complete and ready for PO
+visual/manual manual validation.** Every requirement this slice could verify in this environment is
+verified: deterministic-first behavior is unchanged and covered by the full pre-existing test suite;
+AI is invoked only by an explicit click, never automatically, under any measurement condition; the
+request never carries the deterministic sample (Strategy A, structurally — the request object has
+exactly three keys); `selected` resolves through the unmodified 0.5B/0.5C path with suitability
+provably not influenced by the AI response; every escape/failure state leaves the deterministic result
+untouched; stale responses across point/photo/subtype changes are provably dropped; the network/privacy
+boundary is disclosed at the point of use; the shared result components were extended, not forked. What
+remains is exactly what plan §V/§AA already anticipated could not be done here: real-browser visual
+verification at mobile/desktop widths, and continued real-photo PO spot checks now that the action is
+reachable from the real Photo Checker UI, not only AI Lab.

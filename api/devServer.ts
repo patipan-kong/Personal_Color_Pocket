@@ -1,5 +1,6 @@
 import type { Plugin } from 'vite'
 import { handleAiColorRequest } from './_lib/handler'
+import { handlePaletteSelectionRequest } from './_lib/paletteHandler'
 import { AI_CANDIDATE_IDS } from '../src/domain/aiColorLab/contract'
 import type { AiCandidateId } from '../src/domain/aiColorLab/contract'
 
@@ -11,6 +12,9 @@ import type { AiCandidateId } from '../src/domain/aiColorLab/contract'
 // `vite build` output (plugins execute at build/dev-server time, never inside the shipped client
 // bundle). Candidate ids may contain hyphens (e.g. "gemini-flash-lite").
 const ROUTE = /^\/api\/ai-color\/([a-z-]+)\/?$/
+// V2.0 Slice 0.5C: the canonical-palette-selection task's dev route. Only ever gemini-flash-lite
+// (plan §L), so the route carries no candidateId segment.
+const PALETTE_ROUTE = /^\/api\/ai-palette\/gemini-flash-lite\/?$/
 
 export function aiColorLabDevServer(): Plugin {
   return {
@@ -18,6 +22,7 @@ export function aiColorLabDevServer(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split('?')[0] ?? ''
+        if (PALETTE_ROUTE.test(url)) return void handlePaletteSelectionRequest(req, res)
         const match = ROUTE.exec(url)
         const candidateId = match?.[1]
         if (!candidateId || !(AI_CANDIDATE_IDS as readonly string[]).includes(candidateId)) return next()

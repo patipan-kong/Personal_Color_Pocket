@@ -5,9 +5,12 @@ import type { Subtype } from '../personalColor/types'
 import { inspectPhotoPoint } from './inspect'
 import type { PhotoMatchCategory, PhotoPointMatched, PixelSource } from './types'
 
-// TEST-ONLY helpers (imported by *.test.ts(x) files, never by the app). They produce REAL
-// photo results: a solid image of an existing palette colour goes through the unchanged
-// sampler + matcher via inspectPhotoPoint. No category is ever constructed by hand.
+// TEST-ONLY helpers (imported by *.test.ts(x) files, and -- as of Slice 0.4B -- by
+// aiLab/AdvisoryPreview.tsx, a dev-only, DEV+query-param-gated screen never reachable in a
+// production build or normal navigation; see that file). Never imported by a production-facing
+// screen. They produce REAL photo results: a solid image of an existing palette colour goes
+// through the unchanged sampler + matcher via inspectPhotoPoint. No category is ever constructed
+// by hand.
 
 export function solidImage(hex: string, width = 24, height = 24): PixelSource {
   const { r, g, b } = hexToRgb(hex)!

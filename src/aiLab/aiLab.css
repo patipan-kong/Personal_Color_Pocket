@@ -52,3 +52,10 @@
 .ai-lab-session-summary { margin-top: 24px; border-top: 1px solid #ddd; padding-top: 16px; }
 .ai-lab-session-summary h2 { font-size: 1.1rem; margin: 0 0 4px; }
 .ai-lab-session-summary table { overflow-x: auto; display: block; }
+
+/* Slice 0.4B: AI Advisory Preview controls -- disposable dev tooling, not styled to match
+   production. The result card below them is the one thing worth spending visual effort on. */
+.ai-lab-toggle-group { display: flex; gap: 4px; border: 1px solid #ddd; border-radius: 8px; padding: 3px; }
+.ai-lab-toggle { border: 0; border-radius: 6px; padding: 6px 10px; background: transparent; font: inherit; font-size: .85rem; color: #444; cursor: pointer; }
+.ai-lab-toggle[aria-pressed='true'] { background: #402020; color: #fff; font-weight: 600; }
+.advisory-preview-card { max-width: 420px; }

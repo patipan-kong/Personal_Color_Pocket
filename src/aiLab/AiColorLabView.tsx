@@ -16,10 +16,15 @@ import { AI_LAB_PREPARING_NOTICE_DELAY_MS, aiLabPhotoReducer, initialAiLabPhotoS
 import { aiLabBakeoffReducer, EMPTY_REVIEW, initialBakeoffState, reviewKey } from './aiLabState'
 import type { PoReview } from './aiLabState'
 import { callAiColorCandidate } from './aiColorLabApi'
+import { callPaletteSelection } from './aiPaletteApi'
 import { buildAiColorRequest } from './buildRequest'
+import { buildPaletteSelectionRequest } from './buildPaletteRequest'
 import { ColorDimensionTable } from './ColorDimensionTable'
 import { DeterministicBaselineCard } from './DeterministicBaselineCard'
+import { downloadPaletteValidationExport } from './exportPaletteValidation'
 import { FlashLiteComparison } from './FlashLiteComparison'
+import { EMPTY_PALETTE_REVIEW, initialPaletteSelectionState, paletteSelectionReducer } from './paletteSelectionState'
+import { PaletteSelectionCard } from './PaletteSelectionCard'
 import { ProviderCard } from './ProviderCard'
 import { SessionSummary } from './SessionSummary'
 
@@ -32,11 +37,13 @@ import { SessionSummary } from './SessionSummary'
 export function AiColorLabView() {
   const [photoState, dispatchPhoto] = useReducer(aiLabPhotoReducer, initialAiLabPhotoState)
   const [bakeoff, dispatchBakeoff] = useReducer(aiLabBakeoffReducer, initialBakeoffState)
+  const [paletteSelection, dispatchPalette] = useReducer(paletteSelectionReducer, initialPaletteSelectionState)
   const latestRequest = useRef(0)
   const photoController = useRef<AbortController | null>(null)
   const slowTimer = useRef<number | undefined>(undefined)
   const runCounter = useRef(0)
   const candidateControllers = useRef<Partial<Record<AiCandidateId, AbortController>>>({})
+  const paletteController = useRef<AbortController | null>(null)
   const hintId = useId()
 
   // Read-only reuse of the saved profile, if any (plan §27). Never written to, never faked.
@@ -59,13 +66,17 @@ export function AiColorLabView() {
   // A new photo or a new sample point starts a genuinely new analysis: cancel whatever is
   // in flight and clear every card back to idle, so no stale card can survive into it
   // (plan §22 I). The session's accumulated bake-off history/reviews are untouched by this --
-  // they intentionally span every photo run in the session (plan §11, §19).
+  // they intentionally span every photo run in the session (plan §11, §19). Slice 0.5C's palette-
+  // selection card resets on the same trigger, for the same reason (plan §J).
   const startFreshAnalysis = () => {
     abortAllCandidates()
     dispatchBakeoff({ type: 'reset' })
+    paletteController.current?.abort()
+    paletteController.current = null
+    dispatchPalette({ type: 'reset' })
   }
 
-  useEffect(() => () => { cancelPendingPhoto(); abortAllCandidates(); latestRequest.current += 1 }, [])
+  useEffect(() => () => { cancelPendingPhoto(); abortAllCandidates(); paletteController.current?.abort(); latestRequest.current += 1 }, [])
 
   const choose = (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget
@@ -140,6 +151,23 @@ export function AiColorLabView() {
   // automatic repeated retries that can burn credits").
   const runAll = () => { for (const candidateId of AI_CANDIDATE_IDS) runCandidate(candidateId) }
 
+  // V2.0 Slice 0.5C (plan §J): the canonical-palette-selection task, entirely independent of the
+  // four free-form bake-off candidates above -- its own request shape (buildPaletteRequest.ts,
+  // Strategy A: no deterministic sample sent), its own endpoint (aiPaletteApi.ts), its own runId
+  // space so a stale completion can never be confused with a bake-off card's.
+  const runPaletteSelection = () => {
+    if (!image || !point || !baseline || baseline.sample.kind !== 'color' || !subtypeContext) return
+    paletteController.current?.abort()
+    const controller = new AbortController()
+    paletteController.current = controller
+    const id = ++runCounter.current
+    dispatchPalette({ type: 'started', runId: id })
+    const paletteRequest = buildPaletteSelectionRequest(image, point, baseline.radius, subtypeContext.subtype)
+    void callPaletteSelection(paletteRequest, controller.signal).then((outcome) => {
+      dispatchPalette({ type: 'completed', runId: id, outcome })
+    })
+  }
+
   return <main className="ai-lab-page">
     <p className="ai-lab-badge">Dev only — AI Color Lab · Model Bake-off</p>
     <h1>AI Color Lab</h1>
@@ -197,6 +225,27 @@ export function AiColorLabView() {
           })}
         </div>
         {bakeoff.cards['gemini-flash'].status !== 'idle' && <FlashLiteComparison cards={bakeoff.cards} reviews={bakeoff.reviews} />}
+
+        <PaletteSelectionCard
+          state={paletteSelection.card}
+          subtype={subtypeContext?.subtype ?? null}
+          onRun={runPaletteSelection}
+          onRetry={runPaletteSelection}
+          review={paletteSelection.card.status === 'success' ? (paletteSelection.reviews[paletteSelection.card.runId] ?? EMPTY_PALETTE_REVIEW) : EMPTY_PALETTE_REVIEW}
+          onReviewChange={(next) => {
+            if (paletteSelection.card.status !== 'success') return
+            dispatchPalette({ type: 'review', runId: paletteSelection.card.runId, review: next })
+          }}
+        />
+        {paletteSelection.history.length > 0 && (
+          <button
+            type="button"
+            className="compact"
+            onClick={() => downloadPaletteValidationExport(paletteSelection.history, paletteSelection.reviews, subtypeContext?.subtype ?? null, baseline)}
+          >
+            Export palette-selection validation ({paletteSelection.history.length} run{paletteSelection.history.length === 1 ? '' : 's'})
+          </button>
+        )}
       </div>
     </div>}
 

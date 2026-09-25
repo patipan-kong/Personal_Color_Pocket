@@ -18,3 +18,5 @@ public/img/example/
 .env
 .env.local
 .env.*.local
+
+tmp/

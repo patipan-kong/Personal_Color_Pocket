@@ -34,4 +34,15 @@ export interface ColorResultView {
   // colour). Supporting guidance only: never a verdict or a warning. Manual: none.
   info: string | null
   caveat: string | null
+  // Photo only (Slice 0.4): non-authoritative photo-quality notes from deriveSampleAdvisory(),
+  // already turned into display copy. Empty whenever AI evidence is absent, disabled, failed, or
+  // has nothing to add -- same as `warnings`/`info`, this never changes hex/category/suitability
+  // above, it only explains why the user might want to double-check the photo. Manual: always [].
+  aiAdvisory: { title: string; body: string }[]
+  // Photo only (Slice 0.5D): an already-translated, one-line provenance label, same pattern as
+  // `aiAdvisory` above -- the adapter bakes in final copy, the shared card only renders it. null
+  // for every deterministic result (manual and photo); the photo adapter's AI-fallback path is
+  // the only caller that ever sets a string here (plan §I: "the visible source label should be
+  // subtle... do not over-brand the provider/model").
+  sourceLabel: string | null
 }
