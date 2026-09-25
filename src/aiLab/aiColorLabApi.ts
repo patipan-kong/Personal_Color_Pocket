@@ -1,13 +1,13 @@
-import type { AiColorAnalysisRequest, AiProviderId, AiProviderOutcome } from '../domain/aiColorLab/contract'
+import type { AiCandidateId, AiColorAnalysisRequest, AiProviderOutcome } from '../domain/aiColorLab/contract'
 
-// V2.0 AI Color Lab (Slice 0): the ONLY place the client talks to the server-side boundary.
-// Plain same-origin fetch to our own /api/ai-color/<provider> route -- never a provider's API
-// directly, and never a provider SDK, so no credential can reach the browser (plan §29: "Do not
-// make feature UI import provider SDKs").
-export async function callAiColorProvider(provider: AiProviderId, payload: AiColorAnalysisRequest, signal: AbortSignal): Promise<AiProviderOutcome> {
+// V2.0 AI Color Lab (Slice 0; extended Slice 0.2 plan §4): the ONLY place the client talks to
+// the server-side boundary. Plain same-origin fetch to our own /api/ai-color/<candidateId>
+// route -- never a provider's API directly, and never a provider SDK, so no credential can reach
+// the browser (plan §29: "Do not make feature UI import provider SDKs").
+export async function callAiColorCandidate(candidateId: AiCandidateId, payload: AiColorAnalysisRequest, signal: AbortSignal): Promise<AiProviderOutcome> {
   const start = performance.now()
   try {
-    const response = await fetch(`/api/ai-color/${provider}`, {
+    const response = await fetch(`/api/ai-color/${candidateId}`, {
       method: 'POST',
       signal,
       headers: { 'Content-Type': 'application/json' },

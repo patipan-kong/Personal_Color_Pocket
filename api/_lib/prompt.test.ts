@@ -76,7 +76,7 @@ describe('every active adapter sends the exact canonical prompt text and image (
     const fetchSpy = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: '{}' } }] }), { status: 200 }))
     vi.stubGlobal('fetch', fetchSpy)
     const { runProvider } = await import('./providers/openai')
-    await runProvider(REQUEST, new AbortController().signal)
+    await runProvider(REQUEST, new AbortController().signal, 'gpt-5-mini')
     const body = JSON.parse(fetchSpy.mock.calls[0][1].body as string)
     expect(body.messages[0].content[0].text).toBe(expected)
     expect(body.messages[0].content[1].image_url.url).toBe(REQUEST.imageDataUrl)
@@ -86,21 +86,26 @@ describe('every active adapter sends the exact canonical prompt text and image (
     const fetchSpy = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: '{}' } }] }), { status: 200 }))
     vi.stubGlobal('fetch', fetchSpy)
     const { runProvider } = await import('./providers/groq')
-    await runProvider(REQUEST, new AbortController().signal)
+    await runProvider(REQUEST, new AbortController().signal, 'qwen/qwen3.8-27b')
     const body = JSON.parse(fetchSpy.mock.calls[0][1].body as string)
     expect(body.messages[0].content[0].text).toBe(expected)
     expect(body.messages[0].content[1].image_url.url).toBe(REQUEST.imageDataUrl)
   })
 
-  it('gemini', async () => {
+  // Slice 0.2 (plan §22 C, D): the two Gemini candidates (Flash and Flash-Lite) must send the
+  // exact same prompt text and the exact same image bytes as every other candidate -- only the
+  // model id in the URL may differ. promptFor() never takes a model, so this is true by
+  // construction, but the assertion below proves it for both candidates explicitly.
+  it.each(['gemini-3.5-flash', 'gemini-3.5-flash-lite'])('gemini (%s)', async (model) => {
     const fetchSpy = vi.fn().mockResolvedValue(new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{}' }] } }] }), { status: 200 }))
     vi.stubGlobal('fetch', fetchSpy)
     const { runProvider } = await import('./providers/gemini')
-    await runProvider(REQUEST, new AbortController().signal)
+    await runProvider(REQUEST, new AbortController().signal, model)
     const body = JSON.parse(fetchSpy.mock.calls[0][1].body as string)
     expect(body.contents[0].parts[0].text).toBe(expected)
     // Gemini's transport splits the data URL into mimeType + base64 (dataUrlParts); the base64
-    // payload itself must still be the exact same bytes every other provider received.
+    // payload itself must still be the exact same bytes every other candidate received.
     expect(body.contents[0].parts[1].inline_data.data).toBe(REQUEST.imageDataUrl.split(',')[1])
+    expect(String(fetchSpy.mock.calls[0][0])).toContain(model)
   })
 })

@@ -37,3 +37,18 @@
 .ai-lab-target p:last-child { margin-bottom: 0; }
 .ai-lab-input-preview { margin: 0 0 14px; font-size: .85rem; }
 .ai-lab-input-preview img { max-width: 100%; border-radius: 8px; border: 1px solid #ddd; margin-top: 6px; }
+
+/* Slice 0.2: Model Bake-off additions. */
+.ai-lab-review { border: 1px dashed #bbb; border-radius: 8px; padding: 8px 10px; margin-top: 10px; font-size: .8rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px 10px; }
+.ai-lab-review legend { font-weight: 600; padding: 0 4px; }
+.ai-lab-review label { display: flex; flex-direction: column; gap: 2px; color: #555; }
+.ai-lab-review select, .ai-lab-review input { font: inherit; padding: 3px 4px; }
+.ai-lab-review-note { grid-column: 1 / -1; }
+.ai-lab-dimension-table, .ai-lab-flash-lite-table, .ai-lab-session-summary table { width: 100%; border-collapse: collapse; font-size: .8rem; margin: 12px 0; }
+.ai-lab-dimension-table caption, .ai-lab-flash-lite-table caption, .ai-lab-session-summary caption { text-align: left; font-weight: 600; margin-bottom: 6px; color: #444; }
+.ai-lab-dimension-table th, .ai-lab-dimension-table td,
+.ai-lab-flash-lite-table th, .ai-lab-flash-lite-table td,
+.ai-lab-session-summary th, .ai-lab-session-summary td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; }
+.ai-lab-session-summary { margin-top: 24px; border-top: 1px solid #ddd; padding-top: 16px; }
+.ai-lab-session-summary h2 { font-size: 1.1rem; margin: 0 0 4px; }
+.ai-lab-session-summary table { overflow-x: auto; display: block; }

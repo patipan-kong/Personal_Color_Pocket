@@ -12,16 +12,17 @@ import type { AdapterResult } from './shared'
 // currently work (plan §21 only requires UNSUPPORTED when no vision model exists at all).
 // Uses OpenAI-compatible `response_format: json_object` (confirmed working with vision in
 // Groq's own docs) rather than json_schema, whose vision compatibility Groq does not document.
-export const MODEL = 'qwen/qwen3.8-27b'
+// Slice 0.2 (plan §4): `model` is a parameter (sourced from AI_CANDIDATES), not a local constant
+// -- the model ID itself is UNCHANGED from Slice 0/0.1 (plan §3).
 const ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
 
-export async function runProvider(request: AiColorAnalysisRequest, signal: AbortSignal): Promise<AdapterResult> {
+export async function runProvider(request: AiColorAnalysisRequest, signal: AbortSignal, model: string): Promise<AdapterResult> {
   const response = await fetch(ENDPOINT, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getKey('groq')}` },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [{
         role: 'user',
         content: [
@@ -45,7 +46,7 @@ export async function runProvider(request: AiColorAnalysisRequest, signal: Abort
   const usage = json?.usage
     ? { inputTokens: numberOrNull(json.usage.prompt_tokens), outputTokens: numberOrNull(json.usage.completion_tokens), totalTokens: numberOrNull(json.usage.total_tokens) }
     : null
-  return outcomeFromModelText('groq', MODEL, text, usage, json)
+  return outcomeFromModelText('groq', model, text, usage, json)
 }
 
 function numberOrNull(value: number | undefined): number | null {

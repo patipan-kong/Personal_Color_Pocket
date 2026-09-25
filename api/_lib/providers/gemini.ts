@@ -4,20 +4,24 @@ import { classifyHttpStatus, dataUrlParts, errorOutcome, outcomeFromModelText, p
 import type { AdapterResult } from './shared'
 
 // Gemini adapter (plan §5 research, 2026-09-25 sources: ai.google.dev/gemini-api/docs/
-// image-understanding, .../structured-output, .../models). `gemini-3.5-flash` is a current,
-// general-purpose multimodal model; not the flagship agentic tier. Uses
+// image-understanding, .../structured-output, .../models). Uses
 // generationConfig.responseMimeType "application/json" WITHOUT responseSchema -- the combination
 // of responseSchema + image input is not confirmed compatible by official docs (one reported
 // 400 "JSON mode is not enabled" case for a different model), so this adapter relies on the
 // canonical prompt's explicit JSON-shape instruction plus server-side validate.ts instead of a
 // provider-enforced schema (plan §15: validate regardless of what structured output was asked
 // for).
-export const MODEL = 'gemini-3.5-flash'
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`
-
-export async function runProvider(request: AiColorAnalysisRequest, signal: AbortSignal): Promise<AdapterResult> {
+//
+// Slice 0.2 (plan §4): this ONE adapter now serves two bake-off candidates -- Gemini Flash
+// (`gemini-3.5-flash`) and Gemini Flash-Lite (`gemini-3.5-flash-lite`, verified against current
+// official docs, docs/V2_AI_COLOR_LAB.md §Slice 0.2) -- which share an endpoint shape, a key, and
+// every request field except the model ID in the URL. `model` is a parameter, never a hardcoded
+// constant here, so there is exactly one source of truth for candidate model IDs
+// (src/domain/aiColorLab/contract.ts's AI_CANDIDATES).
+export async function runProvider(request: AiColorAnalysisRequest, signal: AbortSignal, model: string): Promise<AdapterResult> {
   const { mimeType, base64 } = dataUrlParts(request.imageDataUrl)
-  const response = await fetch(ENDPOINT, {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+  const response = await fetch(endpoint, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': getKey('gemini') },
@@ -39,7 +43,7 @@ export async function runProvider(request: AiColorAnalysisRequest, signal: Abort
   const usage = json?.usageMetadata
     ? { inputTokens: numberOrNull(json.usageMetadata.promptTokenCount), outputTokens: numberOrNull(json.usageMetadata.candidatesTokenCount), totalTokens: numberOrNull(json.usageMetadata.totalTokenCount) }
     : null
-  return outcomeFromModelText('gemini', MODEL, text, usage, json)
+  return outcomeFromModelText('gemini', model, text, usage, json)
 }
 
 function numberOrNull(value: number | undefined): number | null {

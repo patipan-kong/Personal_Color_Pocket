@@ -19,7 +19,7 @@ const VALID_BODY = {
 function fakeRequest(body: unknown, method = 'POST'): IncomingMessage {
   const req = Readable.from([JSON.stringify(body)]) as unknown as Readable & { method: string; url: string }
   req.method = method
-  req.url = '/api/ai-color/gemini'
+  req.url = '/api/ai-color/gemini-flash'
   return req as unknown as IncomingMessage
 }
 
@@ -53,7 +53,7 @@ describe('handleAiColorRequest', () => {
     const { handleAiColorRequest } = await import('./handler')
     const gemini = await import('./providers/gemini')
     const { res, read } = fakeResponse()
-    await handleAiColorRequest('gemini', fakeRequest(VALID_BODY), res)
+    await handleAiColorRequest('gemini-flash', fakeRequest(VALID_BODY), res)
     const { statusCode, body } = read()
     expect(statusCode).toBe(200)
     expect(body).toEqual({ ok: false, latencyMs: expect.any(Number), error: { kind: 'not-configured', httpStatus: null, message: expect.any(String) } })
@@ -68,7 +68,7 @@ describe('handleAiColorRequest', () => {
       result: { provider: 'gemini', model: 'gemini-3.5-flash', targetAssessment: { objectType: 'shirt', objectDescription: 'test garment', targetMatched: true }, perceivedColorName: 'x', colorFamily: 'x', temperature: 'warm', value: 'medium', chroma: 'medium', lighting: { condition: 'x', cast: 'neutral', severity: 'low' }, sampleAssessment: { usable: true, issue: 'none' }, suitability: 'workable', confidence: 'medium', reasoning: 'x' },
     })
     const { res, read } = fakeResponse()
-    await handleAiColorRequest('gemini', fakeRequest(VALID_BODY), res)
+    await handleAiColorRequest('gemini-flash', fakeRequest(VALID_BODY), res)
     const { statusCode, body } = read()
     expect(statusCode).toBe(200)
     expect(body.ok).toBe(true)
@@ -81,7 +81,7 @@ describe('handleAiColorRequest', () => {
     const gemini = await import('./providers/gemini')
     vi.mocked(gemini.runProvider).mockRejectedValue(new Error('leaky stack trace with secret sauce'))
     const { res, read } = fakeResponse()
-    await handleAiColorRequest('gemini', fakeRequest(VALID_BODY), res)
+    await handleAiColorRequest('gemini-flash', fakeRequest(VALID_BODY), res)
     const { statusCode, body } = read()
     expect(statusCode).toBe(200)
     expect(body.ok).toBe(false)
@@ -100,7 +100,7 @@ describe('handleAiColorRequest', () => {
       signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')))
     }))
     const { res, read } = fakeResponse()
-    const pending = handleAiColorRequest('gemini', fakeRequest(VALID_BODY), res)
+    const pending = handleAiColorRequest('gemini-flash', fakeRequest(VALID_BODY), res)
     await vi.advanceTimersByTimeAsync(40_000)
     await pending
     const { body } = read()
@@ -113,7 +113,7 @@ describe('handleAiColorRequest', () => {
     const { handleAiColorRequest } = await import('./handler')
     const gemini = await import('./providers/gemini')
     const { res, read } = fakeResponse()
-    await handleAiColorRequest('gemini', fakeRequest({ nonsense: true }), res)
+    await handleAiColorRequest('gemini-flash', fakeRequest({ nonsense: true }), res)
     const { statusCode, body } = read()
     expect(statusCode).toBe(400)
     expect(body.error.kind).toBe('bad-request')
@@ -123,7 +123,35 @@ describe('handleAiColorRequest', () => {
   it('rejects a non-POST method', async () => {
     const { handleAiColorRequest } = await import('./handler')
     const { res, read } = fakeResponse()
-    await handleAiColorRequest('gemini', fakeRequest(VALID_BODY, 'GET'), res)
+    await handleAiColorRequest('gemini-flash', fakeRequest(VALID_BODY, 'GET'), res)
     expect(read().statusCode).toBe(405)
+  })
+
+  // Slice 0.2 (plan §22 B, E): Gemini Flash and Gemini Flash-Lite are the SAME adapter module
+  // called with two distinct model ids -- the adapter must receive the right model per
+  // candidate, and one candidate failing must not affect the other, even though they share one
+  // provider/adapter/key.
+  it('resolves each Gemini candidate to its own model id and keeps them isolated from each other', async () => {
+    const { handleAiColorRequest } = await import('./handler')
+    const gemini = await import('./providers/gemini')
+    vi.mocked(gemini.runProvider).mockImplementation(async (_request, _signal, model) => {
+      if (model === 'gemini-3.5-flash-lite') throw new Error('flash-lite unavailable')
+      return { ok: true, usage: null, raw: {}, result: { provider: 'gemini', model, targetAssessment: { objectType: 'shirt', objectDescription: 'x', targetMatched: true }, perceivedColorName: 'x', colorFamily: 'x', temperature: 'warm', value: 'medium', chroma: 'medium', lighting: { condition: 'x', cast: 'neutral', severity: 'low' }, sampleAssessment: { usable: true, issue: 'none' }, suitability: 'workable', confidence: 'medium', reasoning: 'x' } }
+    })
+
+    const flashRes = fakeResponse()
+    await handleAiColorRequest('gemini-flash', fakeRequest(VALID_BODY), flashRes.res)
+    const flash = flashRes.read()
+    expect(flash.body.ok).toBe(true)
+    expect(flash.body.result.model).toBe('gemini-3.5-flash')
+
+    const liteRes = fakeResponse()
+    await handleAiColorRequest('gemini-flash-lite', fakeRequest(VALID_BODY), liteRes.res)
+    const lite = liteRes.read()
+    expect(lite.body.ok).toBe(false)
+    expect(lite.body.error.kind).toBe('internal')
+
+    expect(vi.mocked(gemini.runProvider).mock.calls[0][2]).toBe('gemini-3.5-flash')
+    expect(vi.mocked(gemini.runProvider).mock.calls[1][2]).toBe('gemini-3.5-flash-lite')
   })
 })

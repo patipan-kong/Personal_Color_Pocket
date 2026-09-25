@@ -12,6 +12,34 @@ import type { Season, Subtype } from '../personalColor/types'
 export const AI_PROVIDER_IDS = ['gemini', 'openai', 'groq'] as const
 export type AiProviderId = typeof AI_PROVIDER_IDS[number]
 
+// Slice 0.2 (plan §4): a PROVIDER (one key, one endpoint/adapter) may expose more than one
+// vision CANDIDATE model -- Gemini Flash and Gemini Flash-Lite share the gemini adapter and key
+// but are separate, independently comparable candidates in the bake-off. Every other provider
+// currently has exactly one candidate, whose id equals its provider id. This is deliberately
+// just "adapter + model configuration," not a duplicated adapter per model (plan §4: "Keep
+// architecture small").
+export const AI_CANDIDATE_IDS = ['gemini-flash', 'gemini-flash-lite', 'openai', 'groq'] as const
+export type AiCandidateId = typeof AI_CANDIDATE_IDS[number]
+
+export interface AiCandidateConfig {
+  provider: AiProviderId
+  model: string
+  label: string
+}
+
+// The one place a candidate's exact model ID is spelled out (plan §4: single source of truth,
+// no per-adapter hardcoded constant that could drift). gemini-3.5-flash-lite verified against
+// current official docs 2026-09-25 (docs/V2_AI_COLOR_LAB.md §Slice 0.2: model capability
+// sources) -- image input + structured output supported, same GEMINI_API_KEY as Flash. OpenAI
+// and Groq model IDs are UNCHANGED from Slice 0/0.1 (plan §3: "Do NOT change OpenAI or Groq
+// model IDs during this slice").
+export const AI_CANDIDATES: Record<AiCandidateId, AiCandidateConfig> = {
+  'gemini-flash': { provider: 'gemini', model: 'gemini-3.5-flash', label: 'Gemini Flash' },
+  'gemini-flash-lite': { provider: 'gemini', model: 'gemini-3.5-flash-lite', label: 'Gemini Flash-Lite' },
+  openai: { provider: 'openai', model: 'gpt-5-mini', label: 'OpenAI' },
+  groq: { provider: 'groq', model: 'qwen/qwen3.8-27b', label: 'Groq' },
+}
+
 export const TEMPERATURES = ['warm', 'neutral', 'cool', 'uncertain'] as const
 export type AiTemperature = typeof TEMPERATURES[number]
 

@@ -6,16 +6,18 @@ import type { AdapterResult } from './shared'
 // OpenAI adapter (plan §5 research, 2026-09-25 sources: developers.openai.com/api/docs/guides/
 // images-vision, .../structured-outputs, .../pricing). Chat Completions + response_format
 // json_schema (strict mode): confirmed compatible with image input in official docs.
-export const MODEL = 'gpt-5-mini'
+// Slice 0.2 (plan §4): `model` is a parameter (sourced from AI_CANDIDATES) rather than a local
+// constant, matching the other adapters, even though OpenAI has exactly one bake-off candidate
+// today -- the model ID itself is UNCHANGED from Slice 0/0.1 (plan §3).
 const ENDPOINT = 'https://api.openai.com/v1/chat/completions'
 
-export async function runProvider(request: AiColorAnalysisRequest, signal: AbortSignal): Promise<AdapterResult> {
+export async function runProvider(request: AiColorAnalysisRequest, signal: AbortSignal, model: string): Promise<AdapterResult> {
   const response = await fetch(ENDPOINT, {
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getKey('openai')}` },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [{
         role: 'user',
         content: [
@@ -39,7 +41,7 @@ export async function runProvider(request: AiColorAnalysisRequest, signal: Abort
   const usage = json?.usage
     ? { inputTokens: numberOrNull(json.usage.prompt_tokens), outputTokens: numberOrNull(json.usage.completion_tokens), totalTokens: numberOrNull(json.usage.total_tokens) }
     : null
-  return outcomeFromModelText('openai', MODEL, text, usage, json)
+  return outcomeFromModelText('openai', model, text, usage, json)
 }
 
 function numberOrNull(value: number | undefined): number | null {

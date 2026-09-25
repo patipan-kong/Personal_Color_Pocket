@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useReducer, useRef } from 'react'
 import type { ChangeEvent } from 'react'
-import { AI_PROVIDER_IDS } from '../domain/aiColorLab/contract'
-import type { AiColorSubtypeContext, AiProviderId } from '../domain/aiColorLab/contract'
+import { AI_CANDIDATE_IDS } from '../domain/aiColorLab/contract'
+import type { AiCandidateId, AiColorSubtypeContext } from '../domain/aiColorLab/contract'
 import { displayToImage } from '../domain/photoColor/coordinates'
 import type { DisplayTap } from '../domain/photoColor/types'
 import { getCopy } from '../i18n'
@@ -13,25 +13,30 @@ import { openPhoto, PhotoImageError } from '../services/photoImage'
 import './aiLab.css'
 import { computeDeterministicBaseline } from './aiLabDeterministic'
 import { AI_LAB_PREPARING_NOTICE_DELAY_MS, aiLabPhotoReducer, initialAiLabPhotoState } from './aiLabPhotoState'
-import { aiLabProvidersReducer, initialProvidersState } from './aiLabState'
-import { callAiColorProvider } from './aiColorLabApi'
+import { aiLabBakeoffReducer, EMPTY_REVIEW, initialBakeoffState, reviewKey } from './aiLabState'
+import type { PoReview } from './aiLabState'
+import { callAiColorCandidate } from './aiColorLabApi'
 import { buildAiColorRequest } from './buildRequest'
+import { ColorDimensionTable } from './ColorDimensionTable'
 import { DeterministicBaselineCard } from './DeterministicBaselineCard'
+import { FlashLiteComparison } from './FlashLiteComparison'
 import { ProviderCard } from './ProviderCard'
+import { SessionSummary } from './SessionSummary'
 
-// V2.0 AI Color Lab (Slice 0). A standalone, developer-only screen -- reached only via
-// ?debug=ai in a dev build (see App.tsx), never part of normal navigation (plan §22-23). It
-// reuses the existing local photo pipeline and deterministic engine unchanged, and talks to the
-// four providers only through /api/ai-color/<provider> (aiColorLabApi.ts) -- it never imports a
-// provider SDK or sees a credential (plan §29).
+// V2.0 AI Color Lab (Slice 0; extended Slice 0.2 into a Model Bake-off, plan §7). A standalone,
+// developer-only screen -- reached only via ?debug=ai in a dev build (see App.tsx), never part
+// of normal navigation (plan §22-23). It reuses the existing local photo pipeline and
+// deterministic engine unchanged, and talks to the four bake-off candidates only through
+// /api/ai-color/<candidateId> (aiColorLabApi.ts) -- it never imports a provider SDK or sees a
+// credential (plan §29).
 export function AiColorLabView() {
   const [photoState, dispatchPhoto] = useReducer(aiLabPhotoReducer, initialAiLabPhotoState)
-  const [providers, dispatchProviders] = useReducer(aiLabProvidersReducer, initialProvidersState)
+  const [bakeoff, dispatchBakeoff] = useReducer(aiLabBakeoffReducer, initialBakeoffState)
   const latestRequest = useRef(0)
   const photoController = useRef<AbortController | null>(null)
   const slowTimer = useRef<number | undefined>(undefined)
   const runCounter = useRef(0)
-  const providerControllers = useRef<Partial<Record<AiProviderId, AbortController>>>({})
+  const candidateControllers = useRef<Partial<Record<AiCandidateId, AbortController>>>({})
   const hintId = useId()
 
   // Read-only reuse of the saved profile, if any (plan §27). Never written to, never faked.
@@ -47,19 +52,20 @@ export function AiColorLabView() {
     photoController.current = null
     window.clearTimeout(slowTimer.current)
   }
-  const abortAllProviders = () => {
-    for (const provider of Object.keys(providerControllers.current) as AiProviderId[]) providerControllers.current[provider]?.abort()
-    providerControllers.current = {}
+  const abortAllCandidates = () => {
+    for (const candidateId of Object.keys(candidateControllers.current) as AiCandidateId[]) candidateControllers.current[candidateId]?.abort()
+    candidateControllers.current = {}
   }
   // A new photo or a new sample point starts a genuinely new analysis: cancel whatever is
   // in flight and clear every card back to idle, so no stale card can survive into it
-  // (plan §31 Case G).
+  // (plan §22 I). The session's accumulated bake-off history/reviews are untouched by this --
+  // they intentionally span every photo run in the session (plan §11, §19).
   const startFreshAnalysis = () => {
-    abortAllProviders()
-    dispatchProviders({ type: 'reset' })
+    abortAllCandidates()
+    dispatchBakeoff({ type: 'reset' })
   }
 
-  useEffect(() => () => { cancelPendingPhoto(); abortAllProviders(); latestRequest.current += 1 }, [])
+  useEffect(() => () => { cancelPendingPhoto(); abortAllCandidates(); latestRequest.current += 1 }, [])
 
   const choose = (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.currentTarget
@@ -115,24 +121,30 @@ export function AiColorLabView() {
     [image, baseline, subtypeContext],
   )
 
-  const runProvider = (provider: AiProviderId) => {
+  const runCandidate = (candidateId: AiCandidateId) => {
     if (!request) return
-    providerControllers.current[provider]?.abort()
+    candidateControllers.current[candidateId]?.abort()
     const controller = new AbortController()
-    providerControllers.current[provider] = controller
+    candidateControllers.current[candidateId] = controller
     const id = ++runCounter.current
-    dispatchProviders({ type: 'started', provider, runId: id })
-    void callAiColorProvider(provider, request, controller.signal).then((outcome) => {
-      dispatchProviders({ type: 'completed', provider, runId: id, outcome })
+    dispatchBakeoff({ type: 'started', candidateId, runId: id })
+    void callAiColorCandidate(candidateId, request, controller.signal).then((outcome) => {
+      dispatchBakeoff({ type: 'completed', candidateId, runId: id, outcome })
     })
   }
-  const runAll = () => { for (const provider of AI_PROVIDER_IDS) runProvider(provider) }
+  // Independent, parallel execution for every candidate, including both Gemini candidates that
+  // share one key/account -- never serialized just because two candidates share a provider (plan
+  // §21: "Do not serialize all providers merely because Gemini has two models"). Each adapter
+  // call is its own isolated request; a 429 on one candidate is reported on that one card only
+  // (classifyHttpStatus -> 'rate-limited', shown with a manual Retry -- plan §21: "Do not add
+  // automatic repeated retries that can burn credits").
+  const runAll = () => { for (const candidateId of AI_CANDIDATE_IDS) runCandidate(candidateId) }
 
   return <main className="ai-lab-page">
-    <p className="ai-lab-badge">Dev only — AI Color Lab</p>
+    <p className="ai-lab-badge">Dev only — AI Color Lab · Model Bake-off</p>
     <h1>AI Color Lab</h1>
-    <p>Compares the deterministic Photo Color Checker against four independent AI vision providers on the same photo and sample point. Not a production feature.</p>
-    <p className="ai-lab-privacy">Unlike the Photo Color Checker (which stays entirely on this device), running AI analysis here sends the selected photo to the AI provider(s) you choose to run, over the network, for this comparison only. Nothing is uploaded until you press Run.</p>
+    <p>Compares the deterministic Photo Color Checker against four AI vision model candidates (three providers — Gemini exposes two: Flash and Flash-Lite) on the same photo and sample point. Not a production feature.</p>
+    <p className="ai-lab-privacy">Unlike the Photo Color Checker (which stays entirely on this device), running AI analysis here sends the selected photo to the AI candidate(s) you choose to run, over the network, for this comparison only. Nothing is uploaded until you press Run.</p>
 
     <div className="ai-lab-picker-row">
       <label className="ai-lab-picker-label">
@@ -164,18 +176,30 @@ export function AiColorLabView() {
       </div>
       <div>
         <div className="ai-lab-run-row">
-          <button type="button" className="primary-button compact" onClick={runAll} disabled={!request}>Run all providers</button>
+          <button type="button" className="primary-button compact" onClick={runAll} disabled={!request}>Run all candidates</button>
           {!request && <span className="ai-lab-hint">Select a sample point first.</span>}
         </div>
         {request && <details className="ai-lab-input-preview">
           <summary>AI input preview</summary>
-          <p className="ai-lab-hint">The exact image sent to every provider, target marker included.</p>
-          <img src={request.imageDataUrl} alt="AI input preview: photo with the target marker as sent to every provider" />
+          <p className="ai-lab-hint">The exact image sent to every candidate, target marker included. Byte-identical for Gemini Flash and Gemini Flash-Lite (plan §5).</p>
+          <img src={request.imageDataUrl} alt="AI input preview: photo with the target marker as sent to every candidate" />
         </details>}
+        {bakeoff.cards['gemini-flash'].status !== 'idle' && <ColorDimensionTable cards={bakeoff.cards} />}
         <div className="ai-lab-cards">
-          {AI_PROVIDER_IDS.map((provider) => <ProviderCard key={provider} provider={provider} state={providers[provider]} onRetry={() => runProvider(provider)} />)}
+          {AI_CANDIDATE_IDS.map((candidateId) => {
+            const state = bakeoff.cards[candidateId]
+            const review = state.status === 'success' ? (bakeoff.reviews[reviewKey(candidateId, state.runId)] ?? EMPTY_REVIEW) : EMPTY_REVIEW
+            const onReviewChange = (next: PoReview) => {
+              if (state.status !== 'success') return
+              dispatchBakeoff({ type: 'review', candidateId, runId: state.runId, review: next })
+            }
+            return <ProviderCard key={candidateId} candidateId={candidateId} state={state} review={review} onRetry={() => runCandidate(candidateId)} onReviewChange={onReviewChange} />
+          })}
         </div>
+        {bakeoff.cards['gemini-flash'].status !== 'idle' && <FlashLiteComparison cards={bakeoff.cards} reviews={bakeoff.reviews} />}
       </div>
     </div>}
+
+    <SessionSummary history={bakeoff.history} reviews={bakeoff.reviews} />
   </main>
 }
