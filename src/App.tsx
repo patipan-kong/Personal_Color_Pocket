@@ -25,6 +25,7 @@ import { clearState, loadState, saveState } from './services/persistence'
 import { loadPresentationPreference, savePresentationPreference } from './services/presentationPreference'
 import type { PresentationPreference } from './services/presentationPreference'
 import { CanonicalColorLabel } from './CanonicalColorLabel'
+import { TodayOutfitLabView } from './todayOutfit/TodayOutfitLabView'
 
 type View = 'home' | 'presentation' | 'quiz' | 'result' | 'palette' | 'checker' | 'daily' | 'learn'
 type CheckerMode = 'manual' | 'photo'
@@ -686,11 +687,16 @@ export default function App() {
     () => import.meta.env.DEV && new URLSearchParams(window.location.search).get('debug') === 'advisory',
     [],
   )
+  const showOutfitLab = useMemo(
+    () => import.meta.env.DEV && new URLSearchParams(window.location.search).get('debug') === 'outfit',
+    [],
+  )
   // Stable for the lifetime of this mount (the query param is read once above and never
   // changes), so returning here always runs the same hooks in the same order across this
   // instance's own re-renders -- it just never touches quiz/result state or normal navigation.
   if (showAiLab) return <AiColorLabView />
   if (showAdvisoryPreview) return <AdvisoryPreview />
+  if (showOutfitLab) return <TodayOutfitLabView />
 
   useEffect(() => { saveState({ answers, result, quizStep }) }, [answers, result, quizStep])
   useEffect(() => { document.documentElement.lang = language }, [language])

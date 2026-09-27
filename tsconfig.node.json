@@ -7,5 +7,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["vite.config.ts", "api/**/*.ts", "src/domain/aiColorLab/**/*.ts", "src/domain/personalColor/types.ts", "src/domain/personalColor/seasons.ts"]
+  "include": ["vite.config.ts", "api/**/*.ts", "src/domain/ai/**/*.ts", "src/domain/aiColorLab/**/*.ts", "src/domain/todayOutfit/**/*.ts", "src/domain/todayOutfitImage/**/*.ts", "src/domain/personalColor/types.ts", "src/domain/personalColor/seasons.ts", "src/domain/personalColor/colorUtils.ts", "src/domain/personalColor/palettes.ts", "src/domain/personalColor/colorMatch.ts"]
 }
