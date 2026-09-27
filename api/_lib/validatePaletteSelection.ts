@@ -1,5 +1,5 @@
-import { PALETTE_SELECTION_STATUSES } from '../../src/domain/aiColorLab/paletteContract'
-import type { AiPaletteSelectionResult, AiPaletteSelectionTarget } from '../../src/domain/aiColorLab/paletteContract'
+import { PALETTE_SELECTION_STATUSES } from '../../src/domain/aiColorLab/paletteContract.js'
+import type { AiPaletteSelectionResult, AiPaletteSelectionTarget } from '../../src/domain/aiColorLab/paletteContract.js'
 
 // Server-only (mirrors api/_lib/validate.ts's philosophy): turns an untrusted, already-JSON-
 // parsed provider payload into an AiPaletteSelectionResult. Every field must be an exact,

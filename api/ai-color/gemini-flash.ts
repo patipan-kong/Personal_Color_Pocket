@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { handleAiColorRequest } from '../_lib/handler'
+import { handleAiColorRequest } from '../_lib/handler.js'
 
 // Vercel-style serverless function (Node runtime, default-export (req, res) handler). Not
 // deployed in this slice (plan §4, §36) -- this file exists so the plausible future path to

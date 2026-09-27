@@ -1,10 +1,10 @@
-import type { AiErrorKind, AiUsage } from '../../../src/domain/aiColorLab/contract'
-import type { AiPaletteSelectionRequest, AiPaletteSelectionResult } from '../../../src/domain/aiColorLab/paletteContract'
-import { getKey } from '../env'
-import { buildPaletteSelectionPrompt } from '../palettePrompt'
-import { extractJsonObject } from '../validate'
-import { validatePaletteSelectionOutput } from '../validatePaletteSelection'
-import { classifyHttpStatus, dataUrlParts, safeErrorMessage } from './shared'
+import type { AiErrorKind, AiUsage } from '../../../src/domain/aiColorLab/contract.js'
+import type { AiPaletteSelectionRequest, AiPaletteSelectionResult } from '../../../src/domain/aiColorLab/paletteContract.js'
+import { getKey } from '../env.js'
+import { buildPaletteSelectionPrompt } from '../palettePrompt.js'
+import { extractJsonObject } from '../validate.js'
+import { validatePaletteSelectionOutput } from '../validatePaletteSelection.js'
+import { classifyHttpStatus, dataUrlParts, safeErrorMessage } from './shared.js'
 
 // V2.0 Slice 0.5C (plan §L: "Use Gemini Flash-Lite as the primary candidate... Do NOT repeat the
 // 4-provider bakeoff... do not add another provider"). A dedicated, minimal adapter for the

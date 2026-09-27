@@ -1,7 +1,7 @@
-import type { AiColorAnalysisRequest } from '../../../src/domain/aiColorLab/contract'
-import { getKey } from '../env'
-import { classifyHttpStatus, dataUrlParts, errorOutcome, outcomeFromModelText, promptFor } from './shared'
-import type { AdapterResult } from './shared'
+import type { AiColorAnalysisRequest } from '../../../src/domain/aiColorLab/contract.js'
+import { getKey } from '../env.js'
+import { classifyHttpStatus, dataUrlParts, errorOutcome, outcomeFromModelText, promptFor } from './shared.js'
+import type { AdapterResult } from './shared.js'
 
 // Gemini adapter (plan §5 research, 2026-09-25 sources: ai.google.dev/gemini-api/docs/
 // image-understanding, .../structured-output, .../models). Uses

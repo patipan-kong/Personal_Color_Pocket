@@ -1,4 +1,4 @@
-import type { AiColorAnalysisRequest } from '../../src/domain/aiColorLab/contract'
+import type { AiColorAnalysisRequest } from '../../src/domain/aiColorLab/contract.js'
 
 // V2.0 Slice 0 (plan §12, §28): the ONE canonical instruction, shared by every provider adapter.
 // Adapters may wrap it differently (system+user split, JSON-mode preamble, etc.) but must never

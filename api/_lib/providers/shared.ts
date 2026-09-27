@@ -1,6 +1,6 @@
-import type { AiColorAnalysisRequest, AiErrorKind, AiProviderId, AiUsage, NormalizedAiColorResult } from '../../../src/domain/aiColorLab/contract'
-import { buildCanonicalPrompt } from '../prompt'
-import { extractJsonObject, validateModelOutput } from '../validate'
+import type { AiColorAnalysisRequest, AiErrorKind, AiProviderId, AiUsage, NormalizedAiColorResult } from '../../../src/domain/aiColorLab/contract.js'
+import { buildCanonicalPrompt } from '../prompt.js'
+import { extractJsonObject, validateModelOutput } from '../validate.js'
 
 // Shared plumbing for every provider adapter (plan §29: provider-specific code stays isolated
 // in one file per provider; this file holds only the parts that are genuinely identical).

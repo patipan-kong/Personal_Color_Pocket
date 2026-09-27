@@ -1,5 +1,5 @@
-import type { AiPaletteSelectionRequest } from '../../src/domain/aiColorLab/paletteContract'
-import { subtypeOrder } from '../../src/domain/personalColor/seasons'
+import type { AiPaletteSelectionRequest } from '../../src/domain/aiColorLab/paletteContract.js'
+import { subtypeOrder } from '../../src/domain/personalColor/seasons.js'
 
 // Defense in depth on OUR OWN request body (mirrors api/_lib/validateRequest.ts's philosophy for
 // the free-form task) -- a malformed/oversized one should fail as a normal 400, never reach the

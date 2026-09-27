@@ -1,4 +1,4 @@
-import type { Season, Subtype } from '../personalColor/types'
+import type { Season, Subtype } from '../personalColor/types.js'
 
 // V2.0 Slice 0: the AI Color Lab normalized contract (plan §14). Every provider adapter
 // (api/_lib/providers/*) must translate its raw response into exactly this shape before it

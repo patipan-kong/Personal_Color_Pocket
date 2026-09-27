@@ -1,7 +1,7 @@
-import type { AiColorAnalysisRequest } from '../../../src/domain/aiColorLab/contract'
-import { getKey } from '../env'
-import { classifyHttpStatus, errorOutcome, outcomeFromModelText, promptFor } from './shared'
-import type { AdapterResult } from './shared'
+import type { AiColorAnalysisRequest } from '../../../src/domain/aiColorLab/contract.js'
+import { getKey } from '../env.js'
+import { classifyHttpStatus, errorOutcome, outcomeFromModelText, promptFor } from './shared.js'
+import type { AdapterResult } from './shared.js'
 
 // Groq adapter (plan §5 research, 2026-09-25 sources: console.groq.com/docs/vision,
 // .../deprecations, .../models). IMPORTANT: `qwen/qwen3.8-27b` is currently the ONLY model Groq

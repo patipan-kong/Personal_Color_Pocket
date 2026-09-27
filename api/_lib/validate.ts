@@ -1,9 +1,9 @@
 import {
   CHROMA_LEVELS, CONFIDENCE_LEVELS, LIGHTING_CASTS, LIGHTING_SEVERITIES, SAMPLE_ISSUES, SUITABILITY_VERDICTS, TEMPERATURES, VALUE_LEVELS,
-} from '../../src/domain/aiColorLab/contract'
+} from '../../src/domain/aiColorLab/contract.js'
 import type {
   AiChromaLevel, AiConfidenceLevel, AiLightingCast, AiLightingSeverity, AiSampleIssue, AiSuitabilityVerdict, AiTemperature, AiValueLevel,
-} from '../../src/domain/aiColorLab/contract'
+} from '../../src/domain/aiColorLab/contract.js'
 
 // Server-only: turns an untrusted, already-JSON-parsed provider payload into the fields a
 // NormalizedAiColorResult needs (everything except provider/model, which the adapter attaches

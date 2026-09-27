@@ -1,5 +1,5 @@
-import type { Subtype } from '../personalColor/types'
-import type { AiErrorInfo, AiUsage } from './contract'
+import type { Subtype } from '../personalColor/types.js'
+import type { AiErrorInfo, AiUsage } from './contract.js'
 
 // V2.0 Slice 0.5C: a DEDICATED contract for the "select a canonical palette color" task, kept
 // separate from contract.ts's free-form NormalizedAiColorResult (plan §C: "Do not overload the

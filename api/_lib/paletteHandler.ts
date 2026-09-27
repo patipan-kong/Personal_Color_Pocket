@@ -1,11 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { AiPaletteApiOutcome } from '../../src/domain/aiColorLab/paletteContract'
-import { hasKey } from './env'
-import { BodyTooLargeError, InvalidJsonError, readJsonBody, sendJson } from './http'
-import { runPaletteSelectionProvider } from './providers/geminiPalette'
-import { safeErrorMessage } from './providers/shared'
-import { PROVIDER_TIMEOUT_MS, withTimeout } from './timeout'
-import { validatePaletteSelectionRequest } from './validatePaletteRequest'
+import type { AiPaletteApiOutcome } from '../../src/domain/aiColorLab/paletteContract.js'
+import { hasKey } from './env.js'
+import { BodyTooLargeError, InvalidJsonError, readJsonBody, sendJson } from './http.js'
+import { runPaletteSelectionProvider } from './providers/geminiPalette.js'
+import { safeErrorMessage } from './providers/shared.js'
+import { PROVIDER_TIMEOUT_MS, withTimeout } from './timeout.js'
+import { validatePaletteSelectionRequest } from './validatePaletteRequest.js'
 
 // V2.0 Slice 0.5C (plan §L): the ONE route for the canonical-palette-selection task. Unlike
 // handler.ts's multi-candidate routing, there is exactly one model exercised here (Gemini
