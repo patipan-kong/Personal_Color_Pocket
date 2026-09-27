@@ -1,7 +1,7 @@
 import { configDefaults, defineConfig } from 'vitest/config'
 import { loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
-import { aiColorLabDevServer } from './api/devServer'
+import { aiColorLabDevServer } from './api/devServer.js'
 
 // V2.0 AI Color Lab (Slice 0, plan §3-4): loadEnv reads .env into a plain object here, in
 // Node/config context only -- never through `define` or `import.meta.env`, so these four

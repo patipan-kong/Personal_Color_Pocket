@@ -1,8 +1,8 @@
 import type { Plugin } from 'vite'
-import { handleAiColorRequest } from './_lib/handler'
-import { handlePaletteSelectionRequest } from './_lib/paletteHandler'
-import { AI_CANDIDATE_IDS } from '../src/domain/aiColorLab/contract'
-import type { AiCandidateId } from '../src/domain/aiColorLab/contract'
+import { handleAiColorRequest } from './_lib/handler.js'
+import { handlePaletteSelectionRequest } from './_lib/paletteHandler.js'
+import { AI_CANDIDATE_IDS } from '../src/domain/aiColorLab/contract.js'
+import type { AiCandidateId } from '../src/domain/aiColorLab/contract.js'
 
 // V2.0 Slice 0 (plan §4), extended Slice 0.2 (plan §4, §7): the local-dev half of the
 // server-side boundary. `vite dev` has no built-in API routes, so this Vite plugin mounts

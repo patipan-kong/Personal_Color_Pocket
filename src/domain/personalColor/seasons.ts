@@ -1,4 +1,4 @@
-import type { SeasonDefinition, Subtype } from './types'
+import type { SeasonDefinition, Subtype } from './types.js'
 
 export const seasonDefinitions: Record<Subtype, SeasonDefinition> = {
   'light-spring': { id: 'light-spring', season: 'spring', target: { temperature: .72, value: .88, chroma: .62, contrast: .38 } },

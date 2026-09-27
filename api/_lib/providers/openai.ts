@@ -1,7 +1,7 @@
-import type { AiColorAnalysisRequest } from '../../../src/domain/aiColorLab/contract'
-import { getKey } from '../env'
-import { classifyHttpStatus, errorOutcome, modelOutputJsonSchema, outcomeFromModelText, promptFor } from './shared'
-import type { AdapterResult } from './shared'
+import type { AiColorAnalysisRequest } from '../../../src/domain/aiColorLab/contract.js'
+import { getKey } from '../env.js'
+import { classifyHttpStatus, errorOutcome, modelOutputJsonSchema, outcomeFromModelText, promptFor } from './shared.js'
+import type { AdapterResult } from './shared.js'
 
 // OpenAI adapter (plan §5 research, 2026-09-25 sources: developers.openai.com/api/docs/guides/
 // images-vision, .../structured-outputs, .../pricing). Chat Completions + response_format

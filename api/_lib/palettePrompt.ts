@@ -1,4 +1,4 @@
-import type { AiPaletteSelectionRequest } from '../../src/domain/aiColorLab/paletteContract'
+import type { AiPaletteSelectionRequest } from '../../src/domain/aiColorLab/paletteContract.js'
 
 // V2.0 Slice 0.5C (plan §G): the smallest provider-neutral prompt for the canonical-palette-
 // selection task. Deliberately separate from api/_lib/prompt.ts's CANONICAL_INSTRUCTION -- that

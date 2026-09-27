@@ -1,4 +1,4 @@
-import type { AiColorAnalysisRequest } from '../../src/domain/aiColorLab/contract'
+import type { AiColorAnalysisRequest } from '../../src/domain/aiColorLab/contract.js'
 
 // Defense in depth on OUR OWN request body (not the provider's response -- see validate.ts for
 // that). This is our own frontend's payload, but a malformed/oversized one should fail as a
