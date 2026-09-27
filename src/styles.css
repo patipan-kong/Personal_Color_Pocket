@@ -375,8 +375,13 @@ h1, h2, h3, p { text-wrap: pretty; }
 .style-category { background: rgba(255,255,255,.55); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
 .style-category h4 { margin: 0 0 10px; font-size: .82rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); }
 .style-category-colors { display: flex; flex-wrap: wrap; gap: 8px; }
-.color-chip { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--ink); background: rgba(255,255,255,.7); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px 4px 4px; }
-.color-chip i { width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.1); }
+.color-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; font-size: .78rem; color: var(--ink); background: rgba(255,255,255,.7); border: 1px solid var(--line); border-radius: 16px; padding: 4px 10px 4px 4px; }
+.color-chip i { flex: none; width: 18px; height: 18px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.1); }
+.canonical-color-label { display: grid; min-width: 0; line-height: 1.3; overflow-wrap: anywhere; }
+.canonical-color-primary { min-width: 0; font: inherit; font-weight: 800; }
+.canonical-color-secondary { min-width: 0; color: var(--muted); font-size: .84em; font-weight: 600; line-height: 1.3; }
+.canonical-color-hex { margin-top: 2px; color: var(--muted); font-family: ui-monospace, monospace; font-size: .78em; font-weight: 650; white-space: nowrap; }
+.canonical-color-label.is-compact .canonical-color-secondary { font-size: .8em; }
 .outfit-combo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .outfit-combo { background: rgba(255,255,255,.55); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
 .outfit-combo-dots { display: flex; gap: 6px; margin-bottom: 10px; }
@@ -386,9 +391,11 @@ h1, h2, h3, p { text-wrap: pretty; }
 .teaser-strip span { font-weight: 750; color: var(--ink); }
 .teaser-strip em { font-style: normal; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); }
 .selected-color { position: sticky; z-index: 5; top: 14px; max-width: 420px; margin: 0 auto 50px; padding: 15px 18px; border-radius: 18px; display: grid; grid-template-columns: 1fr auto; gap: 2px 20px; box-shadow: 0 15px 40px rgba(31,22,26,.2); border: 1px solid rgba(255,255,255,.35); }
-.selected-color span { grid-column: 1 / -1; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; opacity: .74; }
-.selected-color strong { font-size: 1rem; }
-.selected-color code { font-family: ui-monospace, monospace; font-weight: 700; }
+.selected-color-heading { grid-column: 1 / -1; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; opacity: .74; }
+.selected-color .canonical-color-label { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) auto; column-gap: 20px; }
+.selected-color .canonical-color-primary { font-size: 1rem; }
+.selected-color .canonical-color-secondary { grid-column: 1; color: inherit; opacity: .78; }
+.selected-color .canonical-color-hex { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: inherit; font-size: .82rem; opacity: .86; }
 .palette-section { padding: 50px 0; border-top: 1px solid var(--line); }
 .palette-section-heading { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 18px; align-items: start; margin-bottom: 28px; }
 .palette-section-heading > span { color: var(--accent); font-weight: 800; font-size: .72rem; letter-spacing: .1em; padding-top: 8px; }
@@ -401,12 +408,9 @@ h1, h2, h3, p { text-wrap: pretty; }
 .swatch-color i { display: none; position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; border: 1px solid currentColor; border-radius: 50%; place-items: center; font-style: normal; }
 .swatch.selected .swatch-color { outline: 3px solid var(--ink); outline-offset: 3px; }
 .swatch.selected .swatch-color i { display: grid; }
-.swatch strong, .swatch small { display: block; overflow: hidden; }
-/* A name longer than its tile under large text wraps rather than being cut to "…" (V1.4 Slice 5). At
-   normal text sizes every name fits one line, as before. */
-.swatch strong { font-size: .82rem; line-height: 1.3; overflow-wrap: anywhere; }
-.swatch small { white-space: nowrap; text-overflow: ellipsis; }
-.swatch small { margin-top: 2px; color: var(--muted); font-family: ui-monospace, monospace; font-size: .7rem; }
+.swatch .canonical-color-label { font-size: .82rem; }
+.swatch .canonical-color-secondary { margin-top: 1px; }
+.swatch .canonical-color-hex { font-size: .7rem; }
 .metal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .metal-grid article { display: flex; gap: 18px; align-items: center; background: rgba(255,255,255,.55); border: 1px solid var(--line); padding: 16px; border-radius: 18px; }
 .metal-grid article > span { width: 62px; height: 62px; border-radius: 50%; flex: 0 0 auto; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12), inset 8px 8px 15px rgba(255,255,255,.3); }
@@ -480,6 +484,7 @@ h1, h2, h3, p { text-wrap: pretty; }
 .check-name { margin: 2px 0 0; color: var(--ink); font-size: 1.05rem; line-height: 1.3; overflow-wrap: anywhere; }
 .check-name strong { font-weight: 800; }
 .check-name-alt { color: var(--muted); font-weight: 600; }
+.canonical-check-name { font-size: 1.05rem; }
 .check-hex { display: block; margin-top: 2px; color: var(--muted); font-family: ui-monospace, monospace; font-size: .8rem; letter-spacing: .02em; }
 /* Slice 5c verdict: the largest text on the card. Tone styling only reinforces the words. */
 .check-verdict { margin: 0; display: flex; gap: 10px; align-items: flex-start; color: var(--ink); font-size: clamp(1.18rem, 1.05rem + .6vw, 1.4rem); font-weight: 800; line-height: 1.3; letter-spacing: -.01em; }
@@ -694,6 +699,7 @@ h1, h2, h3, p { text-wrap: pretty; }
 .learn-metals i { width: 28px; height: 28px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(38,24,32,.2); }
 .learn-metals span { font-size: .9rem; line-height: 1.45; color: var(--muted); }
 .learn-metals strong { display: block; color: var(--ink); }
+.learn-metals .canonical-color-label { margin-bottom: 2px; }
 .learn-outfit { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8em), 1fr)); gap: 16px; align-items: center; }
 .learn-flatlay { display: block; width: 100%; max-width: 13em; height: auto; }
 .learn-flatlay-piece { stroke: rgba(38,24,32,.3); stroke-width: 1.5; stroke-linejoin: round; }
@@ -883,6 +889,8 @@ h1, h2, h3, p { text-wrap: pretty; }
   .presentation-options { gap: 10px; }
   .style-category-grid, .outfit-combo-grid { grid-template-columns: 1fr; }
   .swatch-grid { grid-template-columns: repeat(2, 1fr); }
+  .selected-color .canonical-color-label { grid-template-columns: minmax(0, 1fr); }
+  .selected-color .canonical-color-hex { grid-column: 1; grid-row: auto; justify-self: start; }
 }
 
 /* V1.4 Slice 5: the phone nav under larger text. Widths are in the nav's label ems (and px for zoom).

@@ -10,6 +10,7 @@ import { loadDailyLuckyColorGoals, saveDailyLuckyColorGoals } from '../services/
 import { GarmentArt } from './GarmentArt'
 import { boardFillColor, boardFillTone, buildOutfitBoardModel } from './outfitBoard'
 import type { OutfitBoardModel, OutfitBoardPiece } from './outfitBoard'
+import { CanonicalColorLabel } from '../CanonicalColorLabel'
 
 export type DailyClock = () => Date
 const deviceClock: DailyClock = () => new Date()
@@ -81,6 +82,12 @@ function pieceColorName(piece: OutfitBoardPiece, copy: LocaleCopy): string {
   return copy.daily.semanticColors[fill.token]
 }
 
+function PieceColorName({ piece, copy }: { piece: OutfitBoardPiece; copy: LocaleCopy }) {
+  const { fill } = piece
+  if (fill.kind === 'exact') return <CanonicalColorLabel color={{ name: fill.paletteName, hex: fill.hex }} language={copy.language} mode="compact" />
+  return <>{pieceColorName(piece, copy)}</>
+}
+
 // Left/right move one button, up/down one row of the 2 × 2 goal grid.
 const GRID_MOVES: Partial<Record<string, number>> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -2, ArrowDown: 2 }
 
@@ -103,7 +110,7 @@ function TodayColors({ board, copy }: { board: OutfitBoardModel; copy: LocaleCop
           <div className="daily-family-text">
             <div className="daily-family-heading"><h3>{copy.daily.familyLabels[claim.luckyFamily]}</h3><p className="daily-goal-provenance">{goalLabels(claim.goals, copy)}</p></div>
             {exact
-              ? <p className="daily-shade"><span>{copy.daily.personalizedShade}</span> <strong>{exact.name[copy.language]}</strong></p>
+              ? <p className="daily-shade"><span>{copy.daily.personalizedShade}</span> <CanonicalColorLabel color={{ name: exact.paletteName, hex: exact.hex }} language={copy.language} mode="compact" /></p>
               : <p className="daily-shade is-broad">{copy.daily.familyLabel}</p>}
           </div>
         </article>
@@ -145,7 +152,7 @@ function OutfitBoard({ board, copy, subtype, onQuiz }: { board: OutfitBoardModel
         </div>
         <div className="daily-garment-caption">
           <h3>{copy.daily.pieceLabels[piece.role]}</h3>
-          <p className="daily-piece-color">{pieceColorName(piece, copy)}</p>
+          <p className="daily-piece-color"><PieceColorName piece={piece} copy={copy} /></p>
           {piece.lucky
             ? <p className="daily-lucky-badge"><span className="daily-lucky-glyph" aria-hidden="true">✦ </span>{`${copy.daily.luckyBadge}${copy.daily.goalSeparator.replace(/^ /, ' ')}${goalLabels(piece.goals, copy)}`}</p>
             : <p className="daily-supporting-label">{piece.support === 'personal-color' ? copy.daily.personalSupport : copy.daily.neutralSupport}</p>}

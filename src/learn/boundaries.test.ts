@@ -67,7 +67,9 @@ const uiSources = import.meta.glob(['./ui/**/*.tsx', '!./ui/**/*.test.tsx'], { q
 
 describe('E. Learn UI boundaries (Slice 2)', () => {
   it('uses the public Learn API, React and types only: no domain data, classifier, services or package', () => {
-    const allowed = new Set(['react', '..', '../../i18n', '../../domain/personalColor/types'])
+    // CanonicalColorLabel is the shared presentation-only renderer used by palette, Checker,
+    // Daily and Learn. It reads no Learn/domain service and keeps canonical identity in one place.
+    const allowed = new Set(['react', '..', '../../i18n', '../../domain/personalColor/types', '../../CanonicalColorLabel'])
     for (const [path, source] of Object.entries(uiSources)) {
       for (const specifier of specifiers(source)) expect(specifier.startsWith('./') || allowed.has(specifier), `${path} imports ${specifier}`).toBe(true)
       // Type-only imports from i18n and the domain: the UI never calls getCopy, palettes or seasons itself.

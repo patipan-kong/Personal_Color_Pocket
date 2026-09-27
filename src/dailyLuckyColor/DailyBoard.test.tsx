@@ -139,7 +139,7 @@ describe('V1.3 Slice 5 garment board rendering', () => {
       expect(items[index].querySelectorAll('.daily-garment-glow')).toHaveLength(lucky ? 1 : 0)
       expect(items[index].querySelectorAll('.daily-garment-mark')).toHaveLength(lucky ? 1 : 0)
       for (const decoration of items[index].querySelectorAll('.daily-garment-glow, .daily-garment-mark, .daily-lucky-glyph')) expect(decoration).toHaveAttribute('aria-hidden', 'true')
-      if (piece.color.kind === 'palette') expect(items[index].querySelector('.daily-piece-color')).toHaveTextContent(new RegExp(`^${piece.color.name.en}$`))
+      if (piece.color.kind === 'palette') expect(items[index].querySelector('.daily-piece-color')).toHaveTextContent(new RegExp(`^${piece.color.paletteName}$`))
     }
     expect(container.querySelectorAll('.daily-garment-mark')).toHaveLength(recommendation.luckyClaims.length)
   })

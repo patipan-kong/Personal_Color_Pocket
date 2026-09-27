@@ -32,7 +32,7 @@ function expectFaithfulBoard(recommendation: LuckyGoalsOutfitRecommendation, mod
     expect(shown.role).toBe(source.role)
     expect(shown.lucky).toBe(source.colorRole === 'lucky')
     if (source.color.kind === 'palette') {
-      expect(shown.fill).toEqual({ kind: 'exact', hex: source.color.hex, name: source.color.name })
+      expect(shown.fill).toEqual({ kind: 'exact', hex: source.color.hex, name: source.color.name, paletteName: source.color.paletteName })
       expect(boardFillColor(shown.fill)).toBe(source.color.hex)
     } else if (source.color.token === 'lucky-family') {
       expect(shown.fill).toEqual({ kind: 'family-token', family: source.color.luckyFamily })
@@ -66,7 +66,7 @@ function expectFaithfulBoard(recommendation: LuckyGoalsOutfitRecommendation, mod
     expect(carrier.goals).toEqual(source.goals)
     const selected = source.adaptation?.selectedColor
     if (selected) {
-      expect(claim.exactColor).toEqual({ hex: selected.hex, name: selected.name })
+      expect(claim.exactColor).toEqual({ hex: selected.hex, name: selected.name, paletteName: selected.paletteName })
       expect(carrier.fill).toMatchObject({ kind: 'exact', hex: selected.hex })
     } else {
       expect(claim.exactColor).toBeNull()
@@ -159,7 +159,7 @@ describe('V1.3 Slice 5 outfit board model', () => {
     const light = board('thu', ['money'], 'light-spring')
     expect(piece(light, 'top').lucky).toBe(true)
     expect(boardFillTone(piece(light, 'top').fill)).toBe('light')
-    expect(boardFillTone({ kind: 'exact', hex: '#FFFFFF', name: describeColor('#FFFFFF')! })).toBe('light')
+    expect(boardFillTone({ kind: 'exact', hex: '#FFFFFF', name: describeColor('#FFFFFF')!, paletteName: 'White' })).toBe('light')
     expect(boardFillTone({ kind: 'family-token', family: 'white' })).toBe('light')
     const dark = board('sat', ['money'], 'deep-winter')
     expect(piece(dark, 'top').lucky).toBe(true)

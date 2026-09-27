@@ -7,6 +7,7 @@ import type { Suitability } from '../domain/photoColor/suitability'
 import { colorDisplayName } from '../i18n'
 import type { Language, LocaleCopy } from '../i18n'
 import type { ColorResultView } from './resultView'
+import { CanonicalColorLabel } from '../CanonicalColorLabel'
 
 type ResultCopy = LocaleCopy['colorResult']
 type Garments = LocaleCopy['styleExamples']['garments']
@@ -28,7 +29,9 @@ export function ColorResultSummary({ copy, language, view }: { copy: ResultCopy;
         <small>{view.sampleLabel}</small>
         {/* Slice 0.5D: already-translated provenance label, e.g. "AI-assisted" -- see resultView.ts. */}
         {view.sourceLabel && <span className="check-source-badge">{view.sourceLabel}</span>}
-        <ColorNameLine hex={hex} language={language} />
+        {view.canonicalColor
+          ? <CanonicalColorLabel color={view.canonicalColor} language={language} className="check-name canonical-check-name" />
+          : <ColorNameLine hex={hex} language={language} />}
         {/* Slice 7: the exact measurement stays, as a quiet technical detail under the name. */}
         <span className="check-hex">{hex}</span>
       </div>
@@ -135,6 +138,6 @@ function ColorNameLine({ hex, language }: { hex: string; language: Language }) {
 function PaletteChip({ color, language }: { color: PaletteColor; language: Language }) {
   const name = colorDisplayName(language, color)
   return <span className="color-chip" title={`${name} ${color.hex}`}>
-    <i style={{ background: color.hex }} aria-hidden="true" />{name}
+    <i style={{ background: color.hex }} aria-hidden="true" /><CanonicalColorLabel color={color} language={language} mode="compact" />
   </span>
 }

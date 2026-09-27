@@ -259,14 +259,14 @@ describe('E. Lucky colors: family from tradition, shade and placement from Perso
 })
 
 describe('F. Metal notes on browsed types', () => {
-  const metalTexts = () => [...document.querySelectorAll<HTMLElement>('[data-learn-group="metals"] li span')].map((item) => item.textContent!)
+  const metalTexts = () => [...document.querySelectorAll<HTMLElement>('[data-learn-group="metals"] li')].map((item) => item.textContent!)
   const speaksToReader = { en: /\byour?\b/i, th: /คุณ/ }
   const reworded: Record<Language, Subtype[]> = { en: [], th: [] }
 
   it.each(all12)('%s (%s): own type keeps its note; a browsed type is worded about the type', (subtype, language) => {
     const palette = getPalette(subtype)
     const canonical = palette.metals.map((metal) => metalDisplayNote(language, metal))
-    const expected = (notes: string[]) => palette.metals.map((metal, index) => `${colorDisplayName(language, metal)} ${notes[index]}`)
+    const expected = (notes: string[]) => palette.metals.map((metal, index) => `${colorDisplayName(language, metal)}${language === 'th' ? metal.name : ''} ${notes[index]}`)
     // A. The reader's own type: the canonical note, word for word.
     renderLearn({ language, result: resultFor(subtype), entry: { kind: 'type', subtype } })
     expect(metalTexts()).toEqual(expected(canonical))

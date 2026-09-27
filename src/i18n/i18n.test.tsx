@@ -7,10 +7,16 @@ import { quizQuestions } from '../domain/personalColor/quiz'
 import { analyzeQuiz } from '../domain/personalColor/scoring'
 import { subtypeOrder } from '../domain/personalColor/seasons'
 import { saveState, STORAGE_KEY } from '../services/persistence'
-import { hasCompleteThaiColorName, translateColorNameThai } from './colors'
-import { detectLanguage, getCopy, LANGUAGE_STORAGE_KEY, persistLanguage, translations } from './index'
+import { hasCompleteThaiColorName, thaiCanonicalColorNames, translateColorNameThai } from './colors'
+import { colorDisplayName, detectLanguage, getCopy, LANGUAGE_STORAGE_KEY, persistLanguage, translations } from './index'
 
 const warmAnswers = { undertone: 'golden', metal: 'gold', white: 'ivory', earth: 'glow', 'cool-color': 'drain', hair: 'medium', eyes: 'light-clear', contrast: 'medium', intensity: 'balanced', clarity: 'balanced', depth: 'medium' }
+
+const paletteGroups = ['best', 'neutrals', 'accents', 'harder', 'metals'] as const
+const canonicalColors = subtypeOrder.flatMap((subtype) => paletteGroups.flatMap((group) =>
+  palettes[subtype][group].map((color) => ({ subtype, group, color })),
+))
+const canonicalNames = [...new Set(canonicalColors.map(({ color }) => color.name))].sort()
 
 describe('Thai and English localization', () => {
   beforeEach(() => localStorage.clear())
@@ -54,6 +60,72 @@ describe('Thai and English localization', () => {
       expect(section.title).toMatch(/[ก-๙]/)
       expect(section.description).toMatch(/[ก-๙]/)
     })
+  })
+
+  it('has an exhaustive explicit Thai table for all 240 canonical names and no compositional fallback', () => {
+    expect(canonicalNames).toHaveLength(240)
+    expect(Object.keys(thaiCanonicalColorNames).sort()).toEqual(canonicalNames)
+
+    canonicalNames.forEach((name) => {
+      expect(hasCompleteThaiColorName(name), name).toBe(true)
+      expect(translateColorNameThai(name), name).toBe(thaiCanonicalColorNames[name as keyof typeof thaiCanonicalColorNames])
+      expect(translateColorNameThai(name), name).toMatch(/[ก-๙]/)
+    })
+
+    expect(hasCompleteThaiColorName('Future Tomato Purple')).toBe(false)
+    expect(translateColorNameThai('Future Tomato Purple')).toBe('Future Tomato Purple')
+  })
+
+  it('pins the reported regressions and final product-owner decisions', () => {
+    expect({
+      'Tomato Red': translateColorNameThai('Tomato Red'),
+      'Cool Taupe': translateColorNameThai('Cool Taupe'),
+      'True Lavender': translateColorNameThai('True Lavender'),
+    }).toEqual({
+      'Tomato Red': 'แดงอมส้มสด',
+      'Cool Taupe': 'น้ำตาลเทาโทนเย็น',
+      'True Lavender': 'ม่วงลาเวนเดอร์',
+    })
+
+    expect(Object.fromEntries([
+      'Blue Sage', 'Cool Emerald', 'Golden Rose', 'Heather', 'Mulberry',
+      'Ochre', 'Oyster', 'Rose Silver', 'True Navy', 'Warm Navy',
+    ].map((name) => [name, translateColorNameThai(name)]))).toEqual({
+      'Blue Sage': 'เขียวเซจอมฟ้าหม่น',
+      'Cool Emerald': 'เขียวมรกตโทนเย็น',
+      'Golden Rose': 'ชมพูกุหลาบโทนอุ่น',
+      Heather: 'ม่วงเฮเทอร์หม่น',
+      Mulberry: 'ม่วงมัลเบอร์รีหม่น',
+      Ochre: 'เหลืองโอเคอร์',
+      Oyster: 'เทาเบจอ่อน',
+      'Rose Silver': 'เงินอมชมพู',
+      'True Navy': 'กรมท่า',
+      'Warm Navy': 'กรมท่าโทนอุ่น',
+    })
+  })
+
+  it('keeps the two mauve labels distinct and has no unintended exact Thai collisions', () => {
+    expect(translateColorNameThai('Dusty Mauve')).toBe('ชมพูอมม่วงหม่น')
+    expect(translateColorNameThai('Muted Mauve')).toBe('ม่วงอมชมพูหม่น')
+
+    const namesByThai = new Map<string, string[]>()
+    Object.entries(thaiCanonicalColorNames).forEach(([english, thai]) => {
+      namesByThai.set(thai, [...(namesByThai.get(thai) ?? []), english])
+    })
+    const collisions = [...namesByThai.values()].filter((names) => names.length > 1).map((names) => names.sort())
+    expect(collisions).toEqual([['Navy', 'True Navy']])
+  })
+
+  it('localizes presentation without mutating palette identity, membership, or English display names', () => {
+    const before = canonicalColors.map(({ subtype, group, color }) => ({ subtype, group, id: color.id, name: color.name, hex: color.hex }))
+
+    canonicalColors.forEach(({ color }) => {
+      expect(colorDisplayName('en', color)).toBe(color.name)
+      expect(colorDisplayName('th', color)).toBe(thaiCanonicalColorNames[color.name as keyof typeof thaiCanonicalColorNames])
+    })
+
+    const after = canonicalColors.map(({ subtype, group, color }) => ({ subtype, group, id: color.id, name: color.name, hex: color.hex }))
+    expect(after).toEqual(before)
   })
 
   it('switches quiz language without changing the selected answer', async () => {

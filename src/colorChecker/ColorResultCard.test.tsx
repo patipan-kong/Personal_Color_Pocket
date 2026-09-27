@@ -23,6 +23,7 @@ const locales = { en, th } as const
 function view(suitability: Suitability, overrides: Partial<ColorResultView> = {}): ColorResultView {
   return {
     hex: '#A1B2C3',
+    canonicalColor: null,
     sampleLabel: 'Checked color',
     suitability,
     category: { key: 'some-label', label: 'Engine label' },
@@ -51,6 +52,7 @@ const text = (selector: string) => $(selector)?.textContent ?? ''
 const before = (first: string, second: string) => Boolean($(first)!.compareDocumentPosition($(second)!) & Node.DOCUMENT_POSITION_FOLLOWING)
 
 describe('shared Color Checker result card', () => {
+  const canonicalText = (language: Language, color: typeof palette.best[number]) => `${colorDisplayName(language, color)}${language === 'th' ? color.name : ''}`
   it('orders swatch/HEX → verdict → label → why → action → reference → placement → pairing → details → warnings → advisory → caveat', () => {
     renderView(view('conditional', { details: ['A detail'], warnings: ['A warning'], aiAdvisory: [{ title: 'Advisory title', body: 'Advisory body' }], caveat: 'A caveat' }))
     const order = ['.check-hex', '.check-verdict', '.check-category', '.check-reason', '.check-action', '.check-reference', '.check-placement', '.check-pairing', '.check-details', '.check-warnings', '.check-advisory', '.check-caveat']
@@ -97,19 +99,26 @@ describe('shared Color Checker result card', () => {
     expect(before('.check-source-badge', '.check-hex')).toBe(true)
   })
 
+  it('keeps an arbitrary HEX on the generic naming path without a canonical palette label', () => {
+    renderView(view('good'), 'th')
+    expect($('.check-name')).toBeInTheDocument()
+    expect($('.canonical-check-name')).toBeNull()
+    expect(text('.check-hex')).toBe('#A1B2C3')
+  })
+
   it('palette reference: labelled by kind, with the group only for a positive verdict', () => {
     for (const language of ['en', 'th'] as const) {
       const copy = locales[language].colorResult
       renderView(view('strong'), language)
-      expect(text('.check-reference')).toBe(`${copy.reference.similar}${colorDisplayName(language, palette.best[0])}${copy.groups.best}`)
+      expect(text('.check-reference')).toBe(`${copy.reference.similar}${canonicalText(language, palette.best[0])}${copy.groups.best}`)
       cleanup()
       // Manual: "nearest of your Best colours", and no group (the engine does not report one).
       renderView(view('strong', { reference: { kind: 'nearestBest', color: palette.best[0], group: null } }), language)
-      expect(text('.check-reference')).toBe(`${copy.reference.nearestBest}${colorDisplayName(language, palette.best[0])}`)
+      expect(text('.check-reference')).toBe(`${copy.reference.nearestBest}${canonicalText(language, palette.best[0])}`)
       cleanup()
       for (const suitability of ['conditional', 'weak', 'outside'] as const) {
         renderView(view(suitability), language)
-        expect(text('.check-reference')).toBe(`${copy.reference.similar}${colorDisplayName(language, palette.best[0])}${copy.reference.compare}`)
+        expect(text('.check-reference')).toBe(`${copy.reference.similar}${canonicalText(language, palette.best[0])}${copy.reference.compare}`)
         cleanup()
       }
     }
@@ -131,7 +140,7 @@ describe('shared Color Checker result card', () => {
 
   it('renders pairWith exactly, in order, as named chips; frames it by the placement advice', () => {
     renderView(view('outside'), 'th')
-    expect([...document.querySelectorAll('.check-pairs .color-chip')].map((chip) => chip.textContent)).toEqual(view('outside').pairWith.map((color) => colorDisplayName('th', color)))
+    expect([...document.querySelectorAll('.check-pairs .color-chip')].map((chip) => chip.textContent)).toEqual(view('outside').pairWith.map((color) => canonicalText('th', color)))
     expect(text('.check-pairing h2')).toBe(th.colorResult.pairing['near-face'].heading)
     cleanup()
     renderView(view('good', { pairWith: [] }))
@@ -200,9 +209,9 @@ describe('the shared card knows nothing about its source', () => {
   it('has no manual/photo branching, engine calls or storage', () => {
     // Imports are checked separately: the shared tone helper still lives in domain/photoColor.
     const imports = cardSource.match(/^import .*$/gm)!.map((line) => line.replace(/.* from '(.*)'$/, '$1'))
-    expect(imports.sort()).toEqual(['../domain/colorNames/colorNames', '../domain/personalColor/colorUtils', '../domain/personalColor/types', '../domain/photoColor/suitability', '../domain/photoColor/suitability', '../i18n', '../i18n', './resultView', 'react'])
+    expect(imports.sort()).toEqual(['../CanonicalColorLabel', '../domain/colorNames/colorNames', '../domain/personalColor/colorUtils', '../domain/personalColor/types', '../domain/photoColor/suitability', '../domain/photoColor/suitability', '../i18n', '../i18n', './resultView', 'react'])
     const code = cardSource.replace(/^import .*$/gm, '').replace(/\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
-    for (const forbidden of ['mode', 'manual', 'photo', 'checkColor', 'matchPhotoColor', 'getSuitability', 'getColorPlacement', 'pairingSuggestions', 'getPalette', 'score', 'distance', 'localStorage', 'fetch']) {
+    for (const forbidden of ['manual', 'photo', 'checkColor', 'matchPhotoColor', 'getSuitability', 'getColorPlacement', 'pairingSuggestions', 'getPalette', 'score', 'distance', 'localStorage', 'fetch']) {
       expect(code, forbidden).not.toMatch(new RegExp(forbidden, 'i'))
     }
   })

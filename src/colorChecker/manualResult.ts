@@ -39,6 +39,7 @@ export function toManualResultView(match: ColorMatchResult, copy: LocaleCopy, pr
   const { rating } = match
   return {
     hex: match.normalizedHex,
+    canonicalColor: null,
     sampleLabel: copy.checker.sampleLabel,
     suitability: getManualSuitability(rating),
     category: { key: rating.toLowerCase().replace(' ', '-'), label: copy.ratings[rating] },

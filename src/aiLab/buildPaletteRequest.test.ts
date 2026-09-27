@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getPalette } from '../domain/personalColor/palettes'
 import { subtypeOrder } from '../domain/personalColor/seasons'
+import { thaiCanonicalColorNames } from '../i18n/colors'
 import { buildPaletteCandidates } from './buildPaletteRequest'
 
 // V2.0 Slice 0.5C (plan §S): "request includes only canonical colors for the active subtype" and
@@ -34,6 +35,15 @@ describe('buildPaletteCandidates', () => {
         expect(real, candidate.colorId).toBeDefined()
         expect(candidate.name).toBe(real!.name)
         expect(candidate.hex).toBe(real!.hex)
+      }
+    }
+  })
+
+  it('sends canonical English names rather than localized Thai display labels', () => {
+    const thaiLabels = new Set<string>(Object.values(thaiCanonicalColorNames))
+    for (const subtype of subtypeOrder) {
+      for (const candidate of buildPaletteCandidates(subtype)) {
+        expect(thaiLabels.has(candidate.name), candidate.colorId).toBe(false)
       }
     }
   })
