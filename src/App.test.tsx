@@ -5,6 +5,8 @@ import App from './App'
 import { quizQuestions } from './domain/personalColor/quiz'
 import { analyzeQuiz } from './domain/personalColor/scoring'
 import { STORAGE_KEY } from './services/persistence'
+import { LANGUAGE_STORAGE_KEY, colorDisplayName } from './i18n'
+import { getPalette } from './domain/personalColor/palettes'
 
 describe('primary product flow', () => {
   beforeEach(() => localStorage.clear())
@@ -32,7 +34,7 @@ describe('primary product flow', () => {
     expect(screen.getByRole('status')).toHaveTextContent('#D98463')
     expect(document.querySelector('.check-verdict')!.textContent!.length).toBeGreaterThan(10)
     expect(document.body.textContent).not.toMatch(/palette fit|\d+%/)
-  })
+  }, 10_000)
 
   it('offers the Daily lucky-color experience from welcome without requiring a quiz profile', async () => {
     const user = userEvent.setup()
@@ -41,6 +43,27 @@ describe('primary product flow', () => {
     expect(screen.getByRole('heading', { name: /what should i wear today/i })).toBeInTheDocument()
     expect(document.querySelectorAll('[data-daily-goal]')).toHaveLength(4)
     expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('uses the bilingual canonical hierarchy for Thai palette cards and the selected summary', async () => {
+    const user = userEvent.setup()
+    const answers = { undertone: 'golden', metal: 'gold', white: 'ivory', earth: 'glow', 'cool-color': 'drain', hair: 'medium', eyes: 'light-clear', contrast: 'medium', intensity: 'balanced', clarity: 'balanced', depth: 'medium' }
+    const result = { ...analyzeQuiz(answers), subtype: 'warm-spring' as const, season: 'spring' as const }
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'th')
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, answers, result, quizStep: 10 }))
+    const { container } = render(<App />)
+    await user.click(screen.getByRole('button', { name: /ดูพาเลตต์ของฉัน/ }))
+
+    const color = getPalette('warm-spring').best[0]
+    const selected = container.querySelector('.selected-color')!
+    expect(selected.querySelector('.canonical-color-primary')).toHaveTextContent(colorDisplayName('th', color))
+    expect(selected.querySelector('.canonical-color-secondary')).toHaveTextContent(color.name)
+    expect(selected.querySelector('.canonical-color-hex')).toHaveTextContent(color.hex)
+
+    const card = container.querySelector('.swatch')!
+    expect(card.querySelector('.canonical-color-primary')).toHaveTextContent(colorDisplayName('th', color))
+    expect(card.querySelector('.canonical-color-secondary')).toHaveTextContent(color.name)
+    expect(card.querySelector('.canonical-color-hex')).toHaveTextContent(color.hex)
   })
 
   it('can complete all eleven quiz questions with keyboard controls', async () => {

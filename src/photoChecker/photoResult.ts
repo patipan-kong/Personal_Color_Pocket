@@ -26,6 +26,7 @@ export function toPhotoResultView(matched: PhotoPointMatched, copy: LocaleCopy['
   const harderName = match.resembles ? colorDisplayName(language, match.resembles.color) : null
   return {
     hex: matched.sample.hex,
+    canonicalColor: null,
     sampleLabel: copy.sampleLabel,
     suitability,
     category: { key: match.category, label: copy.categories[match.category] },
@@ -61,6 +62,7 @@ export function toPhotoAiResultView(result: AiFallbackResult, copy: LocaleCopy['
   const colorName = colorDisplayName(language, result.color)
   return {
     hex: result.color.hex,
+    canonicalColor: result.color,
     sampleLabel: copy.sampleLabel,
     suitability: result.suitability,
     category: { key: result.category, label: copy.categories[result.category] },

@@ -166,7 +166,7 @@ describe('B/C. One template renders every type from canonical data', () => {
       expect(within(section).getByRole('heading', { level: 2 })).toHaveTextContent(copy.palette.sections[group].title)
       const items = [...section.querySelectorAll<HTMLElement>('.learn-chips li')]
       expect(items).toHaveLength(palette[group].length)
-      expect(items.map((item) => item.textContent)).toEqual(palette[group].map((color) => colorDisplayName(language, color)))
+      expect(items.map((item) => item.textContent)).toEqual(palette[group].map((color) => `${colorDisplayName(language, color)}${language === 'th' ? color.name : ''}`))
       expect(swatchColors(section, '.learn-chips i')).toEqual(palette[group].map((color) => cssColor(color.hex)))
       for (const swatch of section.querySelectorAll('.learn-chips i')) expect(swatch).toHaveAttribute('aria-hidden', 'true')
     }
@@ -174,17 +174,17 @@ describe('B/C. One template renders every type from canonical data', () => {
 
     // More Considered: exactly the app's own title, description, listed colours and tips — nothing added.
     const harder = root.querySelector<HTMLElement>('[data-learn-group="harder"]')!
-    expect(harder.textContent).toBe([copy.palette.sections.harder.title, copy.palette.sections.harder.description, ...palette.harder.map((color) => colorDisplayName(language, color)), ...copy.palette.harderTips].join(''))
+    expect(harder.textContent).toBe([copy.palette.sections.harder.title, copy.palette.sections.harder.description, ...palette.harder.map((color) => `${colorDisplayName(language, color)}${language === 'th' ? color.name : ''}`), ...copy.palette.harderTips].join(''))
 
     // Metals: the canonical two, with their existing notes — worded about the type, since this browsed
     // type is not the reader's own (Slice 4; the audit is in LearnGuides.test.tsx).
     const metals = [...root.querySelectorAll<HTMLElement>('[data-learn-group="metals"] li')]
-    expect(metals.map((metal) => metal.textContent)).toEqual(palette.metals.map((metal) => `${colorDisplayName(language, metal)} ${typeOrientedNote(metalDisplayNote(language, metal), language)}`))
+    expect(metals.map((item) => item.textContent)).toEqual(palette.metals.map((metal) => `${colorDisplayName(language, metal)}${language === 'th' ? metal.name : ''} ${typeOrientedNote(metalDisplayNote(language, metal), language)}`))
     expect(swatchColors(root, '[data-learn-group="metals"] li i')).toEqual(palette.metals.map((metal) => cssColor(metal.hex)))
 
     // Formula: the first Best, Neutral and Accent, named, with a decorative flat-lay in the same colours.
     const formula = [palette.best[0], palette.neutrals[0], palette.accents[0]]
-    expect([...root.querySelectorAll('.learn-formula strong')].map((name) => name.textContent)).toEqual(formula.map((color) => colorDisplayName(language, color)))
+    expect([...root.querySelectorAll('.learn-formula .canonical-color-label')].map((name) => name.textContent)).toEqual(formula.map((color) => `${colorDisplayName(language, color)}${language === 'th' ? color.name : ''}`))
     expect(root.querySelector('.learn-flatlay')).toHaveAttribute('aria-hidden', 'true')
     expect(swatchColors(root, '.learn-flatlay-piece')).toEqual(formula.map((color) => cssColor(color.hex)))
 

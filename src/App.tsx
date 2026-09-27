@@ -24,6 +24,7 @@ import { adService } from './services/ads'
 import { clearState, loadState, saveState } from './services/persistence'
 import { loadPresentationPreference, savePresentationPreference } from './services/presentationPreference'
 import type { PresentationPreference } from './services/presentationPreference'
+import { CanonicalColorLabel } from './CanonicalColorLabel'
 
 type View = 'home' | 'presentation' | 'quiz' | 'result' | 'palette' | 'checker' | 'daily' | 'learn'
 type CheckerMode = 'manual' | 'photo'
@@ -295,7 +296,7 @@ function ImageViewerDialog({ open, onClose, src, alt, label, closeLabel }: {
 
 function ColorChip({ language, color }: { language: Language; color: PaletteColor }) {
   return <span className="color-chip" title={`${colorDisplayName(language, color)} ${color.hex}`}>
-    <i style={{ background: color.hex }} aria-hidden="true" />{colorDisplayName(language, color)}
+    <i style={{ background: color.hex }} aria-hidden="true" /><CanonicalColorLabel color={color} language={language} mode="compact" />
   </span>
 }
 
@@ -508,7 +509,7 @@ function Swatch({ copy, language, color, selected, onSelect }: { copy: LocaleCop
   const name = colorDisplayName(language, color)
   return <button className={`swatch ${selected ? 'selected' : ''}`} onClick={onSelect} type="button" aria-pressed={selected} title={copy.palette.selectAria(name)}>
     <span className="swatch-color" style={{ background: color.hex }}><i style={{ color: readableTextColor(color.hex) }}>✓</i></span>
-    <strong title={name}>{name}</strong><small>{color.hex}</small>
+    <CanonicalColorLabel color={color} language={language} showHex />
   </button>
 }
 
@@ -521,7 +522,7 @@ function PaletteTabPanel({ copy, language, definition, palette, onLearn }: { cop
     ['harder', copy.palette.sections.harder],
   ] as const
   return <div id="palette-tabpanel-palette" role="tabpanel" aria-labelledby="palette-tab-palette">
-    {selected && <aside className="selected-color" style={{ background: selected.hex, color: readableTextColor(selected.hex) }} aria-live="polite"><span>{copy.palette.selected}</span><strong>{colorDisplayName(language, selected)}</strong><code>{selected.hex}</code></aside>}
+    {selected && <aside className="selected-color" style={{ background: selected.hex, color: readableTextColor(selected.hex) }} aria-live="polite"><span className="selected-color-heading">{copy.palette.selected}</span><CanonicalColorLabel color={selected} language={language} showHex /></aside>}
     {sections.map(([key, section], index) => <section className="palette-section" key={key}>
       <div className="palette-section-heading"><span>{String(index + 1).padStart(2, '0')}</span><div><h2>{section.title}</h2><p>{section.description}</p></div></div>
       <div className="swatch-grid">{palette[key].map((color) => <Swatch copy={copy} language={language} key={color.id} color={color} selected={selected?.id === color.id} onSelect={() => setSelected(color)} />)}</div>
@@ -529,7 +530,7 @@ function PaletteTabPanel({ copy, language, definition, palette, onLearn }: { cop
       {/* V1.4 Slice 4: the one Learn link on this screen, where the reader meets More Considered. */}
       {key === 'harder' && <button type="button" className="text-button palette-learn-link" onClick={onLearn}>{copy.palette.learnCta} <span aria-hidden="true">→</span></button>}
     </section>)}
-    <section className="palette-section metals-section"><div className="palette-section-heading"><span>05</span><div><h2>{copy.palette.sections.metals.title}</h2><p>{copy.palette.sections.metals.description}</p></div></div><div className="metal-grid">{palette.metals.map((metal) => <article key={metal.id}><span className="metal-swatch" style={{ background: `linear-gradient(135deg, ${metal.hex}, #fff6 40%, ${metal.hex})` }} /><div><h3>{colorDisplayName(language, metal)}</h3><p>{metalDisplayNote(language, metal)}</p></div></article>)}</div></section>
+    <section className="palette-section metals-section"><div className="palette-section-heading"><span>05</span><div><h2>{copy.palette.sections.metals.title}</h2><p>{copy.palette.sections.metals.description}</p></div></div><div className="metal-grid">{palette.metals.map((metal) => <article key={metal.id}><span className="metal-swatch" style={{ background: `linear-gradient(135deg, ${metal.hex}, #fff6 40%, ${metal.hex})` }} /><div><h3><CanonicalColorLabel color={metal} language={language} /></h3><p>{metalDisplayNote(language, metal)}</p></div></article>)}</div></section>
   </div>
 }
 

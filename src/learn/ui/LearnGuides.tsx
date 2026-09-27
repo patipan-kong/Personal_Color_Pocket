@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
 import type { Language, LocaleCopy } from '../../i18n'
 import { lightingExample, outfitExample, paletteColorById, subtypeGuide } from '..'
-import type { LearnCopy, LearnProfile, LearnVisualKind, SubtypeGuide } from '..'
+import type { LearnCopy, LearnProfile, LearnVisualKind } from '..'
 import { FlatLay, flatLayView, garmentPath } from './LearnArt'
+import { CanonicalColorLabel } from '../../CanonicalColorLabel'
+import type { MetalRecommendation, PaletteColor } from '../../domain/personalColor/types'
 
 // V1.4 Slice 4: the practical visuals, one per registry visual kind. Each one teaches a single idea from
 // its topic's existing copy and writes the lesson out beside the drawing, so it still reads without
@@ -26,21 +28,12 @@ function Illustration({ kind, tag, caption, children }: { kind: LearnVisualKind;
   </figure>
 }
 
-// A colour's localized name within the palette it came from (never its HEX or id).
-function colorName(guide: SubtypeGuide, id: string): string {
-  for (const group of guide.groups) {
-    const index = group.colors.findIndex((color) => color.id === id)
-    if (index >= 0) return group.names[index]
-  }
-  return guide.metals.names[guide.metals.items.findIndex((metal) => metal.id === id)]
-}
-
 // One role in an outfit: a decorative swatch, what the role is, and the colour's name.
-function Role({ hex, role, name, considered = false }: { hex: string; role: string; name: string; considered?: boolean }) {
+function Role({ color, role, language, considered = false }: { color: PaletteColor | MetalRecommendation; role: string; language: Language; considered?: boolean }) {
   return <li className={considered ? 'is-considered' : undefined}>
-    <i aria-hidden="true" style={{ background: hex }} />
+    <i aria-hidden="true" style={{ background: color.hex }} />
     <span>{role}</span>
-    <strong>{name}</strong>
+    <CanonicalColorLabel color={color} language={language} mode="compact" />
   </li>
 }
 
@@ -49,12 +42,12 @@ function example(learn: LearnCopy, language: Language, profile: LearnProfile | n
   const outfit = outfitExample(profile)
   const guide = subtypeGuide(outfit.subtype, language)
   const tag = `${outfit.personal ? learn.visuals.yourColors : learn.visuals.exampleColors} · ${guide.copy.name}`
-  return { outfit, guide, tag, name: (id: string) => colorName(guide, id) }
+  return { outfit, guide, tag }
 }
 
 // garment-placement (the palette topic): what goes near the face, what goes below it, and how each group is used.
 export function PalettePlacement({ learn, language, profile }: GuideProps) {
-  const { outfit, tag, name } = example(learn, language, profile)
+  const { outfit, tag } = example(learn, language, profile)
   const formula = learn.typeDetail.formula
   const placement = learn.visuals.placement
   return <Illustration kind="garment-placement" tag={tag}>
@@ -70,11 +63,11 @@ export function PalettePlacement({ learn, language, profile }: GuideProps) {
         </div>
       </div>
       <ul className="learn-formula learn-roles">
-        <Role hex={outfit.nearFace.hex} role={formula.nearFace} name={name(outfit.nearFace.id)} />
-        <Role hex={outfit.metal.hex} role={placement.metal} name={name(outfit.metal.id)} />
-        <Role hex={outfit.base.hex} role={formula.base} name={name(outfit.base.id)} />
-        <Role hex={outfit.accent.hex} role={formula.accent} name={name(outfit.accent.id)} />
-        <Role hex={outfit.moreConsidered.hex} role={placement.moreConsidered} name={name(outfit.moreConsidered.id)} considered />
+        <Role color={outfit.nearFace} role={formula.nearFace} language={language} />
+        <Role color={outfit.metal} role={placement.metal} language={language} />
+        <Role color={outfit.base} role={formula.base} language={language} />
+        <Role color={outfit.accent} role={formula.accent} language={language} />
+        <Role color={outfit.moreConsidered} role={placement.moreConsidered} language={language} considered />
       </ul>
     </div>
   </Illustration>
@@ -83,7 +76,7 @@ export function PalettePlacement({ learn, language, profile }: GuideProps) {
 // placement-shift (the More Considered topic): one listed More Considered colour near the face, then the same colour lower and
 // smaller with a Best colour on top. Placement changes how it is used, not what group it is in.
 export function PlacementShift({ learn, language, profile }: GuideProps) {
-  const { outfit, guide, tag, name } = example(learn, language, profile)
+  const { outfit, guide, tag } = example(learn, language, profile)
   const shift = learn.visuals.shift
   const title = (group: 'best' | 'neutrals' | 'harder') => guide.groups.find((entry) => entry.group === group)!.title
   return <Illustration kind="placement-shift" tag={tag} caption={shift.same}>
@@ -98,9 +91,9 @@ export function PlacementShift({ learn, language, profile }: GuideProps) {
       </li>
     </ol>
     <ul className="learn-formula learn-roles">
-      <Role hex={outfit.moreConsidered.hex} role={title('harder')} name={name(outfit.moreConsidered.id)} considered />
-      <Role hex={outfit.nearFace.hex} role={title('best')} name={name(outfit.nearFace.id)} />
-      <Role hex={outfit.base.hex} role={title('neutrals')} name={name(outfit.base.id)} />
+      <Role color={outfit.moreConsidered} role={title('harder')} language={language} considered />
+      <Role color={outfit.nearFace} role={title('best')} language={language} />
+      <Role color={outfit.base} role={title('neutrals')} language={language} />
     </ul>
   </Illustration>
 }

@@ -105,7 +105,7 @@ describe('Daily lucky color UI', () => {
     const expected = adaptLuckyColorToSubtype(rule.colorFamilies[0], 'warm-spring').selectedColor!
     const { container } = render(<DailyView copy={getCopy('en')} result={profile('warm-spring')} onQuiz={vi.fn()} clock={() => monday} />)
     expect(container.querySelector('[data-daily-mode="personalized"]')).toBeTruthy()
-    expect(container.querySelector('.daily-shade strong')).toHaveTextContent(expected.name.en)
+    expect(container.querySelector('.daily-shade .canonical-color-primary')).toHaveTextContent(expected.paletteName)
     expect(container.querySelector('.daily-lucky-badge')).toHaveTextContent('Lucky color')
     expect(screen.queryByRole('button', { name: /find your personal color/i })).not.toBeInTheDocument()
   })
@@ -128,9 +128,9 @@ describe('Daily lucky color UI', () => {
   it('recomputes from the current profile rather than retaining a stale subtype', () => {
     const clock = () => monday
     const rendered = render(<DailyView copy={getCopy('en')} result={profile('warm-spring')} onQuiz={vi.fn()} clock={clock} />)
-    expect(rendered.container.querySelector('.daily-shade')).toHaveTextContent('Green')
+    expect(rendered.container.querySelector('.daily-shade')).toHaveTextContent('Apple Green')
     rendered.rerender(<DailyView copy={getCopy('en')} result={profile('soft-autumn')} onQuiz={vi.fn()} clock={clock} />)
-    expect(rendered.container.querySelector('.daily-shade')).toHaveTextContent('Olive')
+    expect(rendered.container.querySelector('.daily-shade')).toHaveTextContent('Moss')
   })
 
   it('changes only copy across locales, preserves the canonical recommendation, and localizes Thai text', () => {

@@ -12,7 +12,7 @@ import { LUCKY_FAMILY_DISPLAY_SWATCHES } from './presentation'
 type ColorName = Extract<LuckyOutfitColor, { kind: 'palette' }>['name']
 
 export type OutfitBoardFill =
-  | { readonly kind: 'exact'; readonly hex: string; readonly name: ColorName }
+  | { readonly kind: 'exact'; readonly hex: string; readonly name: ColorName; readonly paletteName: string }
   | { readonly kind: 'family-token'; readonly family: LuckyColorFamily }
   | { readonly kind: 'neutral-token'; readonly token: 'light-neutral' | 'neutral' }
 
@@ -36,7 +36,7 @@ export interface OutfitBoardClaim {
   readonly placement: LuckyOutfitPlacement
   readonly pieceKey: string
   // The exact personalized colour when Slice 2 found one; null means a broad-family fallback.
-  readonly exactColor: { readonly hex: string; readonly name: ColorName } | null
+  readonly exactColor: { readonly hex: string; readonly name: ColorName; readonly paletteName: string } | null
 }
 
 export interface OutfitBoardModel {
@@ -53,7 +53,7 @@ const pieceKey = (role: LuckyOutfitRole, slot?: number) => slot === undefined ? 
 
 function fillFor(piece: LuckyOutfitPiece): OutfitBoardFill {
   const { color } = piece
-  if (color.kind === 'palette') return Object.freeze({ kind: 'exact', hex: color.hex, name: color.name })
+  if (color.kind === 'palette') return Object.freeze({ kind: 'exact', hex: color.hex, name: color.name, paletteName: color.paletteName })
   if (color.token === 'lucky-family') {
     if (!color.luckyFamily) throw new RangeError('Lucky-family token without a family')
     return Object.freeze({ kind: 'family-token', family: color.luckyFamily })
@@ -89,7 +89,7 @@ export function buildOutfitBoardModel(recommendation: LuckyGoalsOutfitRecommenda
     if (!piece?.lucky) throw new RangeError(`Lucky claim ${claim.luckyFamily} has no lucky piece`)
     return Object.freeze({
       luckyFamily: claim.luckyFamily, goals: claim.goals, placement: claim.placement, pieceKey: key,
-      exactColor: piece.fill.kind === 'exact' ? Object.freeze({ hex: piece.fill.hex, name: piece.fill.name }) : null,
+      exactColor: piece.fill.kind === 'exact' ? Object.freeze({ hex: piece.fill.hex, name: piece.fill.name, paletteName: piece.fill.paletteName }) : null,
     })
   })
   return Object.freeze({

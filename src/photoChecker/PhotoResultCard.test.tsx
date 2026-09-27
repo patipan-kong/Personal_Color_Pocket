@@ -49,6 +49,7 @@ const withWarnings = (matched: PhotoPointMatched, warnings: SampleFlag[]): Photo
 const $ = (selector: string) => document.querySelector<HTMLElement>(selector)
 const text = (selector: string) => $(selector)?.textContent ?? ''
 const chipNames = (selector: string) => [...document.querySelectorAll(`${selector} .color-chip`)].map((chip) => chip.textContent)
+const canonicalText = (language: Language, color: { name: string }) => `${colorDisplayName(language, color)}${language === 'th' ? color.name : ''}`
 const before = (first: string, second: string) => Boolean($(first)!.compareDocumentPosition($(second)!) & Node.DOCUMENT_POSITION_FOLLOWING)
 const verdictText = () => text('.check-verdict > span:last-child')
 // A real match of this category that also resembles a Harder colour, from any subtype.
@@ -179,7 +180,7 @@ describe('nearest colour, resemblance, direction and descriptors', () => {
     const { color, group } = matched.match.nearest
     for (const language of ['en', 'th'] as const) {
       renderCard(selected(matched), { language })
-      expect(chipNames('.check-reference')).toEqual([colorDisplayName(language, color)])
+      expect(chipNames('.check-reference')).toEqual([canonicalText(language, color)])
       expect(text('.check-reference')).toContain(locales[language].colorResult.reference.similar)
       expect(text('.check-reference')).toContain(locales[language].colorResult.groups[group])
       expect(text('.check-reference')).not.toContain(locales[language].colorResult.reference.compare)
@@ -246,7 +247,7 @@ describe('pairings', () => {
       for (const category of CATEGORIES) {
         const matched = real(subtype, category)
         renderCard(selected(matched), { language: 'th' })
-        expect(chipNames('.check-pairs')).toEqual(matched.match.pairWith.map((color) => colorDisplayName('th', color)))
+        expect(chipNames('.check-pairs')).toEqual(matched.match.pairWith.map((color) => canonicalText('th', color)))
         document.querySelectorAll('.check-pairs .color-chip').forEach((chip, index) => expect(chip.getAttribute('title')).toContain(matched.match.pairWith[index].hex))
         matched.match.pairWith.forEach((color) => expect(document.body.textContent).not.toContain(color.id))
         cleanup()
@@ -278,7 +279,7 @@ describe('pairings', () => {
   it('palette chip names come from colorDisplayName (TH differs from the English data name)', () => {
     const matched = real('warm-autumn', 'near-face')
     renderCard(selected(matched), { language: 'th' })
-    expect(chipNames('.check-reference')[0]).toBe(colorDisplayName('th', matched.match.nearest.color))
+    expect(chipNames('.check-reference')[0]).toBe(canonicalText('th', matched.match.nearest.color))
     expect(chipNames('.check-reference')[0]).toMatch(/[ก-๙]/)
   })
 })
@@ -510,6 +511,9 @@ describe('AI fallback action (Slice 0.5D, explicit invocation only)', () => {
     const matched = real(AI_SUBTYPE, 'near-face')
     renderCard(selected(matched), { language: 'th', ai: { status: 'selected', resolution: aiSelectedResolution } })
     expect(text('.check-source-badge')).toBe(th.photoChecker.ai.badge)
+    expect(text('.canonical-check-name .canonical-color-primary')).toBe(colorDisplayName('th', aiSelectedResolution.result.color))
+    expect(text('.canonical-check-name .canonical-color-secondary')).toBe(aiSelectedResolution.result.color.name)
+    expect(text('.check-hex')).toBe(aiSelectedResolution.result.color.hex)
     expect(screen.getByRole('button', { name: th.photoChecker.ai.action })).toBeInTheDocument()
   })
 })
