@@ -1,4 +1,4 @@
-import type { MetalRecommendation, PaletteColor, PersonalColorPalette, Subtype } from './types'
+import type { MetalRecommendation, PaletteColor, PersonalColorPalette, Subtype } from './types.js'
 
 type ColorSeed = [name: string, hex: string]
 type PaletteSeed = { best: ColorSeed[]; neutrals: ColorSeed[]; accents: ColorSeed[]; harder: ColorSeed[]; metals: [string, string, string][] }

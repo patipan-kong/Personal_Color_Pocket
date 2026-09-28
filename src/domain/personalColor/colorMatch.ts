@@ -1,6 +1,6 @@
-import { getPalette } from './palettes'
-import { hexColorDistance, normalizeHex } from './colorUtils'
-import type { ColorMatchResult, PaletteColor, Subtype } from './types'
+import { getPalette } from './palettes.js'
+import { hexColorDistance, normalizeHex } from './colorUtils.js'
+import type { ColorMatchResult, PaletteColor, Subtype } from './types.js'
 
 const clamp = (value: number) => Math.min(1, Math.max(0, value))
 const similarity = (distance: number) => Math.exp(-distance * 7.2)

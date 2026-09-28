@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest'
 // real resolver, which is exactly why the bug shipped without any local signal.
 //
 // This test statically walks the REAL module graph starting from every actual Vercel function
-// entry point (api/ai-color/*.ts, api/ai-palette/*.ts) and fails if any reachable server module
+// entry point and fails if any reachable server module
 // uses a relative import Node's ESM loader could not resolve at runtime -- whether that is a
 // missing extension or a path that does not resolve to a file on disk at all. It re-walks the
 // graph from source rather than asserting a fixed file list, so any new production-reachable
@@ -35,7 +35,8 @@ function entryPoints(dir: string): string[] {
 
 describe('server-side ESM module graph resolves the way Vercel/Node actually load it', () => {
   it('every relative import reachable from a Vercel function entry point has a file extension and resolves to a real file', () => {
-    const entries = [...entryPoints(path.join(ROOT, 'api', 'ai-color')), ...entryPoints(path.join(ROOT, 'api', 'ai-palette'))]
+    const entries = ['ai-color', 'ai-palette', 'today-outfit']
+      .flatMap((directory) => entryPoints(path.join(ROOT, 'api', directory)))
     // Guards against this test silently checking nothing if the entry directories are ever renamed.
     expect(entries.length).toBeGreaterThan(0)
 

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PersonalColorResult, Subtype } from '../domain/personalColor/types'
@@ -6,10 +7,11 @@ import { adaptLuckyColorToSubtype } from '../domain/luckyColor/adaptation'
 import { getLuckyColorForDate } from '../domain/luckyColor/luckyColor'
 import { getCopy } from '../i18n'
 import { DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, saveDailyLuckyColorGoals } from '../services/dailyLuckyColorGoal'
-import { DailyView } from './DailyView'
+import { DailyView as ProductionDailyView } from './DailyView'
 import { LUCKY_FAMILY_DISPLAY_SWATCHES } from './presentation'
 
 const monday = new Date(2026, 8, 21, 10, 0, 0)
+const DailyView = (props: ComponentProps<typeof ProductionDailyView>) => <ProductionDailyView {...props} showLegacyLuckyContent />
 const profile = (subtype: Subtype): PersonalColorResult => ({ season: subtype.split('-')[1] as PersonalColorResult['season'], subtype, dimensions: { temperature: 0, value: 0, chroma: 0, contrast: 0 }, confidence: .8, confidenceLabel: 'Likely match', reasons: [], alternatives: [] })
 
 describe('Daily lucky color UI', () => {

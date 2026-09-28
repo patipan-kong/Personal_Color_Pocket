@@ -1,15 +1,21 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { quizQuestions } from './domain/personalColor/quiz'
 import { analyzeQuiz } from './domain/personalColor/scoring'
 import { STORAGE_KEY } from './services/persistence'
 import { LANGUAGE_STORAGE_KEY, colorDisplayName } from './i18n'
 import { getPalette } from './domain/personalColor/palettes'
+import { requestInspirationOutfitRecommendation } from './services/inspirationOutfitRecommendation'
+import { saveWardrobe } from './services/wardrobePersistence'
+
+vi.mock('./services/inspirationOutfitRecommendation', () => ({ requestInspirationOutfitRecommendation: vi.fn() }))
+
+const inspirationResult = { outfit: { kind: 'separates' as const, top: { garmentType: 't-shirt' as const, color: { kind: 'generic' as const, colorId: 'beige' as const } }, bottom: { garmentType: 'jeans' as const, color: { kind: 'generic' as const, colorId: 'navy' as const } }, outerwear: null, shoes: { garmentType: 'sneakers' as const, color: { kind: 'generic' as const, colorId: 'white' as const } } } }
 
 describe('primary product flow', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => { localStorage.clear(); vi.mocked(requestInspirationOutfitRecommendation).mockReset() })
   afterEach(cleanup)
   it('moves from welcome through result, palette, and checker', async () => {
     const user = userEvent.setup()
@@ -43,7 +49,24 @@ describe('primary product flow', () => {
     expect(screen.getByRole('heading', { name: /what should i wear today/i })).toBeInTheDocument()
     expect(document.querySelectorAll('[data-daily-goal]')).toHaveLength(4)
     expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByText(/no lucky focus selected today/i)).toBeInTheDocument()
+    expect(document.querySelector('.daily-empty-result, .daily-board')).toBeNull()
+    expect(screen.getByRole('button', { name: "Build Today's Look ✨" })).toBeEnabled()
+  })
+
+  it('keeps a user-selected Inspiration result across a Wardrobe mutation and return', async () => {
+    vi.mocked(requestInspirationOutfitRecommendation).mockResolvedValue({ ok: true, result: inspirationResult })
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: /today's lucky color/i }))
+    await user.click(screen.getByRole('radio', { name: /new look ideas/i }))
+    await user.click(screen.getByRole('button', { name: "Build Today's Look ✨" }))
+    expect(await screen.findByRole('heading', { name: 'Try this combination' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /manage my wardrobe/i }))
+    expect(screen.getByRole('heading', { name: 'My Wardrobe' })).toBeInTheDocument()
+    saveWardrobe([{ id: 'new-top', garmentType: 't-shirt', color: { hex: '#111111' }, formality: 'casual' }])
+    await user.click(screen.getByRole('button', { name: /back to today/i }))
+    expect(await screen.findByRole('heading', { name: 'Try this combination' })).toBeInTheDocument()
+    expect(requestInspirationOutfitRecommendation).toHaveBeenCalledOnce()
   })
 
   it('uses the bilingual canonical hierarchy for Thai palette cards and the selected summary', async () => {

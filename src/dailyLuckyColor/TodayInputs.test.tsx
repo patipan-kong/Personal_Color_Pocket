@@ -74,14 +74,15 @@ describe('Today production input shell', () => {
     expect(onWardrobe).toHaveBeenCalledOnce()
   })
 
-  it('captures occasion and source without changing the deterministic Lucky result', async () => {
+  it('captures occasion and source without automatically rendering a legacy Lucky answer', async () => {
     const user = userEvent.setup()
     saveDailyLuckyColorGoals(['work'])
     const { container } = renderToday('en')
-    const before = container.querySelector('.daily-family-heading h3')?.textContent
+    expect(container.querySelector('.daily-family-heading, .daily-board')).toBeNull()
     await user.click(screen.getByRole('radio', { name: 'Wedding guest' }))
     await user.click(screen.getByRole('radio', { name: /my wardrobe/i }))
-    expect(container.querySelector('.daily-family-heading h3')).toHaveTextContent(before!)
+    expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-pressed', 'true')
+    expect(container.querySelector('.daily-family-heading, .daily-board')).toBeNull()
     expect(screen.getByRole('radio', { name: /new look ideas.*without limiting it to clothes you own/i })).not.toBeChecked()
   })
 })

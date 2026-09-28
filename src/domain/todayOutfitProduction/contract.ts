@@ -113,6 +113,19 @@ function validateLuckyPreference(value: unknown, index: number, issues: string[]
   return true
 }
 
+export function validateOutfitLuckyPreferences(value: unknown, issues: string[]): value is readonly OwnedLuckyPreference[] {
+  if (!Array.isArray(value) || value.length > 2) { issues.push('luckyPreferences must contain 0–2 items'); return false }
+  const families = new Set<string>()
+  value.forEach((preference, index) => {
+    validateLuckyPreference(preference, index, issues)
+    if (plain(preference) && typeof preference.family === 'string') {
+      if (families.has(preference.family)) issues.push('luckyPreferences contains duplicate families')
+      families.add(preference.family)
+    }
+  })
+  return true
+}
+
 export function validateOwnedOutfitRequest(value: unknown): ContractValidation<OwnedOutfitRequest> {
   const issues: string[] = []
   if (!plain(value)) return { ok: false, value: null, issues: ['request must be an object'] }
@@ -128,17 +141,7 @@ export function validateOwnedOutfitRequest(value: unknown): ContractValidation<O
     const slots = new Set(value.wardrobe.flatMap((item) => plain(item) && member(WARDROBE_SLOTS, item.slot) ? [item.slot] : []))
     if (!slots.has('shoes') || !(slots.has('one-piece') || (slots.has('top') && slots.has('bottom')))) issues.push('wardrobe is not recommendation-ready')
   }
-  if (!Array.isArray(value.luckyPreferences) || value.luckyPreferences.length > 2) issues.push('luckyPreferences must contain 0–2 items')
-  else {
-    const families = new Set<string>()
-    value.luckyPreferences.forEach((preference, index) => {
-      validateLuckyPreference(preference, index, issues)
-      if (plain(preference) && typeof preference.family === 'string') {
-        if (families.has(preference.family)) issues.push('luckyPreferences contains duplicate families')
-        families.add(preference.family)
-      }
-    })
-  }
+  validateOutfitLuckyPreferences(value.luckyPreferences, issues)
   if (Array.isArray(value.wardrobe)) {
     if (value.subtype === null && value.wardrobe.some((item) => plain(item) && item.personalColorCompatibility !== null)) issues.push('personalColorCompatibility must be null without subtype')
     if (value.subtype !== null && value.wardrobe.some((item) => plain(item) && item.personalColorCompatibility === null)) issues.push('personalColorCompatibility is required with subtype')

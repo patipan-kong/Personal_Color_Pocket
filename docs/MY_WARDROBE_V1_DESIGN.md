@@ -487,6 +487,12 @@ The experimental deterministic baseline is not production-ready unchanged: it la
 - Tests: never emits/accepts wardrobe IDs, validates color refs, deterministic facts cannot be redefined, source switching does not leak prior results.
 - Risk: medium-high generative validation; AI involved, no shopping.
 
+#### Slice 5 closeout — 2026-09-28
+
+- Implemented as a separate Inspiration request/result contract and production endpoint. It sends occasion, optional subtype, finite garment/color candidates, and optional structured Lucky soft preferences; it never sends wardrobe records or IDs. Provider failure uses the validated deterministic Inspiration fallback and the same app-owned presentation.
+- Manual PO smoke testing passed for Inspiration + casual + Lucky 0 and Inspiration + work + selected Lucky. Conceptual pieces were understandable, occasion and Personal Color were represented, Lucky remained secondary, the result read as an idea rather than owned clothing, and the feature worked independently of wardrobe inventory.
+- PO testing also found that changing Lucky could expose the historical Lucky color/outfit board: request-fingerprint invalidation ran after render, then the idle branch rendered `EmptyLuckyResult`, `TodayColors`, or `OutfitBoard`. The closeout fix treats fingerprint-mismatched result/loading state as idle during the same render and production Today no longer auto-renders those legacy components. Their domain/components remain covered for possible future use; Lucky remains an optional 0–2 input to explicit recommendation generation.
+
 ### Slice 6 — local photo color entry enhancement
 
 - Scope: extract a reusable local photo-sampling control and return confirmed HEX to wardrobe add/edit; no item-photo persistence and no AI fallback.

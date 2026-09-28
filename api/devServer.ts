@@ -8,6 +8,7 @@ import { handleOutfitImageRequest } from './_lib/outfitImageHandler.js'
 import { OUTFIT_IMAGE_CANDIDATE_IDS } from '../src/domain/todayOutfitImage/catalog.js'
 import type { OutfitImageCandidateId } from '../src/domain/todayOutfitImage/catalog.js'
 import { handleOwnedOutfitRequest } from './_lib/ownedOutfitHandler.js'
+import { handleInspirationOutfitRequest } from './_lib/inspirationOutfitHandler.js'
 
 // V2.0 Slice 0 (plan §4), extended Slice 0.2 (plan §4, §7): the local-dev half of the
 // server-side boundary. `vite dev` has no built-in API routes, so this Vite plugin mounts
@@ -23,6 +24,7 @@ const PALETTE_ROUTE = /^\/api\/ai-palette\/gemini-flash-lite\/?$/
 const OUTFIT_ROUTE = /^\/api\/ai-outfit\/([a-z-]+)\/?$/
 const OUTFIT_IMAGE_ROUTE = /^\/api\/ai-outfit-image\/([a-z-]+)\/?$/
 const OWNED_OUTFIT_ROUTE = /^\/api\/today-outfit\/wardrobe\/?$/
+const INSPIRATION_OUTFIT_ROUTE = /^\/api\/today-outfit\/inspiration\/?$/
 
 export function aiColorLabDevServer(): Plugin {
   return {
@@ -30,6 +32,7 @@ export function aiColorLabDevServer(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = req.url?.split('?')[0] ?? ''
+        if (INSPIRATION_OUTFIT_ROUTE.test(url)) return void handleInspirationOutfitRequest(req, res)
         if (OWNED_OUTFIT_ROUTE.test(url)) return void handleOwnedOutfitRequest(req, res)
         if (PALETTE_ROUTE.test(url)) return void handlePaletteSelectionRequest(req, res)
         const outfitImageMatch = OUTFIT_IMAGE_ROUTE.exec(url)

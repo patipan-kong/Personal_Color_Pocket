@@ -1,4 +1,4 @@
-import { Profiler } from 'react'
+import { Profiler, type ComponentProps } from 'react'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getLuckyColorForDate, getLuckyColorRule } from '../domain/luckyColor/luckyColor'
@@ -11,7 +11,7 @@ import type { LuckyGoal, LuckyWeekday } from '../domain/luckyColor/types'
 import { getCopy } from '../i18n'
 import { DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, saveDailyLuckyColorGoals } from '../services/dailyLuckyColorGoal'
 import css from '../styles.css?raw'
-import { DailyView } from './DailyView'
+import { DailyView as ProductionDailyView } from './DailyView'
 
 // V1.3 Slice 6: edge cases, lifecycle and accessibility of the Daily view. The recommendation is the
 // real domain output except in the one test that proves an inconsistent recommendation is refused.
@@ -22,6 +22,7 @@ vi.mock('../domain/luckyColor/outfit', async (importOriginal) => {
 
 const dateFor = (weekday: LuckyWeekday, hour = 10) => new Date(2026, 8, 20 + LUCKY_WEEKDAYS.indexOf(weekday), hour, 0, 0)
 const monday = dateFor('mon')
+const DailyView = (props: ComponentProps<typeof ProductionDailyView>) => <ProductionDailyView {...props} showLegacyLuckyContent />
 const profile = (subtype: Subtype): PersonalColorResult => ({ season: subtype.split('-')[1] as PersonalColorResult['season'], subtype, dimensions: { temperature: 0, value: 0, chroma: 0, contrast: 0 }, confidence: .8, confidenceLabel: 'Likely match', reasons: [], alternatives: [] })
 const en = getCopy('en')
 const th = getCopy('th')

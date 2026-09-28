@@ -1,5 +1,5 @@
-import { getRecordWardrobeSlot } from '../wardrobe/wardrobe'
-import type { WardrobeRecordV1 } from '../wardrobe/wardrobe'
+import { getRecordWardrobeSlot } from '../wardrobe/wardrobe.js'
+import type { WardrobeRecordV1 } from '../wardrobe/wardrobe.js'
 
 export const TODAY_OCCASIONS = [
   'casual',

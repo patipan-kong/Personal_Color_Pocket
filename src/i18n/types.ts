@@ -236,7 +236,12 @@ export interface LocaleCopy {
     readyToBuild: string
     buildMissingShoes: string
     buildIncomplete: string
-    inspirationComingSoon: string
+    inspirationReady: string
+    inspirationEyebrow: string
+    inspirationHeading: string
+    inspirationOwnershipNote: string
+    inspirationFallbackNote: string
+    inspirationPieces: string
     recommendationEyebrow: string
     recommendationHeading: string
     recommendationSourceAi: string

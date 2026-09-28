@@ -7,9 +7,15 @@ import { recommendLuckyGoalsOutfit } from '../domain/luckyColor/outfit'
 import { subtypeOrder } from '../domain/personalColor/seasons'
 import type { PersonalColorResult, Subtype } from '../domain/personalColor/types'
 import { recommendOwnedOutfitFallback } from '../domain/todayOutfitProduction/fallback'
+import { recommendInspirationOutfitFallback } from '../domain/todayOutfitProduction/inspirationFallback'
+import { resolveInspirationColor } from '../domain/todayOutfitProduction/inspirationColors'
+import { buildInspirationOutfitPresentationFacts, inspirationPieces } from '../domain/todayOutfitProduction/inspirationPresentation'
+import { buildInspirationOutfitRequest, fingerprintInspirationOutfitRequest } from '../domain/todayOutfitProduction/inspirationRequest'
 import { buildOwnedOutfitPresentationFacts } from '../domain/todayOutfitProduction/presentation'
 import { buildOwnedOutfitRequest, fingerprintOwnedOutfitRequest } from '../domain/todayOutfitProduction/request'
 import type { OwnedOutfitRequest, OwnedRecommendationResult } from '../domain/todayOutfitProduction/contract'
+import type { InspirationOutfitRequest, InspirationRecommendationResult } from '../domain/todayOutfitProduction/inspirationContract'
+import type { ProductionTodayOutfitResult } from '../domain/todayOutfitProduction/result'
 import {
   OUTFIT_SOURCES,
   TODAY_OCCASIONS,
@@ -20,17 +26,24 @@ import {
 } from '../domain/todayOutfitProduction/todayInputs'
 import type { OutfitSource, TodayOccasion, TodayOutfitInputState, WardrobeCoverage } from '../domain/todayOutfitProduction/todayInputs'
 import { getRecordWardrobeSlot, getWardrobeDisplayName } from '../domain/wardrobe/wardrobe'
+import { getGarmentDefinition, getWardrobeSlot } from '../domain/wardrobe/taxonomy'
 import type { WardrobeRecordV1 } from '../domain/wardrobe/wardrobe'
 import type { LocaleCopy } from '../i18n'
 import { loadDailyLuckyColorGoals, saveDailyLuckyColorGoals } from '../services/dailyLuckyColorGoal'
 import { loadWardrobe } from '../services/wardrobePersistence'
 import { requestOwnedOutfitRecommendation } from '../services/ownedOutfitRecommendation'
+import { requestInspirationOutfitRecommendation } from '../services/inspirationOutfitRecommendation'
 import { GarmentArt } from './GarmentArt'
 import { boardFillColor, boardFillTone, buildOutfitBoardModel } from './outfitBoard'
 import type { OutfitBoardModel, OutfitBoardPiece } from './outfitBoard'
 import { CanonicalColorLabel } from '../CanonicalColorLabel'
 
 export type DailyClock = () => Date
+export type TodayRecommendationState =
+  | { status: 'idle' }
+  | { status: 'loading'; fingerprint: string }
+  | { status: 'result'; fingerprint: string; result: ProductionTodayOutfitResult }
+  | { status: 'error' }
 const deviceClock: DailyClock = () => new Date()
 
 function validDate(value: unknown): value is Date {
@@ -251,6 +264,36 @@ function OwnedRecommendation({ copy, request, result, wardrobe }: { copy: Locale
   </section>
 }
 
+function InspirationRecommendation({ copy, request, result }: { copy: LocaleCopy; request: InspirationOutfitRequest; result: InspirationRecommendationResult }) {
+  const pieces = inspirationPieces(result.recommendation)
+  const presentation = buildInspirationOutfitPresentationFacts(request, result.recommendation)
+  const personalColorName = presentation.personalColor
+    ? copy.subtypes[presentation.personalColor.subtype].secondaryName || copy.subtypes[presentation.personalColor.subtype].name
+    : null
+  const luckyFamilies = presentation.luckyColor
+    ? (presentation.luckyColor.matchedFamilies.length ? presentation.luckyColor.matchedFamilies : presentation.luckyColor.requestedFamilies).map((family) => copy.daily.familyLabels[family])
+    : []
+  return <section className="owned-outfit-result inspiration-outfit-result" aria-labelledby="inspiration-outfit-heading">
+    <div className="owned-outfit-heading"><div><p className="eyebrow">{copy.daily.inspirationEyebrow}</p><h2 id="inspiration-outfit-heading">{copy.daily.inspirationHeading}</h2></div><span>{result.source === 'ai' ? copy.daily.recommendationSourceAi : copy.daily.recommendationSourceFallback}</span></div>
+    <p className="inspiration-outfit-note">{copy.daily.inspirationOwnershipNote}</p>
+    {result.source === 'deterministic-fallback' && <p className="owned-outfit-fallback-note">{copy.daily.inspirationFallbackNote}</p>}
+    <ul className="owned-outfit-pieces" aria-label={copy.daily.inspirationPieces}>
+      {pieces.map((piece, index) => {
+        const color = resolveInspirationColor(piece.color, request)
+        if (!color) return null
+        const garment = getGarmentDefinition(piece.garmentType).label[copy.language]
+        const colorName = color.kind === 'canonical' ? null : color.name[copy.language]
+        return <li key={`${piece.garmentType}-${index}`}><i style={{ backgroundColor: color.hex }} aria-hidden="true" /><div><small>{copy.wardrobe.slots[getWardrobeSlot(piece.garmentType)]}</small><strong>{garment}</strong>{color.kind === 'canonical' ? <CanonicalColorLabel color={color.canonical} language={copy.language} mode="compact" className="inspiration-color-name" /> : <span className="inspiration-color-name">{colorName}</span>}<span>{color.hex}</span></div></li>
+      })}
+    </ul>
+    <div className="owned-outfit-reasons">
+      <p><strong>{copy.daily.occasionReason}</strong>{copy.daily.occasionExplanations[presentation.occasion]}</p>
+      {presentation.personalColor && personalColorName && <p><strong>{copy.daily.personalColorReason}</strong>{copy.daily.personalColorExplanations[presentation.personalColor.emphasis](personalColorName)}</p>}
+      {presentation.luckyColor && <p><strong>{copy.daily.luckyReason}</strong>{copy.daily.luckyColorExplanation(luckyFamilies, presentation.luckyColor.matchedFamilies.length > 0)}</p>}
+    </div>
+  </section>
+}
+
 // Why each lucky colour sits where it does, then how Personal Color shaped it (or how to get that).
 function OutfitNotes({ board, copy, subtype, onQuiz }: { board: OutfitBoardModel; copy: LocaleCopy; subtype?: Subtype; onQuiz: () => void }) {
   return <div className="daily-notes">
@@ -321,14 +364,17 @@ function resolveDaily(today: Date | null, goals: readonly LuckyGoal[], subtype: 
   }
 }
 
-export function DailyView({ copy, result, onQuiz, onWardrobe, inputState, onInputStateChange, focusWardrobeAction, clock = deviceClock }: {
+export function DailyView({ copy, result, onQuiz, onWardrobe, inputState, onInputStateChange, recommendationState: controlledRecommendationState, onRecommendationStateChange, focusWardrobeAction, showLegacyLuckyContent = false, clock = deviceClock }: {
   copy: LocaleCopy
   result: PersonalColorResult | null
   onQuiz: () => void
   onWardrobe?: () => void
   inputState?: TodayOutfitInputState
   onInputStateChange?: Dispatch<SetStateAction<TodayOutfitInputState>>
+  recommendationState?: TodayRecommendationState
+  onRecommendationStateChange?: Dispatch<SetStateAction<TodayRecommendationState>>
   focusWardrobeAction?: boolean
+  showLegacyLuckyContent?: boolean
   clock?: DailyClock
 }) {
   const [goals, setGoals] = useState<LuckyGoal[]>(loadDailyLuckyColorGoals)
@@ -345,17 +391,29 @@ export function DailyView({ copy, result, onQuiz, onWardrobe, inputState, onInpu
     try { return buildOwnedOutfitRequest({ date: today, goals, language: copy.language, subtype, occasion: inputs.occasion, wardrobe: wardrobe.items }) }
     catch { return null }
   }, [copy.language, coverage.ready, goals, inputs.occasion, inputs.source, subtype, today, wardrobe.items])
-  const requestFingerprint = recommendationRequest ? fingerprintOwnedOutfitRequest(recommendationRequest) : null
-  const [recommendationState, setRecommendationState] = useState<
-    | { status: 'idle' }
-    | { status: 'loading' }
-    | { status: 'result'; fingerprint: string; result: OwnedRecommendationResult }
-    | { status: 'error' }
-  >({ status: 'idle' })
+  const inspirationRequest = useMemo<InspirationOutfitRequest | null>(() => {
+    if (!today || inputs.source !== 'inspiration') return null
+    try { return buildInspirationOutfitRequest({ date: today, goals, subtype, occasion: inputs.occasion }) }
+    catch { return null }
+  }, [goals, inputs.occasion, inputs.source, subtype, today])
+  const requestFingerprint = recommendationRequest
+    ? `owned:${fingerprintOwnedOutfitRequest(recommendationRequest)}`
+    : inspirationRequest
+      ? `inspiration:${fingerprintInspirationOutfitRequest(inspirationRequest)}`
+      : null
+  const [localRecommendationState, setLocalRecommendationState] = useState<TodayRecommendationState>({ status: 'idle' })
+  const activeRecommendationState = controlledRecommendationState ?? localRecommendationState
+  const visibleRecommendationState = (activeRecommendationState.status === 'result' || activeRecommendationState.status === 'loading')
+    && activeRecommendationState.fingerprint !== requestFingerprint
+    ? { status: 'idle' } as const
+    : activeRecommendationState
+  const setRecommendationState = onRecommendationStateChange ?? setLocalRecommendationState
+  const latestFingerprint = useRef(requestFingerprint)
+  latestFingerprint.current = requestFingerprint
   const submitting = useRef(false)
   useEffect(() => { setInputs((current) => syncAutomaticOutfitSource(current, coverage)) }, [coverage.ready, setInputs])
   useEffect(() => {
-    setRecommendationState((current) => current.status === 'result' && current.fingerprint !== requestFingerprint ? { status: 'idle' } : current)
+    setRecommendationState((current) => (current.status === 'result' || current.status === 'loading') && current.fingerprint !== requestFingerprint ? { status: 'idle' } : current)
   }, [requestFingerprint])
   // Best effort: a blocked or full storage leaves the in-memory selection working for this session.
   useEffect(() => { saveDailyLuckyColorGoals(goals) }, [goals])
@@ -375,23 +433,37 @@ export function DailyView({ copy, result, onQuiz, onWardrobe, inputState, onInpu
     document.querySelector<HTMLButtonElement>(`[data-daily-goal="${next}"]`)?.focus()
   }
   const buildLook = async () => {
-    if (submitting.current || !recommendationRequest || !requestFingerprint || inputs.source !== 'wardrobe' || !coverage.ready) return
+    if (submitting.current || !requestFingerprint) return
+    if (inputs.source === 'wardrobe' && (!recommendationRequest || !coverage.ready)) return
+    if (inputs.source === 'inspiration' && !inspirationRequest) return
+    const submittedFingerprint = requestFingerprint
     submitting.current = true
-    setRecommendationState({ status: 'loading' })
+    setRecommendationState({ status: 'loading', fingerprint: submittedFingerprint })
     try {
-      const provider = await requestOwnedOutfitRecommendation(recommendationRequest)
-      if (provider.ok) setRecommendationState({ status: 'result', fingerprint: requestFingerprint, result: { source: 'ai', recommendation: provider.result } })
-      else {
-        const fallback = recommendOwnedOutfitFallback(recommendationRequest)
-        setRecommendationState(fallback
-          ? { status: 'result', fingerprint: requestFingerprint, result: { source: 'deterministic-fallback', recommendation: fallback } }
-          : { status: 'error' })
+      if (inputs.source === 'wardrobe' && recommendationRequest) {
+        const provider = await requestOwnedOutfitRecommendation(recommendationRequest)
+        if (latestFingerprint.current !== submittedFingerprint) return
+        const recommendation = provider.ok ? provider.result : recommendOwnedOutfitFallback(recommendationRequest)
+        setRecommendationState(recommendation ? { status: 'result', fingerprint: submittedFingerprint, result: { mode: 'owned', result: { source: provider.ok ? 'ai' : 'deterministic-fallback', recommendation } } } : { status: 'error' })
+      } else if (inputs.source === 'inspiration' && inspirationRequest) {
+        const provider = await requestInspirationOutfitRecommendation(inspirationRequest)
+        if (latestFingerprint.current !== submittedFingerprint) return
+        const recommendation = provider.ok ? provider.result : recommendInspirationOutfitFallback(inspirationRequest)
+        setRecommendationState(recommendation ? { status: 'result', fingerprint: submittedFingerprint, result: { mode: 'inspiration', result: { source: provider.ok ? 'ai' : 'deterministic-fallback', recommendation } } } : { status: 'error' })
       }
     } catch {
-      const fallback = recommendOwnedOutfitFallback(recommendationRequest)
-      setRecommendationState(fallback
-        ? { status: 'result', fingerprint: requestFingerprint, result: { source: 'deterministic-fallback', recommendation: fallback } }
-        : { status: 'error' })
+      if (latestFingerprint.current !== submittedFingerprint) return
+      if (inputs.source === 'wardrobe' && recommendationRequest) {
+        const fallback = recommendOwnedOutfitFallback(recommendationRequest)
+        setRecommendationState(fallback
+          ? { status: 'result', fingerprint: submittedFingerprint, result: { mode: 'owned', result: { source: 'deterministic-fallback', recommendation: fallback } } }
+          : { status: 'error' })
+      } else if (inputs.source === 'inspiration' && inspirationRequest) {
+        const fallback = recommendInspirationOutfitFallback(inspirationRequest)
+        setRecommendationState(fallback
+          ? { status: 'result', fingerprint: submittedFingerprint, result: { mode: 'inspiration', result: { source: 'deterministic-fallback', recommendation: fallback } } }
+          : { status: 'error' })
+      } else setRecommendationState({ status: 'error' })
     } finally { submitting.current = false }
   }
 
@@ -403,9 +475,9 @@ export function DailyView({ copy, result, onQuiz, onWardrobe, inputState, onInpu
     </section>
   </main>
   const weekday = daily.weekday
-  const canBuild = inputs.source === 'wardrobe' && coverage.ready && Boolean(recommendationRequest)
+  const canBuild = inputs.source === 'inspiration' ? Boolean(inspirationRequest) : coverage.ready && Boolean(recommendationRequest)
   const buildHint = inputs.source === 'inspiration'
-    ? copy.daily.inspirationComingSoon
+    ? copy.daily.inspirationReady
     : coverage.ready
       ? copy.daily.readyToBuild
       : coverage.missing.length === 1 && coverage.missing[0] === 'shoes'
@@ -417,13 +489,19 @@ export function DailyView({ copy, result, onQuiz, onWardrobe, inputState, onInpu
       <p className="eyebrow daily-weekday">{copy.daily.today} · {copy.daily.weekdays[weekday]}</p>
       <h1>{copy.daily.title}</h1>
     </header>
-    <TodayInputs copy={copy} goals={goals} inputs={inputs} coverage={coverage} onGoal={chooseGoal} onGoalKeyDown={moveGoal} onOccasion={(occasion) => setInputs((current) => ({ ...current, occasion }))} onSource={(source) => setInputs((current) => chooseOutfitSource(current, source))} onWardrobe={onWardrobe} focusWardrobeAction={focusWardrobeAction} canBuild={canBuild} buildStatus={recommendationState.status === 'loading' ? 'loading' : 'idle'} buildHint={buildHint} onBuild={() => void buildLook()} />
-    {recommendationState.status === 'error' && <section className="owned-outfit-error" role="alert"><p>{copy.daily.totalFailure}</p><button type="button" className="primary-button compact" onClick={() => void buildLook()}>{copy.daily.retryRecommendation}</button></section>}
-    {recommendationState.status === 'result' && recommendationRequest
-      ? <><OwnedRecommendation copy={copy} request={recommendationRequest} result={recommendationState.result} wardrobe={wardrobe.items} />{daily.status === 'ready' && <div className="daily-lucky-support"><TodayColors board={daily.board} copy={copy} /></div>}</>
-      : daily.status === 'empty'
-        ? <EmptyLuckyResult copy={copy} />
-        : <div className="daily-layout"><div className="daily-intro"><TodayColors board={daily.board} copy={copy} /></div><OutfitBoard board={daily.board} copy={copy} subtype={subtype} onQuiz={onQuiz} /></div>}
+    <TodayInputs copy={copy} goals={goals} inputs={inputs} coverage={coverage} onGoal={chooseGoal} onGoalKeyDown={moveGoal} onOccasion={(occasion) => setInputs((current) => ({ ...current, occasion }))} onSource={(source) => setInputs((current) => chooseOutfitSource(current, source))} onWardrobe={onWardrobe} focusWardrobeAction={focusWardrobeAction} canBuild={canBuild} buildStatus={visibleRecommendationState.status === 'loading' ? 'loading' : 'idle'} buildHint={buildHint} onBuild={() => void buildLook()} />
+    {visibleRecommendationState.status === 'error' && <section className="owned-outfit-error" role="alert"><p>{copy.daily.totalFailure}</p><button type="button" className="primary-button compact" onClick={() => void buildLook()}>{copy.daily.retryRecommendation}</button></section>}
+    {visibleRecommendationState.status === 'result'
+      ? visibleRecommendationState.result.mode === 'owned' && recommendationRequest
+        ? <OwnedRecommendation copy={copy} request={recommendationRequest} result={visibleRecommendationState.result.result} wardrobe={wardrobe.items} />
+        : visibleRecommendationState.result.mode === 'inspiration' && inspirationRequest
+          ? <InspirationRecommendation copy={copy} request={inspirationRequest} result={visibleRecommendationState.result.result} />
+          : null
+      : showLegacyLuckyContent
+        ? daily.status === 'empty'
+          ? <EmptyLuckyResult copy={copy} />
+          : <div className="daily-layout"><div className="daily-intro"><TodayColors board={daily.board} copy={copy} /></div><OutfitBoard board={daily.board} copy={copy} subtype={subtype} onQuiz={onQuiz} /></div>
+        : null}
     <p className="daily-framing">{copy.daily.framing}</p>
     <details className="daily-sources"><summary>{copy.daily.aboutHeading}</summary><p>{copy.daily.aboutBody}</p><p>{copy.daily.sourcesLabel}: <SourceLink href="https://www.thairath.co.th/horoscope/belief/2897832" name={copy.daily.sourceNames.thaiRath} newTab={copy.daily.newTab} /> {copy.daily.sourceJoin} <SourceLink href="https://www.ktc.co.th/article/shopping/fashion/birthday-auspicious-color-timetable" name={copy.daily.sourceNames.ktc} newTab={copy.daily.newTab} />{copy.daily.sourceEnd}</p></details>
   </main>

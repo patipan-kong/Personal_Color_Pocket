@@ -1,11 +1,11 @@
-import { describeColor } from '../colorNames/colorNames'
-import { checkColor } from '../personalColor/colorMatch'
-import { normalizeHex } from '../personalColor/colorUtils'
-import { getPalette } from '../personalColor/palettes'
-import { subtypeOrder } from '../personalColor/seasons'
-import type { ColorMatchResult, PaletteColor, Subtype } from '../personalColor/types'
-import { getGarmentDefinition, getWardrobeSlot, isGarmentType, isWardrobeFormality } from './taxonomy'
-import type { GarmentType, WardrobeFormality, WardrobeSlot } from './taxonomy'
+import { describeColor } from '../colorNames/colorNames.js'
+import { checkColor } from '../personalColor/colorMatch.js'
+import { normalizeHex } from '../personalColor/colorUtils.js'
+import { getPalette } from '../personalColor/palettes.js'
+import { subtypeOrder } from '../personalColor/seasons.js'
+import type { ColorMatchResult, PaletteColor, Subtype } from '../personalColor/types.js'
+import { getGarmentDefinition, getWardrobeSlot, isGarmentType, isWardrobeFormality } from './taxonomy.js'
+import type { GarmentType, WardrobeFormality, WardrobeSlot } from './taxonomy.js'
 
 export interface WardrobeRecordV1 {
   readonly id: string
