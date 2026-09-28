@@ -8,7 +8,7 @@ import type { PersonalColorResult, Subtype } from '../domain/personalColor/types
 import { LUCKY_GOALS, LUCKY_WEEKDAYS } from '../domain/luckyColor/types'
 import type { LuckyGoal, LuckyWeekday } from '../domain/luckyColor/types'
 import { getCopy } from '../i18n'
-import { DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY } from '../services/dailyLuckyColorGoal'
+import { saveDailyLuckyColorGoals } from '../services/dailyLuckyColorGoal'
 import { DailyView } from './DailyView'
 import { LUCKY_FAMILY_DISPLAY_SWATCHES } from './presentation'
 
@@ -18,7 +18,7 @@ const profile = (subtype: Subtype): PersonalColorResult => ({ season: subtype.sp
 const pairs = <T,>(items: readonly T[]) => items.flatMap((item, index) => items.slice(index + 1).map((other) => [item, other] as const))
 
 function show(weekday: LuckyWeekday, goals: readonly LuckyGoal[], subtype?: Subtype, language: 'en' | 'th' = 'en') {
-  localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, JSON.stringify(goals))
+  saveDailyLuckyColorGoals(goals)
   const rendered = render(<DailyView copy={getCopy(language)} result={subtype ? profile(subtype) : null} onQuiz={vi.fn()} clock={() => dateFor(weekday)} />)
   const board = rendered.container.querySelector<HTMLElement>('.daily-board')!
   const items = [...board.querySelectorAll<HTMLElement>(':scope > li')]

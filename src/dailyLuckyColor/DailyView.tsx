@@ -1,12 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { getLuckyColorForDate, luckyWeekdayForDate } from '../domain/luckyColor/luckyColor'
 import { LUCKY_GOALS } from '../domain/luckyColor/types'
 import type { LuckyColorRule, LuckyGoal, LuckyWeekday } from '../domain/luckyColor/types'
 import { recommendLuckyGoalsOutfit } from '../domain/luckyColor/outfit'
 import { subtypeOrder } from '../domain/personalColor/seasons'
 import type { PersonalColorResult, Subtype } from '../domain/personalColor/types'
+import { recommendOwnedOutfitFallback } from '../domain/todayOutfitProduction/fallback'
+import { buildOwnedOutfitPresentationFacts } from '../domain/todayOutfitProduction/presentation'
+import { buildOwnedOutfitRequest, fingerprintOwnedOutfitRequest } from '../domain/todayOutfitProduction/request'
+import type { OwnedOutfitRequest, OwnedRecommendationResult } from '../domain/todayOutfitProduction/contract'
+import {
+  OUTFIT_SOURCES,
+  TODAY_OCCASIONS,
+  chooseOutfitSource,
+  createTodayOutfitInputState,
+  getWardrobeCoverage,
+  syncAutomaticOutfitSource,
+} from '../domain/todayOutfitProduction/todayInputs'
+import type { OutfitSource, TodayOccasion, TodayOutfitInputState, WardrobeCoverage } from '../domain/todayOutfitProduction/todayInputs'
+import { getRecordWardrobeSlot, getWardrobeDisplayName } from '../domain/wardrobe/wardrobe'
+import type { WardrobeRecordV1 } from '../domain/wardrobe/wardrobe'
 import type { LocaleCopy } from '../i18n'
 import { loadDailyLuckyColorGoals, saveDailyLuckyColorGoals } from '../services/dailyLuckyColorGoal'
+import { loadWardrobe } from '../services/wardrobePersistence'
+import { requestOwnedOutfitRecommendation } from '../services/ownedOutfitRecommendation'
 import { GarmentArt } from './GarmentArt'
 import { boardFillColor, boardFillTone, buildOutfitBoardModel } from './outfitBoard'
 import type { OutfitBoardModel, OutfitBoardPiece } from './outfitBoard'
@@ -119,6 +137,120 @@ function TodayColors({ board, copy }: { board: OutfitBoardModel; copy: LocaleCop
   </section>
 }
 
+function wardrobeReadiness(copy: LocaleCopy, coverage: WardrobeCoverage): string {
+  if (coverage.itemCount === 0) return copy.daily.sourceWardrobeEmpty
+  if (coverage.ready) return copy.daily.sourceWardrobeCount(coverage.itemCount)
+  if (coverage.missing.length === 1 && coverage.missing[0] === 'shoes') return copy.daily.sourceWardrobeMissingShoes
+  return copy.daily.sourceWardrobeIncomplete
+}
+
+function TodayInputs({
+  copy,
+  goals,
+  inputs,
+  coverage,
+  onGoal,
+  onGoalKeyDown,
+  onOccasion,
+  onSource,
+  onWardrobe,
+  focusWardrobeAction,
+  canBuild,
+  buildStatus,
+  buildHint,
+  onBuild,
+}: {
+  copy: LocaleCopy
+  goals: readonly LuckyGoal[]
+  inputs: TodayOutfitInputState
+  coverage: WardrobeCoverage
+  onGoal: (goal: LuckyGoal) => void
+  onGoalKeyDown: (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => void
+  onOccasion: (occasion: TodayOccasion) => void
+  onSource: (source: OutfitSource) => void
+  onWardrobe?: () => void
+  focusWardrobeAction?: boolean
+  canBuild: boolean
+  buildStatus: 'idle' | 'loading'
+  buildHint: string
+  onBuild: () => void
+}) {
+  return <div className="today-inputs">
+    <section className="daily-goals today-input-section" aria-labelledby="daily-goal-heading">
+      <div className="daily-goals-head"><div className="today-input-title"><span aria-hidden="true">1</span><h2 id="daily-goal-heading">{copy.daily.goalPrompt}</h2></div><p id="daily-goal-limit" className="daily-goal-limit">{copy.daily.goalLimit}</p></div>
+      <div role="group" aria-label={copy.daily.goalPrompt} aria-describedby="daily-goal-limit" className="daily-goal-grid">
+        {LUCKY_GOALS.map((item, index) => <button key={item} type="button" aria-pressed={goals.includes(item)} data-daily-goal={item} className={goals.includes(item) ? 'selected' : ''} onClick={() => onGoal(item)} onKeyDown={(event) => onGoalKeyDown(event, index)}><span className="daily-goal-label">{copy.daily.goals[item]}</span><span className="daily-goal-check" aria-hidden="true">✓</span></button>)}
+      </div>
+    </section>
+
+    <fieldset className="today-input-section today-occasion">
+      <legend><span aria-hidden="true">2</span>{copy.daily.occasionPrompt}</legend>
+      <div className="today-occasion-options">
+        {TODAY_OCCASIONS.map((occasion) => <label key={occasion} className={inputs.occasion === occasion ? 'selected' : ''}>
+          <input type="radio" name="today-occasion" value={occasion} checked={inputs.occasion === occasion} onChange={() => onOccasion(occasion)} />
+          <span>{copy.daily.occasions[occasion]}</span>
+        </label>)}
+      </div>
+    </fieldset>
+
+    <fieldset className="today-input-section today-source">
+      <legend><span aria-hidden="true">3</span>{copy.daily.sourcePrompt}</legend>
+      <div className="today-source-options">
+        {OUTFIT_SOURCES.map((source) => {
+          const description = source === 'wardrobe' ? wardrobeReadiness(copy, coverage) : copy.daily.sourceInspirationBody
+          return <label key={source} className={inputs.source === source ? 'selected' : ''}>
+            <input type="radio" name="today-source" value={source} checked={inputs.source === source} onChange={() => onSource(source)} />
+            <span className="today-source-copy"><strong>{copy.daily.sourceLabels[source]}</strong><small>{description}</small></span>
+            <span className="today-radio-mark" aria-hidden="true" />
+          </label>
+        })}
+      </div>
+      {onWardrobe && <button type="button" className="text-button today-manage-wardrobe" data-manage-wardrobe onClick={onWardrobe} autoFocus={focusWardrobeAction}>{copy.daily.manageWardrobe} <span aria-hidden="true">→</span></button>}
+    </fieldset>
+    <section className="today-build-action" aria-labelledby="today-build-heading">
+      <div><p className="today-build-step" aria-hidden="true">4</p><div><h2 id="today-build-heading">{copy.daily.buildHeading}</h2><p>{buildHint}</p></div></div>
+      <button type="button" className="primary-button compact" disabled={!canBuild || buildStatus === 'loading'} onClick={onBuild}>{buildStatus === 'loading' ? copy.daily.buildingLook : copy.daily.buildLook}</button>
+    </section>
+  </div>
+}
+
+function EmptyLuckyResult({ copy }: { copy: LocaleCopy }) {
+  return <section className="daily-empty-result" aria-labelledby="daily-empty-title">
+    <span aria-hidden="true">✦</span>
+    <div><p className="daily-kicker">{copy.daily.resultEyebrow(0)}</p><h2 id="daily-empty-title">{copy.daily.emptyLuckyTitle}</h2><p>{copy.daily.emptyLuckyBody}</p></div>
+  </section>
+}
+
+function selectionIds(result: OwnedRecommendationResult): readonly string[] {
+  const selection = result.recommendation.selection
+  return selection.kind === 'separates'
+    ? [selection.topId, selection.bottomId, ...(selection.outerwearId ? [selection.outerwearId] : []), selection.shoesId]
+    : [selection.onePieceId, ...(selection.outerwearId ? [selection.outerwearId] : []), selection.shoesId]
+}
+
+function OwnedRecommendation({ copy, request, result, wardrobe }: { copy: LocaleCopy; request: OwnedOutfitRequest; result: OwnedRecommendationResult; wardrobe: readonly WardrobeRecordV1[] }) {
+  const selected = selectionIds(result).map((id) => wardrobe.find((item) => item.id === id)).filter((item): item is WardrobeRecordV1 => Boolean(item))
+  const presentation = buildOwnedOutfitPresentationFacts(request, result.recommendation)
+  const personalColorName = presentation.personalColor
+    ? copy.subtypes[presentation.personalColor.subtype].secondaryName || copy.subtypes[presentation.personalColor.subtype].name
+    : null
+  const luckyFamilies = presentation.luckyColor
+    ? (presentation.luckyColor.matchedFamilies.length ? presentation.luckyColor.matchedFamilies : presentation.luckyColor.requestedFamilies).map((family) => copy.daily.familyLabels[family])
+    : []
+  return <section className="owned-outfit-result" aria-labelledby="owned-outfit-heading">
+    <div className="owned-outfit-heading"><div><p className="eyebrow">{copy.daily.recommendationEyebrow}</p><h2 id="owned-outfit-heading">{copy.daily.recommendationHeading}</h2></div><span>{result.source === 'ai' ? copy.daily.recommendationSourceAi : copy.daily.recommendationSourceFallback}</span></div>
+    {result.source === 'deterministic-fallback' && <p className="owned-outfit-fallback-note">{copy.daily.fallbackNote}</p>}
+    <ul className="owned-outfit-pieces" aria-label={copy.daily.recommendationPieces}>
+      {selected.map((item) => <li key={item.id}><i style={{ backgroundColor: item.color.hex }} aria-hidden="true" /><div><small>{copy.wardrobe.slots[getRecordWardrobeSlot(item)]}</small><strong>{getWardrobeDisplayName(item, copy.language)}</strong><span>{item.color.hex}</span></div></li>)}
+    </ul>
+    <div className="owned-outfit-reasons">
+      <p><strong>{copy.daily.occasionReason}</strong>{copy.daily.occasionExplanations[presentation.occasion]}</p>
+      {presentation.personalColor && personalColorName && <p><strong>{copy.daily.personalColorReason}</strong>{copy.daily.personalColorExplanations[presentation.personalColor.emphasis](personalColorName)}</p>}
+      {presentation.luckyColor && <p><strong>{copy.daily.luckyReason}</strong>{copy.daily.luckyColorExplanation(luckyFamilies, presentation.luckyColor.matchedFamilies.length > 0)}</p>}
+    </div>
+  </section>
+}
+
 // Why each lucky colour sits where it does, then how Personal Color shaped it (or how to get that).
 function OutfitNotes({ board, copy, subtype, onQuiz }: { board: OutfitBoardModel; copy: LocaleCopy; subtype?: Subtype; onQuiz: () => void }) {
   return <div className="daily-notes">
@@ -165,7 +297,9 @@ function OutfitBoard({ board, copy, subtype, onQuiz }: { board: OutfitBoardModel
 
 type DailyState =
   | { readonly status: 'ready'; readonly weekday: LuckyWeekday; readonly board: OutfitBoardModel }
-  | { readonly status: 'date-error' | 'result-error' }
+  | { readonly status: 'empty'; readonly weekday: LuckyWeekday }
+  | { readonly status: 'date-error' }
+  | { readonly status: 'result-error' }
 
 // One resolved recommendation feeds the summary, the board and the notes. A date the domain rejects
 // is reported as a date problem; a recommendation the board contract rejects is reported as such.
@@ -176,6 +310,7 @@ function resolveDaily(today: Date | null, goals: readonly LuckyGoal[], subtype: 
   try {
     if (!today) return { status: 'date-error' }
     weekday = luckyWeekdayForDate(today)
+    if (goals.length === 0) return { status: 'empty', weekday }
     rules = goals.map((goal) => getLuckyColorForDate(today, goal))
   } catch { return { status: 'date-error' } }
   try {
@@ -186,18 +321,49 @@ function resolveDaily(today: Date | null, goals: readonly LuckyGoal[], subtype: 
   }
 }
 
-export function DailyView({ copy, result, onQuiz, onWardrobe, clock = deviceClock }: { copy: LocaleCopy; result: PersonalColorResult | null; onQuiz: () => void; onWardrobe?: () => void; clock?: DailyClock }) {
+export function DailyView({ copy, result, onQuiz, onWardrobe, inputState, onInputStateChange, focusWardrobeAction, clock = deviceClock }: {
+  copy: LocaleCopy
+  result: PersonalColorResult | null
+  onQuiz: () => void
+  onWardrobe?: () => void
+  inputState?: TodayOutfitInputState
+  onInputStateChange?: Dispatch<SetStateAction<TodayOutfitInputState>>
+  focusWardrobeAction?: boolean
+  clock?: DailyClock
+}) {
   const [goals, setGoals] = useState<LuckyGoal[]>(loadDailyLuckyColorGoals)
   const [today, refreshToday] = useLocalToday(clock)
+  const wardrobe = useMemo(() => loadWardrobe(), [])
+  const coverage = useMemo(() => getWardrobeCoverage(wardrobe.items), [wardrobe.items])
+  const [localInputState, setLocalInputState] = useState<TodayOutfitInputState>(() => createTodayOutfitInputState(coverage))
+  const inputs = inputState ?? localInputState
+  const setInputs = onInputStateChange ?? setLocalInputState
   const subtype = validSubtype(result)
   const daily = useMemo(() => resolveDaily(today, goals, subtype), [today, goals, subtype])
+  const recommendationRequest = useMemo<OwnedOutfitRequest | null>(() => {
+    if (!today || inputs.source !== 'wardrobe' || !coverage.ready) return null
+    try { return buildOwnedOutfitRequest({ date: today, goals, language: copy.language, subtype, occasion: inputs.occasion, wardrobe: wardrobe.items }) }
+    catch { return null }
+  }, [copy.language, coverage.ready, goals, inputs.occasion, inputs.source, subtype, today, wardrobe.items])
+  const requestFingerprint = recommendationRequest ? fingerprintOwnedOutfitRequest(recommendationRequest) : null
+  const [recommendationState, setRecommendationState] = useState<
+    | { status: 'idle' }
+    | { status: 'loading' }
+    | { status: 'result'; fingerprint: string; result: OwnedRecommendationResult }
+    | { status: 'error' }
+  >({ status: 'idle' })
+  const submitting = useRef(false)
+  useEffect(() => { setInputs((current) => syncAutomaticOutfitSource(current, coverage)) }, [coverage.ready, setInputs])
+  useEffect(() => {
+    setRecommendationState((current) => current.status === 'result' && current.fingerprint !== requestFingerprint ? { status: 'idle' } : current)
+  }, [requestFingerprint])
   // Best effort: a blocked or full storage leaves the in-memory selection working for this session.
   useEffect(() => { saveDailyLuckyColorGoals(goals) }, [goals])
   const chooseGoal = (next: LuckyGoal) => {
     setGoals((current) => {
-      if (current.includes(next)) return current.length === 1 ? current : current.filter((goal) => goal !== next)
+      if (current.includes(next)) return current.filter((goal) => goal !== next)
       if (current.length < 2) return [...current, next]
-      return [current[1], next]
+      return current
     })
   }
   const moveGoal = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -208,34 +374,56 @@ export function DailyView({ copy, result, onQuiz, onWardrobe, clock = deviceCloc
     const next = LUCKY_GOALS[(index + change + LUCKY_GOALS.length) % LUCKY_GOALS.length]
     document.querySelector<HTMLButtonElement>(`[data-daily-goal="${next}"]`)?.focus()
   }
+  const buildLook = async () => {
+    if (submitting.current || !recommendationRequest || !requestFingerprint || inputs.source !== 'wardrobe' || !coverage.ready) return
+    submitting.current = true
+    setRecommendationState({ status: 'loading' })
+    try {
+      const provider = await requestOwnedOutfitRecommendation(recommendationRequest)
+      if (provider.ok) setRecommendationState({ status: 'result', fingerprint: requestFingerprint, result: { source: 'ai', recommendation: provider.result } })
+      else {
+        const fallback = recommendOwnedOutfitFallback(recommendationRequest)
+        setRecommendationState(fallback
+          ? { status: 'result', fingerprint: requestFingerprint, result: { source: 'deterministic-fallback', recommendation: fallback } }
+          : { status: 'error' })
+      }
+    } catch {
+      const fallback = recommendOwnedOutfitFallback(recommendationRequest)
+      setRecommendationState(fallback
+        ? { status: 'result', fingerprint: requestFingerprint, result: { source: 'deterministic-fallback', recommendation: fallback } }
+        : { status: 'error' })
+    } finally { submitting.current = false }
+  }
 
-  if (daily.status !== 'ready') return <main className="daily-page page-enter">
+  if (daily.status === 'date-error' || daily.status === 'result-error') return <main className="daily-page page-enter">
     <section className="daily-error content-card" role="alert">
       <h1>{copy.daily.title}</h1>
       <p>{daily.status === 'date-error' ? copy.daily.dateError : copy.daily.resultError}</p>
       {daily.status === 'date-error' && <button type="button" className="text-button" onClick={refreshToday}>{copy.daily.retry}</button>}
     </section>
   </main>
-  const { board, weekday } = daily
+  const weekday = daily.weekday
+  const canBuild = inputs.source === 'wardrobe' && coverage.ready && Boolean(recommendationRequest)
+  const buildHint = inputs.source === 'inspiration'
+    ? copy.daily.inspirationComingSoon
+    : coverage.ready
+      ? copy.daily.readyToBuild
+      : coverage.missing.length === 1 && coverage.missing[0] === 'shoes'
+        ? copy.daily.buildMissingShoes
+        : copy.daily.buildIncomplete
 
-  return <main className="daily-page page-enter" data-daily-mode={board.mode}>
+  return <main className="daily-page page-enter" data-daily-mode={daily.status === 'ready' ? daily.board.mode : 'neutral'}>
     <header className="daily-hero">
       <p className="eyebrow daily-weekday">{copy.daily.today} · {copy.daily.weekdays[weekday]}</p>
       <h1>{copy.daily.title}</h1>
     </header>
-    {onWardrobe && <section className="daily-wardrobe-entry" aria-labelledby="daily-wardrobe-heading"><div><p className="eyebrow">{copy.daily.wardrobeEyebrow}</p><h2 id="daily-wardrobe-heading">{copy.daily.wardrobeTitle}</h2><p>{copy.daily.wardrobeBody}</p></div><button type="button" className="wardrobe-secondary-button" onClick={onWardrobe}>{copy.daily.wardrobeCta} <span aria-hidden="true">→</span></button></section>}
-    <div className="daily-layout">
-      <div className="daily-intro">
-        <section className="daily-goals" aria-labelledby="daily-goal-heading">
-          <div className="daily-goals-head"><h2 id="daily-goal-heading">{copy.daily.goalPrompt}</h2><p className="daily-goal-limit">{copy.daily.goalLimit}</p></div>
-          <div role="group" aria-label={copy.daily.goalPrompt} className="daily-goal-grid">
-            {LUCKY_GOALS.map((item, index) => <button key={item} type="button" aria-pressed={goals.includes(item)} data-daily-goal={item} className={goals.includes(item) ? 'selected' : ''} onClick={() => chooseGoal(item)} onKeyDown={(event) => moveGoal(event, index)}><span className="daily-goal-label">{copy.daily.goals[item]}</span><span className="daily-goal-check" aria-hidden="true">✓</span></button>)}
-          </div>
-        </section>
-        <TodayColors board={board} copy={copy} />
-      </div>
-      <OutfitBoard board={board} copy={copy} subtype={subtype} onQuiz={onQuiz} />
-    </div>
+    <TodayInputs copy={copy} goals={goals} inputs={inputs} coverage={coverage} onGoal={chooseGoal} onGoalKeyDown={moveGoal} onOccasion={(occasion) => setInputs((current) => ({ ...current, occasion }))} onSource={(source) => setInputs((current) => chooseOutfitSource(current, source))} onWardrobe={onWardrobe} focusWardrobeAction={focusWardrobeAction} canBuild={canBuild} buildStatus={recommendationState.status === 'loading' ? 'loading' : 'idle'} buildHint={buildHint} onBuild={() => void buildLook()} />
+    {recommendationState.status === 'error' && <section className="owned-outfit-error" role="alert"><p>{copy.daily.totalFailure}</p><button type="button" className="primary-button compact" onClick={() => void buildLook()}>{copy.daily.retryRecommendation}</button></section>}
+    {recommendationState.status === 'result' && recommendationRequest
+      ? <><OwnedRecommendation copy={copy} request={recommendationRequest} result={recommendationState.result} wardrobe={wardrobe.items} />{daily.status === 'ready' && <div className="daily-lucky-support"><TodayColors board={daily.board} copy={copy} /></div>}</>
+      : daily.status === 'empty'
+        ? <EmptyLuckyResult copy={copy} />
+        : <div className="daily-layout"><div className="daily-intro"><TodayColors board={daily.board} copy={copy} /></div><OutfitBoard board={daily.board} copy={copy} subtype={subtype} onQuiz={onQuiz} /></div>}
     <p className="daily-framing">{copy.daily.framing}</p>
     <details className="daily-sources"><summary>{copy.daily.aboutHeading}</summary><p>{copy.daily.aboutBody}</p><p>{copy.daily.sourcesLabel}: <SourceLink href="https://www.thairath.co.th/horoscope/belief/2897832" name={copy.daily.sourceNames.thaiRath} newTab={copy.daily.newTab} /> {copy.daily.sourceJoin} <SourceLink href="https://www.ktc.co.th/article/shopping/fashion/birthday-auspicious-color-timetable" name={copy.daily.sourceNames.ktc} newTab={copy.daily.newTab} />{copy.daily.sourceEnd}</p></details>
   </main>

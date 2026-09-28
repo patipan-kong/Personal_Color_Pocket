@@ -5,7 +5,7 @@ import type { PersonalColorResult, Subtype } from '../domain/personalColor/types
 import { adaptLuckyColorToSubtype } from '../domain/luckyColor/adaptation'
 import { getLuckyColorForDate } from '../domain/luckyColor/luckyColor'
 import { getCopy } from '../i18n'
-import { DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY } from '../services/dailyLuckyColorGoal'
+import { DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, saveDailyLuckyColorGoals } from '../services/dailyLuckyColorGoal'
 import { DailyView } from './DailyView'
 import { LUCKY_FAMILY_DISPLAY_SWATCHES } from './presentation'
 
@@ -13,10 +13,20 @@ const monday = new Date(2026, 8, 21, 10, 0, 0)
 const profile = (subtype: Subtype): PersonalColorResult => ({ season: subtype.split('-')[1] as PersonalColorResult['season'], subtype, dimensions: { temperature: 0, value: 0, chroma: 0, contrast: 0 }, confidence: .8, confidenceLabel: 'Likely match', reasons: [], alternatives: [] })
 
 describe('Daily lucky color UI', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => { localStorage.clear(); saveDailyLuckyColorGoals(['work']) })
   afterEach(cleanup)
 
-  it('has exactly four multi-select goals, defaults to Work, and recomputes immediately', async () => {
+  it('starts with zero optional goals and a calm neutral state for a fresh user', () => {
+    localStorage.clear()
+    const { container } = render(<DailyView copy={getCopy('en')} result={null} onQuiz={vi.fn()} clock={() => monday} />)
+    expect(container.querySelectorAll('[data-daily-goal][aria-pressed="true"]')).toHaveLength(0)
+    expect(container.querySelector('[data-daily-mode="neutral"]')).toBeTruthy()
+    expect(screen.getByText(/no lucky focus selected today/i)).toBeInTheDocument()
+    expect(screen.getByText(/choose up to 2 · optional/i)).toBeInTheDocument()
+    expect(container.querySelector('.daily-family-claim, .daily-board')).toBeNull()
+  })
+
+  it('has exactly four multi-select goals and recomputes immediately', async () => {
     const user = userEvent.setup()
     const { container } = render(<DailyView copy={getCopy('en')} result={null} onQuiz={vi.fn()} clock={() => monday} />)
     const goals = container.querySelectorAll('[data-daily-goal]')
@@ -27,27 +37,24 @@ describe('Daily lucky color UI', () => {
     expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Money' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('heading', { name: 'Orange' })).toBeInTheDocument()
-    expect(localStorage.getItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY)).toBe('["work","money"]')
+    expect(localStorage.getItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY)).toBe('{"version":2,"goals":["work","money"]}')
   })
 
-  it('keeps the last goal selected, deselects from two to one, and replaces the oldest on a third click', async () => {
+  it('allows zero to two goals and blocks a third selection', async () => {
     const user = userEvent.setup()
     render(<DailyView copy={getCopy('en')} result={null} onQuiz={vi.fn()} clock={() => monday} />)
     const work = screen.getByRole('button', { name: 'Work' })
     const money = screen.getByRole('button', { name: 'Money' })
     const luck = screen.getByRole('button', { name: 'Luck & opportunity' })
-    await user.click(work)
+    await user.click(money)
+    await user.click(luck)
     expect(work).toHaveAttribute('aria-pressed', 'true')
-    await user.click(money)
-    await user.click(luck)
-    expect(work).toHaveAttribute('aria-pressed', 'false')
     expect(money).toHaveAttribute('aria-pressed', 'true')
-    expect(luck).toHaveAttribute('aria-pressed', 'true')
+    expect(luck).toHaveAttribute('aria-pressed', 'false')
+    await user.click(work)
     await user.click(money)
-    expect(money).toHaveAttribute('aria-pressed', 'false')
-    expect(luck).toHaveAttribute('aria-pressed', 'true')
-    await user.click(luck)
-    expect(luck).toHaveAttribute('aria-pressed', 'true')
+    expect(document.querySelectorAll('[data-daily-goal][aria-pressed="true"]')).toHaveLength(0)
+    expect(screen.getByText(/no lucky focus selected today/i)).toBeInTheDocument()
   })
 
   it('shows two equal lucky claims and two localized goal badges in general mode', async () => {
@@ -65,7 +72,7 @@ describe('Daily lucky color UI', () => {
   })
 
   it('keeps both families personalized and retains semantic accessory fallback', () => {
-    localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, JSON.stringify(['work', 'luck']))
+    saveDailyLuckyColorGoals(['work', 'luck'])
     const { container } = render(<DailyView copy={getCopy('en')} result={profile('soft-autumn')} onQuiz={vi.fn()} clock={() => monday} />)
     expect(container.querySelector('[data-daily-mode="personalized"]')).toBeTruthy()
     expect(container.querySelectorAll('.daily-family-claim')).toHaveLength(2)
@@ -77,7 +84,7 @@ describe('Daily lucky color UI', () => {
   })
 
   it('preserves two canonical goals and both families across locale and profile changes', () => {
-    localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, JSON.stringify(['work', 'money']))
+    saveDailyLuckyColorGoals(['work', 'money'])
     const rendered = render(<DailyView copy={getCopy('en')} result={profile('warm-spring')} onQuiz={vi.fn()} clock={() => monday} />)
     expect(rendered.container.querySelector('[data-lucky-claim-count="2"]')).toBeTruthy()
     rendered.rerender(<DailyView copy={getCopy('th')} result={profile('soft-autumn')} onQuiz={vi.fn()} clock={() => monday} />)
@@ -112,7 +119,7 @@ describe('Daily lucky color UI', () => {
 
   it('represents an accessory fallback semantically without a fabricated personalized shade', () => {
     // Monday luck is purple; Soft Autumn has no honest curated purple candidate.
-    localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, 'luck')
+    saveDailyLuckyColorGoals(['luck'])
     render(<DailyView copy={getCopy('en')} result={profile('soft-autumn')} onQuiz={vi.fn()} clock={() => monday} />)
     expect(screen.getByText(/small accessory/i)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Purple' })).toBeInTheDocument()

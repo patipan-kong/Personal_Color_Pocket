@@ -220,6 +220,39 @@ export interface LocaleCopy {
     goalLimit: string
     goalSeparator: string
     goals: Record<LuckyGoal, string>
+    occasionPrompt: string
+    occasions: Record<import('../domain/todayOutfitProduction/todayInputs').TodayOccasion, string>
+    sourcePrompt: string
+    sourceLabels: Record<import('../domain/todayOutfitProduction/todayInputs').OutfitSource, string>
+    sourceInspirationBody: string
+    sourceWardrobeCount: (count: number) => string
+    sourceWardrobeEmpty: string
+    sourceWardrobeIncomplete: string
+    sourceWardrobeMissingShoes: string
+    manageWardrobe: string
+    buildHeading: string
+    buildLook: string
+    buildingLook: string
+    readyToBuild: string
+    buildMissingShoes: string
+    buildIncomplete: string
+    inspirationComingSoon: string
+    recommendationEyebrow: string
+    recommendationHeading: string
+    recommendationSourceAi: string
+    recommendationSourceFallback: string
+    fallbackNote: string
+    recommendationPieces: string
+    occasionReason: string
+    personalColorReason: string
+    luckyReason: string
+    occasionExplanations: Record<import('../domain/todayOutfitProduction/todayInputs').TodayOccasion, string>
+    personalColorExplanations: Record<import('../domain/todayOutfitProduction/presentation').OwnedPersonalColorEmphasis, (subtype: string) => string>
+    luckyColorExplanation: (families: readonly string[], includedInOutfit: boolean) => string
+    totalFailure: string
+    retryRecommendation: string
+    emptyLuckyTitle: string
+    emptyLuckyBody: string
     // Singular for one lucky colour, plural for two.
     resultEyebrow: (count: number) => string
     familyLabel: string
@@ -249,10 +282,6 @@ export interface LocaleCopy {
     dateError: string
     retry: string
     resultError: string
-    wardrobeEyebrow: string
-    wardrobeTitle: string
-    wardrobeBody: string
-    wardrobeCta: string
   }
   wardrobe: {
     eyebrow: string

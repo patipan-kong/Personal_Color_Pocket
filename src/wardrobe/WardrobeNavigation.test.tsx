@@ -17,6 +17,7 @@ describe('My Wardrobe secondary navigation', () => {
     expect(document.querySelector('.bottom-nav')).toBeNull()
     await user.click(screen.getByRole('button', { name: /Back to Today/ }))
     expect(screen.getByRole('heading', { name: 'What should I wear today?' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Manage My Wardrobe/ })).toHaveFocus()
     expect(document.querySelectorAll('.bottom-nav button')).toHaveLength(0)
   })
 

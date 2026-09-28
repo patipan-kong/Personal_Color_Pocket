@@ -42,7 +42,8 @@ describe('primary product flow', () => {
     await user.click(screen.getByRole('button', { name: /today's lucky color/i }))
     expect(screen.getByRole('heading', { name: /what should i wear today/i })).toBeInTheDocument()
     expect(document.querySelectorAll('[data-daily-goal]')).toHaveLength(4)
-    expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Work' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText(/no lucky focus selected today/i)).toBeInTheDocument()
   })
 
   it('uses the bilingual canonical hierarchy for Thai palette cards and the selected summary', async () => {
@@ -111,7 +112,7 @@ describe('corrupted persisted profile', () => {
     expect(screen.getByRole('button', { name: /continue my quiz/i })).toBeInTheDocument()
     expect(container.querySelector('.bottom-nav')).toBeNull()
     await user.click(screen.getByRole('button', { name: /see today's lucky color/i }))
-    expect(container.querySelector('.daily-page')).toHaveAttribute('data-daily-mode', 'general')
+    expect(container.querySelector('.daily-page')).toHaveAttribute('data-daily-mode', 'neutral')
   })
 
   it('still opens a valid stored profile on its result', () => {
