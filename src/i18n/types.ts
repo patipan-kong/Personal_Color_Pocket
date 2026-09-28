@@ -8,6 +8,7 @@ import type { PhotoMatchCategory, PhotoMatchDescriptors, PhotoMatchDirection, Po
 import type { PhotoImageErrorCode } from '../services/photoImage'
 import type { LuckyGoal, LuckyWeekday, LuckyColorFamily } from '../domain/luckyColor/types'
 import type { LuckyOutfitPlacement, LuckyOutfitRole } from '../domain/luckyColor/outfit'
+import type { WardrobeFormality, WardrobeSlot } from '../domain/wardrobe'
 
 export type Language = 'en' | 'th'
 
@@ -248,6 +249,70 @@ export interface LocaleCopy {
     dateError: string
     retry: string
     resultError: string
+    wardrobeEyebrow: string
+    wardrobeTitle: string
+    wardrobeBody: string
+    wardrobeCta: string
+  }
+  wardrobe: {
+    eyebrow: string
+    title: string
+    back: string
+    itemCount: (count: number) => string
+    add: string
+    emptyTitle: string
+    emptyBody: string
+    coverageHeading: string
+    coverageSeparates: string
+    coverageOr: string
+    coverageOnePiece: string
+    coverageOuterwear: string
+    filterLabel: string
+    all: string
+    slots: Record<WardrobeSlot, string>
+    filterEmpty: string
+    addEyebrow: string
+    editEyebrow: string
+    addTitle: string
+    editTitle: string
+    closeEditor: string
+    typeHeading: string
+    slotGroupLabel: string
+    colorHeading: string
+    colorSourceLabel: string
+    colorSources: { basic: string; palette: string; exact: string }
+    noPalette: string
+    selectColor: (color: string) => string
+    colorPickerLabel: string
+    hexLabel: string
+    hexError: string
+    namePreview: string
+    moreDetails: string
+    customName: string
+    customNamePlaceholder: string
+    formality: string
+    formalities: Record<WardrobeFormality, string>
+    useDefault: (formality: string) => string
+    cancel: string
+    save: string
+    saveAnother: string
+    edit: string
+    delete: string
+    editName: (name: string) => string
+    deleteName: (name: string) => string
+    deleteTitle: string
+    deleteBody: (name: string) => string
+    confirmDelete: string
+    storage: {
+      title: string
+      corrupt: string
+      unavailable: string
+      unsupported: string
+      retry: string
+      notSavedTitle: string
+      notSavedBody: string
+      retrySave: string
+    }
   }
   dialog: { title: string; body: string; cancel: string; confirm: string }
   confidence: Record<ConfidenceLabel, string>

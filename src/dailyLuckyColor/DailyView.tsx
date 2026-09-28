@@ -186,7 +186,7 @@ function resolveDaily(today: Date | null, goals: readonly LuckyGoal[], subtype: 
   }
 }
 
-export function DailyView({ copy, result, onQuiz, clock = deviceClock }: { copy: LocaleCopy; result: PersonalColorResult | null; onQuiz: () => void; clock?: DailyClock }) {
+export function DailyView({ copy, result, onQuiz, onWardrobe, clock = deviceClock }: { copy: LocaleCopy; result: PersonalColorResult | null; onQuiz: () => void; onWardrobe?: () => void; clock?: DailyClock }) {
   const [goals, setGoals] = useState<LuckyGoal[]>(loadDailyLuckyColorGoals)
   const [today, refreshToday] = useLocalToday(clock)
   const subtype = validSubtype(result)
@@ -223,6 +223,7 @@ export function DailyView({ copy, result, onQuiz, clock = deviceClock }: { copy:
       <p className="eyebrow daily-weekday">{copy.daily.today} · {copy.daily.weekdays[weekday]}</p>
       <h1>{copy.daily.title}</h1>
     </header>
+    {onWardrobe && <section className="daily-wardrobe-entry" aria-labelledby="daily-wardrobe-heading"><div><p className="eyebrow">{copy.daily.wardrobeEyebrow}</p><h2 id="daily-wardrobe-heading">{copy.daily.wardrobeTitle}</h2><p>{copy.daily.wardrobeBody}</p></div><button type="button" className="wardrobe-secondary-button" onClick={onWardrobe}>{copy.daily.wardrobeCta} <span aria-hidden="true">→</span></button></section>}
     <div className="daily-layout">
       <div className="daily-intro">
         <section className="daily-goals" aria-labelledby="daily-goal-heading">

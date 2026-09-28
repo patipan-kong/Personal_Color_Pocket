@@ -248,6 +248,18 @@ export const en: LocaleCopy = {
     aboutHeading: "About today's lucky colors", aboutBody: 'This is cultural guidance from a Thai daily lucky-color tradition, which gives a separate color for each goal. The app lets you choose up to two goals and combines their colors into one outfit. Personal Color adjusts the shade or placement, never the lucky color family.',
     sourcesLabel: 'Sources', sourceJoin: 'supported by', sourceEnd: '.', sourceNames: { thaiRath: 'Thai Rath', ktc: 'KTC' }, newTab: '(opens in a new tab)',
     dateError: "We couldn't read today's date from your device. Check your date and time settings, then try again.", retry: 'Try again', resultError: "Sorry, today's outfit can't be shown right now.",
+    wardrobeEyebrow: 'Your clothes', wardrobeTitle: 'My Wardrobe', wardrobeBody: 'Keep a simple list of the clothes you wear often, ready for future outfit recommendations.', wardrobeCta: 'Manage My Wardrobe',
+  },
+  wardrobe: {
+    eyebrow: 'Your clothes', title: 'My Wardrobe', back: 'Back to Today', itemCount: (count) => `${count} ${count === 1 ? 'item' : 'items'}`, add: 'Add item',
+    emptyTitle: 'Start with what you wear most', emptyBody: 'You do not need to catalog everything. Start with just 5–8 pieces you wear often.',
+    coverageHeading: 'For a complete outfit, add:', coverageSeparates: 'Top + Bottom + Shoes', coverageOr: 'or', coverageOnePiece: 'One-piece + Shoes', coverageOuterwear: 'Outerwear is optional.',
+    filterLabel: 'Filter wardrobe', all: 'All', slots: { top: 'Tops', bottom: 'Bottoms', 'one-piece': 'One-pieces', outerwear: 'Outerwear', shoes: 'Shoes' }, filterEmpty: 'No items in this category yet.',
+    addEyebrow: 'New item', editEyebrow: 'Update item', addTitle: 'Add clothing', editTitle: 'Edit clothing', closeEditor: 'Close clothing form', typeHeading: 'What is it?', slotGroupLabel: 'Garment category',
+    colorHeading: 'Choose its main color', colorSourceLabel: 'Color source', colorSources: { basic: 'Basic Colors', palette: 'My Palette', exact: 'Exact Color' }, noPalette: 'Take the Personal Color quiz to choose from My Palette. Basic and Exact Colors still work without it.', selectColor: (color) => `Choose ${color}`, colorPickerLabel: 'Choose exact color', hexLabel: 'HEX color', hexError: 'Enter a valid 3- or 6-digit HEX color.',
+    namePreview: 'Automatic name', moreDetails: 'More details', customName: 'Custom name (optional)', customNamePlaceholder: 'For example, office navy blazer', formality: 'Formality', formalities: { casual: 'Casual', 'smart-casual': 'Smart Casual', formal: 'Formal' }, useDefault: (formality) => `Use type default: ${formality}`,
+    cancel: 'Cancel', save: 'Save', saveAnother: 'Save & add another', edit: 'Edit', delete: 'Delete', editName: (name) => `Edit ${name}`, deleteName: (name) => `Delete ${name}`, deleteTitle: 'Delete this item?', deleteBody: (name) => `${name} will be removed from My Wardrobe.`, confirmDelete: 'Delete item',
+    storage: { title: 'Your wardrobe is protected', corrupt: 'The saved wardrobe could not be read. Nothing has been overwritten. Try again before making changes.', unavailable: 'Storage is unavailable on this device. Nothing has been changed.', unsupported: 'This wardrobe was saved by a newer app version. Update the app before making changes so no data is lost.', retry: 'Try loading again', notSavedTitle: 'This change is only in this session', notSavedBody: 'It could not be saved on this device. Keep this page open or retry saving.', retrySave: 'Retry save' },
   },
   nav: { aria: 'Main navigation', daily: 'Daily', colors: 'My Colors', palette: 'Palette', checker: 'Color Checker', learn: 'Guide' },
   dialog: {

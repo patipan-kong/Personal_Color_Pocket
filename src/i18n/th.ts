@@ -245,6 +245,18 @@ export const th: LocaleCopy = {
     aboutHeading: 'เกี่ยวกับสีมงคลวันนี้', aboutBody: 'คำแนะนำนี้อิงความเชื่อทางวัฒนธรรมจากตารางสีมงคลประจำวันของไทย ซึ่งให้สีแยกกันในแต่ละเรื่อง แอปให้คุณเลือกได้ไม่เกิน 2 เรื่อง แล้วนำสีของแต่ละเรื่องมาจัดรวมเป็นชุดเดียว Personal Color ช่วยปรับเฉดหรือตำแหน่งที่ใส่ แต่ไม่เปลี่ยนกลุ่มสีมงคล',
     sourcesLabel: 'แหล่งอ้างอิง', sourceJoin: 'และข้อมูลประกอบจาก', sourceEnd: '', sourceNames: { thaiRath: 'ไทยรัฐ', ktc: 'KTC' }, newTab: '(เปิดในแท็บใหม่)',
     dateError: 'อ่านวันที่จากเครื่องไม่ได้ ลองตรวจสอบวันและเวลาในเครื่อง แล้วลองอีกครั้ง', retry: 'ลองอีกครั้ง', resultError: 'ขออภัย ตอนนี้ยังแสดงชุดของวันนี้ไม่ได้',
+    wardrobeEyebrow: 'เสื้อผ้าของคุณ', wardrobeTitle: 'เสื้อผ้าของฉัน', wardrobeBody: 'เก็บรายการเสื้อผ้าที่ใส่บ่อยไว้แบบง่าย ๆ เพื่อใช้จัดลุคในภายหลัง', wardrobeCta: 'จัดการเสื้อผ้าของฉัน',
+  },
+  wardrobe: {
+    eyebrow: 'เสื้อผ้าของคุณ', title: 'เสื้อผ้าของฉัน', back: 'กลับไปหน้าวันนี้', itemCount: (count) => `${count} ชิ้น`, add: 'เพิ่มเสื้อผ้า',
+    emptyTitle: 'เริ่มจากชิ้นที่ใส่บ่อย', emptyBody: 'ไม่ต้องลงทุกชิ้น เริ่มจากเสื้อผ้าที่ใส่บ่อย 5–8 ชิ้นก็พอ',
+    coverageHeading: 'ลุคที่ครบควรมี', coverageSeparates: 'ท่อนบน + ท่อนล่าง + รองเท้า', coverageOr: 'หรือ', coverageOnePiece: 'ชุดชิ้นเดียว + รองเท้า', coverageOuterwear: 'เสื้อคลุมเพิ่มทีหลังได้',
+    filterLabel: 'กรองเสื้อผ้า', all: 'ทั้งหมด', slots: { top: 'ท่อนบน', bottom: 'ท่อนล่าง', 'one-piece': 'ชุดชิ้นเดียว', outerwear: 'เสื้อคลุม', shoes: 'รองเท้า' }, filterEmpty: 'ยังไม่มีเสื้อผ้าในหมวดนี้',
+    addEyebrow: 'ชิ้นใหม่', editEyebrow: 'แก้ไขรายการ', addTitle: 'เพิ่มเสื้อผ้า', editTitle: 'แก้ไขเสื้อผ้า', closeEditor: 'ปิดแบบฟอร์มเสื้อผ้า', typeHeading: 'เป็นเสื้อผ้าแบบไหน?', slotGroupLabel: 'หมวดเสื้อผ้า',
+    colorHeading: 'เลือกสีหลัก', colorSourceLabel: 'วิธีเลือกสี', colorSources: { basic: 'สีพื้นฐาน', palette: 'พาเลตต์ของฉัน', exact: 'เลือกสีเอง' }, noPalette: 'ทำแบบทดสอบ Personal Color เพื่อเลือกจากพาเลตต์ของคุณ สีพื้นฐานและเลือกสีเองยังใช้ได้ตามปกติ', selectColor: (color) => `เลือก ${color}`, colorPickerLabel: 'เลือกสีแบบละเอียด', hexLabel: 'รหัสสี HEX', hexError: 'ใส่รหัส HEX 3 หรือ 6 หลักที่ถูกต้อง',
+    namePreview: 'ชื่ออัตโนมัติ', moreDetails: 'รายละเอียดเพิ่มเติม', customName: 'ชื่อที่ตั้งเอง (ไม่บังคับ)', customNamePlaceholder: 'เช่น เบลเซอร์กรมท่าไว้ทำงาน', formality: 'ระดับความทางการ', formalities: { casual: 'สบาย ๆ', 'smart-casual': 'สมาร์ตแคชชวล', formal: 'ทางการ' }, useDefault: (formality) => `ใช้ค่าแนะนำของประเภท: ${formality}`,
+    cancel: 'ยกเลิก', save: 'บันทึก', saveAnother: 'บันทึกและเพิ่มอีกชิ้น', edit: 'แก้ไข', delete: 'ลบ', editName: (name) => `แก้ไข ${name}`, deleteName: (name) => `ลบ ${name}`, deleteTitle: 'ลบเสื้อผ้าชิ้นนี้?', deleteBody: (name) => `${name} จะถูกลบออกจากเสื้อผ้าของฉัน`, confirmDelete: 'ลบชิ้นนี้',
+    storage: { title: 'เสื้อผ้าของคุณยังปลอดภัย', corrupt: 'อ่านข้อมูลที่บันทึกไว้ไม่ได้ ยังไม่มีข้อมูลถูกเขียนทับ ลองใหม่ก่อนแก้ไข', unavailable: 'ตอนนี้เครื่องนี้ไม่สามารถใช้พื้นที่บันทึกได้ ยังไม่มีข้อมูลถูกเปลี่ยน', unsupported: 'เสื้อผ้าชุดนี้บันทึกจากแอปรุ่นใหม่กว่า อัปเดตแอปก่อนแก้ไขเพื่อไม่ให้ข้อมูลหาย', retry: 'ลองอ่านใหม่', notSavedTitle: 'การเปลี่ยนแปลงนี้อยู่แค่ในหน้านี้', notSavedBody: 'บันทึกลงเครื่องนี้ไม่ได้ เปิดหน้านี้ไว้หรือลองบันทึกใหม่', retrySave: 'ลองบันทึกอีกครั้ง' },
   },
   nav: { aria: 'เมนูหลัก', daily: 'วันนี้', colors: 'สีของฉัน', palette: 'พาเลตต์', checker: 'เช็กสี', learn: 'คู่มือ' },
   dialog: {
