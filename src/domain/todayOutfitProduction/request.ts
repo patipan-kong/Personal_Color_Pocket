@@ -8,7 +8,7 @@ import type { WardrobeRecordV1 } from '../wardrobe/wardrobe.js'
 import type { Subtype } from '../personalColor/types.js'
 import type { TodayOccasion } from './todayInputs.js'
 import { OWNED_OUTFIT_REQUEST_VERSION, validateOwnedOutfitRequest } from './contract.js'
-import type { OwnedLuckyPreference, OwnedOutfitLanguage, OwnedOutfitRequest } from './contract.js'
+import type { OwnedLuckyPreference, OwnedOutfitLanguage, OwnedOutfitRequest, OwnedOutfitSignature } from './contract.js'
 
 export interface BuildOwnedOutfitRequestInput {
   readonly date: Date
@@ -17,6 +17,7 @@ export interface BuildOwnedOutfitRequestInput {
   readonly subtype?: Subtype
   readonly occasion: TodayOccasion
   readonly wardrobe: readonly WardrobeRecordV1[]
+  readonly exclusions?: readonly OwnedOutfitSignature[]
 }
 
 export function resolveOwnedLuckyPreferences(date: Date, goals: readonly LuckyGoal[], subtype?: Subtype): readonly OwnedLuckyPreference[] {
@@ -60,6 +61,7 @@ export function buildOwnedOutfitRequest(input: BuildOwnedOutfitRequestInput): Ow
       }
     }),
     luckyPreferences,
+    exclusions: input.exclusions ?? [],
   }
   const validated = validateOwnedOutfitRequest(request)
   if (!validated.ok || !validated.value) throw new RangeError(`Invalid owned outfit request: ${validated.issues.join('; ')}`)
@@ -68,6 +70,6 @@ export function buildOwnedOutfitRequest(input: BuildOwnedOutfitRequestInput): Ow
 
 export function fingerprintOwnedOutfitRequest(request: OwnedOutfitRequest): string {
   // Language changes only presentation now; every selection-affecting fact remains in the fingerprint.
-  const { language: _presentationLanguage, ...selectionContext } = request
+  const { language: _presentationLanguage, exclusions: _sessionExclusions, ...selectionContext } = request
   return JSON.stringify(selectionContext)
 }

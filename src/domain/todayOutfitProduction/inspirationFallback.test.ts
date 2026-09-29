@@ -4,6 +4,7 @@ import { buildInspirationOutfitRequest } from './inspirationRequest'
 import { recommendInspirationOutfitFallback } from './inspirationFallback'
 import { inspirationPieces } from './inspirationPresentation'
 import { validateInspirationOutfitRecommendation } from './inspirationContract'
+import { isGarmentAllowedForGender } from '../wardrobe/taxonomy'
 
 const monday = new Date(2026, 8, 21, 10)
 
@@ -37,5 +38,15 @@ describe('deterministic Inspiration fallback', () => {
     const request = buildInspirationOutfitRequest({ date: monday, goals: ['money'], occasion: 'wedding-guest' })
     const result = recommendInspirationOutfitFallback(request)!
     expect(inspirationPieces(result).every((piece) => piece.color.kind === 'generic')).toBe(true)
+  })
+
+  describe.each([['men'], ['women'], [null]] as const)('selected gender %s', (gender) => {
+    it.each(TODAY_OCCASIONS)('%s fallback is valid and only uses garments allowed for that gender', (occasion) => {
+      const request = buildInspirationOutfitRequest({ date: monday, goals: [], subtype: 'warm-spring', gender, occasion })
+      const fallback = recommendInspirationOutfitFallback(request)
+      expect(fallback).not.toBeNull()
+      for (const piece of inspirationPieces(fallback!)) expect(isGarmentAllowedForGender(piece.garmentType, gender)).toBe(true)
+      expect(validateInspirationOutfitRecommendation(fallback, request).ok).toBe(true)
+    })
   })
 })

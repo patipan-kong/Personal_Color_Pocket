@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildInspirationOutfitRequest } from './inspirationRequest'
-import { validateInspirationOutfitRecommendation } from './inspirationContract'
+import { validateInspirationOutfitRecommendation, validateInspirationOutfitRequest } from './inspirationContract'
 
 const request = buildInspirationOutfitRequest({ date: new Date(2026, 8, 21), goals: [], subtype: 'warm-spring', occasion: 'work' })
 const canonical = { kind: 'canonical' as const, canonicalColorId: request.canonicalColorIds[0] }
@@ -23,4 +23,31 @@ describe('production Inspiration strict contract', () => {
     ['mixed base', { outfit: { kind: 'one-piece', onePiece: piece('jumpsuit'), top: piece('shirt'), outerwear: null, shoes: piece('loafers') } }],
     ['unknown recommendation field', { outfit: { kind: 'one-piece', onePiece: piece('jumpsuit'), outerwear: null, shoes: piece('loafers') }, reasoning: 'provider prose' }],
   ])('rejects %s', (_label, value) => expect(validateInspirationOutfitRecommendation(value, request).ok).toBe(false))
+
+  describe('selected profile gender is a hard garment constraint', () => {
+    const shoes = (garmentType: string) => ({ outfit: { kind: 'separates', top: piece('polo', canonical), bottom: piece('shorts'), outerwear: null, shoes: piece(garmentType) } })
+    const male = buildInspirationOutfitRequest({ date: new Date(2026, 8, 21), goals: [], subtype: 'warm-spring', gender: 'men', occasion: 'casual' })
+    const female = buildInspirationOutfitRequest({ date: new Date(2026, 8, 21), goals: [], subtype: 'warm-spring', gender: 'women', occasion: 'casual' })
+
+    it('rejects a women-only garment for a men profile but accepts it for women (reported heels case)', () => {
+      expect(validateInspirationOutfitRecommendation(shoes('heels'), male).ok).toBe(false)
+      expect(validateInspirationOutfitRecommendation(shoes('heels'), female).ok).toBe(true)
+      expect(validateInspirationOutfitRecommendation({ outfit: { kind: 'one-piece', onePiece: piece('dress', canonical), outerwear: null, shoes: piece('sneakers') } }, male).ok).toBe(false)
+      expect(validateInspirationOutfitRecommendation({ outfit: { kind: 'separates', top: piece('shirt', canonical), bottom: piece('skirt'), outerwear: null, shoes: piece('sneakers') } }, male).ok).toBe(false)
+    })
+
+    it('keeps unisex garments valid for both profiles', () => {
+      for (const target of [male, female]) expect(validateInspirationOutfitRecommendation(shoes('sneakers'), target).ok).toBe(true)
+    })
+
+    it('with no selected gender excludes nothing', () => expect(validateInspirationOutfitRecommendation(shoes('heels'), request).ok).toBe(true))
+
+    it('requires a valid gender and never accepts a client-supplied garment list', () => {
+      const { gender: _gender, ...withoutGender } = male
+      expect(validateInspirationOutfitRequest(withoutGender).ok).toBe(false)
+      expect(validateInspirationOutfitRequest({ ...male, gender: 'other' }).ok).toBe(false)
+      expect(validateInspirationOutfitRequest({ ...male, allowedGarmentTypes: ['heels'] }).ok).toBe(false)
+      expect(validateInspirationOutfitRequest(male).ok).toBe(true)
+    })
+  })
 })

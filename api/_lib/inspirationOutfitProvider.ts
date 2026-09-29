@@ -1,5 +1,6 @@
 import type { AiErrorKind } from '../../src/domain/ai/providerCatalog.js'
 import { validateInspirationOutfitRecommendation } from '../../src/domain/todayOutfitProduction/inspirationContract.js'
+import { createInspirationOutfitSignature, isOutfitSignatureExcluded } from '../../src/domain/todayOutfitProduction/signatures.js'
 import type { InspirationOutfitRecommendation, InspirationOutfitRequest } from '../../src/domain/todayOutfitProduction/inspirationContract.js'
 import { getKey } from './env.js'
 import { OWNED_OUTFIT_PROVIDER as TODAY_OUTFIT_PROVIDER } from './ownedOutfitConfig.js'
@@ -37,5 +38,6 @@ export async function runInspirationOutfitProvider(input: InspirationOutfitReque
   if (typeof text !== 'string') return failure('malformed-response')
   const validated = validateInspirationOutfitRecommendation(parseJsonObject(text), input)
   if (!validated.ok || !validated.value) return failure('malformed-response', null, validated.issues)
+  if (isOutfitSignatureExcluded(createInspirationOutfitSignature(validated.value), input.exclusions)) return failure('malformed-response', null, ['provider returned an excluded outfit'])
   return { ok: true, result: validated.value }
 }

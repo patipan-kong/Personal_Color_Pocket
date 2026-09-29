@@ -1,10 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InspirationOutfitRequest } from '../../src/domain/todayOutfitProduction/inspirationContract.js'
-import { GARMENT_TYPES } from '../../src/domain/wardrobe/taxonomy.js'
 import { BASIC_WARDROBE_COLORS } from '../../src/domain/wardrobe/colors.js'
 import { TODAY_OUTFIT_PROVIDER, runInspirationOutfitProvider } from './inspirationOutfitProvider.js'
 
-const request: InspirationOutfitRequest = { version: 1, subtype: null, occasion: 'casual', allowedGarmentTypes: GARMENT_TYPES, canonicalColorIds: [], genericColorIds: BASIC_WARDROBE_COLORS.map((color) => color.id), luckyPreferences: [] }
+const request: InspirationOutfitRequest = { version: 1, subtype: null, occasion: 'casual', gender: null, canonicalColorIds: [], genericColorIds: BASIC_WARDROBE_COLORS.map((color) => color.id), luckyPreferences: [] }
 const valid = { outfit: { kind: 'separates', top: { garmentType: 't-shirt', color: { kind: 'generic', colorId: 'beige' } }, bottom: { garmentType: 'jeans', color: { kind: 'generic', colorId: 'navy' } }, outerwear: null, shoes: { garmentType: 'sneakers', color: { kind: 'generic', colorId: 'white' } } } }
 
 beforeEach(() => { process.env.GROQ_API_KEY = 'test-secret' })
@@ -35,5 +34,17 @@ describe('production Inspiration provider', () => {
     const outcome = await runInspirationOutfitProvider(request, new AbortController().signal)
     expect(outcome).toEqual({ ok: false, error: { kind: 'rate-limited', message: 'The recommendation service is busy.', httpStatus: 429 } })
     expect(JSON.stringify(outcome)).not.toContain('provider detail')
+  })
+})
+
+describe('production Inspiration provider gender enforcement', () => {
+  it('rejects a men-profile result with high heels and accepts it for women', async () => {
+    const heels = structuredClone(valid)
+    heels.outfit.shoes.garmentType = 'heels'
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(heels) } }] }), { status: 200 }))
+    const male = await runInspirationOutfitProvider({ ...request, gender: 'men' }, new AbortController().signal)
+    expect(male).toMatchObject({ ok: false, error: { kind: 'malformed-response' } })
+    const female = await runInspirationOutfitProvider({ ...request, gender: 'women' }, new AbortController().signal)
+    expect(female.ok).toBe(true)
   })
 })

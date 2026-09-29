@@ -32,6 +32,12 @@ export interface OwnedLuckyPreference {
   readonly priority: 'soft'
 }
 
+// A structured, provider-independent identity used only to avoid repeating a
+// previously generated Owned Look in the current session.
+export type OwnedOutfitSignature =
+  | { readonly kind: 'separates'; readonly itemIds: readonly string[] }
+  | { readonly kind: 'one-piece'; readonly itemIds: readonly string[] }
+
 export interface OwnedOutfitRequest {
   readonly version: typeof OWNED_OUTFIT_REQUEST_VERSION
   readonly language: OwnedOutfitLanguage
@@ -39,6 +45,8 @@ export interface OwnedOutfitRequest {
   readonly occasion: TodayOccasion
   readonly wardrobe: readonly OwnedWardrobeFact[]
   readonly luckyPreferences: readonly OwnedLuckyPreference[]
+  /** At most two earlier Looks are sent for V1 generation N. */
+  readonly exclusions?: readonly OwnedOutfitSignature[]
 }
 
 export type OwnedOutfitSelection =
@@ -126,10 +134,46 @@ export function validateOutfitLuckyPreferences(value: unknown, issues: string[])
   return true
 }
 
+function validateOwnedOutfitSignature(value: unknown, index: number, wardrobe: readonly OwnedWardrobeFact[], issues: string[]): value is OwnedOutfitSignature {
+  const path = `exclusions[${index}]`
+  if (!plain(value)) { issues.push(`${path} must be an object`); return false }
+  exactFields(value, ['kind', 'itemIds'], path, issues)
+  if (value.kind !== 'separates' && value.kind !== 'one-piece') issues.push(`${path}.kind is invalid`)
+  if (!Array.isArray(value.itemIds)) {
+    issues.push(`${path}.itemIds must be an array`)
+    return false
+  }
+  const expectedLength = value.kind === 'separates' ? [3, 4] : [2, 3]
+  if (!expectedLength.includes(value.itemIds.length)) issues.push(`${path}.itemIds has the wrong number of items`)
+  const ids = value.itemIds.filter((id): id is string => typeof id === 'string')
+  if (ids.length !== value.itemIds.length || ids.some((id) => !ID_PATTERN.test(id))) issues.push(`${path}.itemIds contains invalid IDs`)
+  if (new Set(ids).size !== ids.length) issues.push(`${path}.itemIds contains duplicates`)
+  const selected = ids.map((id) => wardrobe.find((item) => item.id === id)).filter((item): item is OwnedWardrobeFact => Boolean(item))
+  if (selected.length !== ids.length) issues.push(`${path}.itemIds references unknown wardrobe IDs`)
+  const slotCounts = selected.reduce<Record<string, number>>((counts, item) => ({ ...counts, [item.slot]: (counts[item.slot] ?? 0) + 1 }), {})
+  if (value.kind === 'separates') {
+    const validShape = slotCounts.top === 1 && slotCounts.bottom === 1 && slotCounts.shoes === 1
+      && (ids.length === 3 ? !slotCounts.outerwear : ids.length === 4 && slotCounts.outerwear === 1)
+    if (!validShape || Object.keys(slotCounts).some((slot) => !['top', 'bottom', 'outerwear', 'shoes'].includes(slot))) issues.push(`${path} does not describe a valid separates outfit`)
+  } else if (value.kind === 'one-piece') {
+    const validShape = slotCounts['one-piece'] === 1 && slotCounts.shoes === 1
+      && (ids.length === 2 ? !slotCounts.outerwear : ids.length === 3 && slotCounts.outerwear === 1)
+    if (!validShape || Object.keys(slotCounts).some((slot) => !['one-piece', 'outerwear', 'shoes'].includes(slot))) issues.push(`${path} does not describe a valid one-piece outfit`)
+  }
+  return true
+}
+
+function validateOwnedOutfitExclusions(value: unknown, wardrobe: readonly OwnedWardrobeFact[], issues: string[]): value is readonly OwnedOutfitSignature[] {
+  if (value === undefined) return true
+  if (!Array.isArray(value) || value.length > 2) { issues.push('exclusions must contain 0–2 items'); return false }
+  value.forEach((signature, index) => validateOwnedOutfitSignature(signature, index, wardrobe, issues))
+  return true
+}
+
 export function validateOwnedOutfitRequest(value: unknown): ContractValidation<OwnedOutfitRequest> {
   const issues: string[] = []
   if (!plain(value)) return { ok: false, value: null, issues: ['request must be an object'] }
-  exactFields(value, ['version', 'language', 'subtype', 'occasion', 'wardrobe', 'luckyPreferences'], 'request', issues)
+  exactFields(value, ['version', 'language', 'subtype', 'occasion', 'wardrobe', 'luckyPreferences', 'exclusions'], 'request', issues)
   if (value.version !== OWNED_OUTFIT_REQUEST_VERSION) issues.push('version is invalid')
   if (!member(OWNED_OUTFIT_LANGUAGES, value.language)) issues.push('language is invalid')
   if (value.subtype !== null && !member(subtypeOrder, value.subtype)) issues.push('subtype is invalid')
@@ -150,6 +194,7 @@ export function validateOwnedOutfitRequest(value: unknown): ContractValidation<O
       if (value.wardrobe.some((item) => plain(item) && Array.isArray(item.luckyFamilyMatches) && item.luckyFamilyMatches.some((family) => !requested.has(String(family))))) issues.push('luckyFamilyMatches must reference current Lucky preferences')
     }
   }
+  if (Array.isArray(value.wardrobe)) validateOwnedOutfitExclusions(value.exclusions, value.wardrobe as readonly OwnedWardrobeFact[], issues)
   return issues.length ? { ok: false, value: null, issues } : { ok: true, value: value as unknown as OwnedOutfitRequest, issues: [] }
 }
 

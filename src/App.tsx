@@ -20,6 +20,7 @@ import { toManualResultView } from './colorChecker/manualResult'
 import { PhotoCheckerPanel } from './photoChecker/PhotoCheckerPanel'
 import { DailyView } from './dailyLuckyColor/DailyView'
 import type { TodayRecommendationState } from './dailyLuckyColor/DailyView'
+import { SavedOutfitsView } from './savedOutfits/SavedOutfitsView'
 import { createTodayOutfitInputState, getWardrobeCoverage } from './domain/todayOutfitProduction/todayInputs'
 import { LearnView, type LearnEntry } from './learn/ui/LearnView'
 import { adService } from './services/ads'
@@ -31,7 +32,7 @@ import { CanonicalColorLabel } from './CanonicalColorLabel'
 import { TodayOutfitLabView } from './todayOutfit/TodayOutfitLabView'
 import { WardrobeView } from './wardrobe/WardrobeView'
 
-type View = 'home' | 'presentation' | 'quiz' | 'result' | 'palette' | 'checker' | 'daily' | 'learn' | 'wardrobe'
+type View = 'home' | 'presentation' | 'quiz' | 'result' | 'palette' | 'checker' | 'daily' | 'learn' | 'wardrobe' | 'saved-outfits'
 type CheckerMode = 'manual' | 'photo'
 
 const Icon = ({ name }: { name: 'daily' | 'colors' | 'palette' | 'checker' | 'learn' }) => {
@@ -712,6 +713,9 @@ export default function App() {
   const changePresentation = (next: PresentationPreference) => { setPresentationPreference(next); savePresentationPreference(next) }
   const changeView = async (next: View) => {
     if (view === 'result' && next === 'palette') await adService.showInterstitial('palette_open')
+    if (next !== 'daily') setTodayRecommendation((current) => current.status === 'loading'
+      ? current.looks.length ? { status: 'result', fingerprint: current.fingerprint, looks: current.looks } : { status: 'idle' }
+      : current)
     setView(next)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -730,10 +734,11 @@ export default function App() {
     {view === 'result' && result && <ResultView copy={copy} language={language} result={result} answers={answers} showDiagnostics={showDiagnostics} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} onPalette={() => void changeView('palette')} onLearn={() => openLearn({ kind: 'type', subtype: result.subtype })} onRetake={() => setConfirmRetake(true)} />}
     {view === 'palette' && result && <PaletteView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} onPresentation={changePresentation} onLearn={() => openLearn({ kind: 'topic', topic: 'wear.harder' })} />}
     {view === 'checker' && result && <CheckerView copy={copy} language={language} result={result} presentationPreference={presentationPreference ?? 'women'} onLearn={() => openLearn({ kind: 'topic', topic: 'app.color-checker' })} />}
-    {view === 'daily' && <DailyView copy={copy} result={result} onQuiz={startQuiz} inputState={todayInputs} onInputStateChange={setTodayInputs} recommendationState={todayRecommendation} onRecommendationStateChange={setTodayRecommendation} focusWardrobeAction={focusWardrobeOnReturn} onWardrobe={() => { setFocusWardrobeOnReturn(false); void changeView('wardrobe') }} />}
+    {view === 'daily' && <DailyView copy={copy} result={result} gender={presentationPreference} onQuiz={startQuiz} inputState={todayInputs} onInputStateChange={setTodayInputs} recommendationState={todayRecommendation} onRecommendationStateChange={setTodayRecommendation} focusWardrobeAction={focusWardrobeOnReturn} onWardrobe={() => { setFocusWardrobeOnReturn(false); void changeView('wardrobe') }} onSavedOutfits={() => void changeView('saved-outfits')} />}
     {view === 'wardrobe' && <WardrobeView copy={copy} language={language} result={result} onBack={() => { setFocusWardrobeOnReturn(true); void changeView('daily') }} />}
+    {view === 'saved-outfits' && <SavedOutfitsView copy={copy} onBack={() => void changeView('daily')} />}
     {view === 'learn' && <LearnView copy={copy} language={language} result={result} entry={learnEntry} onQuiz={startQuiz} onPalette={() => void changeView('palette')} />}
-    {result && view !== 'quiz' && view !== 'presentation' && view !== 'wardrobe' && <BottomNav copy={copy} view={view} onView={(next) => next === 'learn' ? openLearn() : void changeView(next)} />}
+    {result && view !== 'quiz' && view !== 'presentation' && view !== 'wardrobe' && view !== 'saved-outfits' && <BottomNav copy={copy} view={view} onView={(next) => next === 'learn' ? openLearn() : void changeView(next)} />}
     {confirmRetake && <RetakeDialog copy={copy} onCancel={() => setConfirmRetake(false)} onConfirm={retake} />}
   </div>
 }

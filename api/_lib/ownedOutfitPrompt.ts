@@ -11,6 +11,8 @@ Priority, in order:
 3. Personal Color compatibility, weighted especially for top, one-piece, and outerwear near the face.
 4. Lucky preferences are soft only. Ignore them when they would make the outfit worse. Never invent an item to satisfy them.
 
+Avoid every structured exclusion in the input. An exclusion matches only when the kind and all selected wardrobe IDs match exactly. Never compare provider prose.
+
 Return JSON only, with no unknown fields, using exactly one selection shape:
 {"selection":{"kind":"separates","topId":"id","bottomId":"id","outerwearId":null,"shoesId":"id"},"reasoning":{"occasion":"concise explanation","personalColor":"concise explanation or null","luckyColor":"concise explanation or null"}}
 or

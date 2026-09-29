@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   GARMENT_DEFINITIONS,
   GARMENT_TYPES,
+  allowedGarmentTypesForGender,
   WARDROBE_FORMALITIES,
   WARDROBE_SLOTS,
   getDefaultFormality,
@@ -42,5 +43,25 @@ describe('production wardrobe taxonomy', () => {
       jacket: 'smart-casual', blazer: 'smart-casual', cardigan: 'smart-casual', coat: 'smart-casual', 'other-outerwear': 'casual',
       sneakers: 'casual', loafers: 'smart-casual', flats: 'smart-casual', heels: 'formal', boots: 'smart-casual', sandals: 'casual', 'formal-shoes': 'formal', 'other-shoes': 'casual',
     })
+  })
+
+  it('centralizes gender applicability: explicit women-only entries, everything else unisex', () => {
+    expect(GARMENT_DEFINITIONS.filter((d) => d.audience === 'women').map((d) => d.id)).toEqual(['blouse', 'skirt', 'dress', 'flats', 'heels'])
+    expect(GARMENT_DEFINITIONS.map((d) => d.audience as string)).not.toContain('men')
+  })
+
+  it('derives allowed garment types per gender from that one source', () => {
+    const men = allowedGarmentTypesForGender('men')
+    const women = allowedGarmentTypesForGender('women')
+    for (const type of ['heels', 'dress', 'skirt', 'blouse', 'flats'] as const) {
+      expect(men).not.toContain(type)
+      expect(women).toContain(type)
+    }
+    for (const type of ['polo', 'shorts', 'jumpsuit', 'sneakers', 'loafers', 'formal-shoes', 'other-shoes'] as const) {
+      expect(men).toContain(type)
+      expect(women).toContain(type)
+    }
+    expect(allowedGarmentTypesForGender(null)).toEqual(GARMENT_TYPES)
+    for (const gender of ['men', 'women'] as const) for (const slot of ['top', 'bottom', 'one-piece', 'outerwear', 'shoes'] as const) expect(allowedGarmentTypesForGender(gender).some((type) => getWardrobeSlot(type) === slot)).toBe(true)
   })
 })

@@ -1,18 +1,20 @@
 import { getPalette } from '../personalColor/palettes.js'
 import type { Subtype } from '../personalColor/types.js'
 import { BASIC_WARDROBE_COLORS } from '../wardrobe/colors.js'
-import { GARMENT_TYPES } from '../wardrobe/taxonomy.js'
+import type { ProfileGender } from '../wardrobe/taxonomy.js'
 import type { LuckyGoal } from '../luckyColor/types.js'
 import type { TodayOccasion } from './todayInputs.js'
 import { resolveOwnedLuckyPreferences } from './request.js'
 import { INSPIRATION_OUTFIT_REQUEST_VERSION, validateInspirationOutfitRequest } from './inspirationContract.js'
-import type { InspirationOutfitRequest } from './inspirationContract.js'
+import type { InspirationOutfitRequest, InspirationOutfitSignature } from './inspirationContract.js'
 
 export interface BuildInspirationOutfitRequestInput {
   readonly date: Date
   readonly goals: readonly LuckyGoal[]
   readonly subtype?: Subtype
+  readonly gender?: ProfileGender | null
   readonly occasion: TodayOccasion
+  readonly exclusions?: readonly InspirationOutfitSignature[]
 }
 
 export function canonicalInspirationColorIds(subtype: Subtype): readonly string[] {
@@ -25,10 +27,11 @@ export function buildInspirationOutfitRequest(input: BuildInspirationOutfitReque
     version: INSPIRATION_OUTFIT_REQUEST_VERSION,
     subtype: input.subtype ?? null,
     occasion: input.occasion,
-    allowedGarmentTypes: GARMENT_TYPES,
+    gender: input.gender ?? null,
     canonicalColorIds: input.subtype ? canonicalInspirationColorIds(input.subtype) : [],
     genericColorIds: BASIC_WARDROBE_COLORS.map((color) => color.id),
     luckyPreferences: resolveOwnedLuckyPreferences(input.date, input.goals, input.subtype),
+    exclusions: input.exclusions ?? [],
   }
   const validated = validateInspirationOutfitRequest(request)
   if (!validated.ok || !validated.value) throw new RangeError(`Invalid inspiration outfit request: ${validated.issues.join('; ')}`)
@@ -36,5 +39,6 @@ export function buildInspirationOutfitRequest(input: BuildInspirationOutfitReque
 }
 
 export function fingerprintInspirationOutfitRequest(request: InspirationOutfitRequest): string {
-  return JSON.stringify(request)
+  const { exclusions: _sessionExclusions, ...selectionContext } = request
+  return JSON.stringify(selectionContext)
 }

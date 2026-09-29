@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { GARMENT_TYPES } from '../wardrobe/taxonomy'
 import { BASIC_WARDROBE_COLORS } from '../wardrobe/colors'
 import { buildInspirationOutfitRequest, fingerprintInspirationOutfitRequest } from './inspirationRequest'
 
@@ -13,7 +12,7 @@ describe('production Inspiration request construction and privacy', () => {
   ] as const)('builds Lucky %s with finite app-owned candidates', (_label, goals) => {
     const request = buildInspirationOutfitRequest({ date: monday, goals, subtype: 'warm-spring', occasion: 'work' })
     expect(request.luckyPreferences.length).toBeLessThanOrEqual(2)
-    expect(request.allowedGarmentTypes).toEqual(GARMENT_TYPES)
+    expect(request.gender).toBeNull()
     expect(request.canonicalColorIds.length).toBeGreaterThan(0)
     expect(request.genericColorIds).toEqual(BASIC_WARDROBE_COLORS.map((color) => color.id))
   })

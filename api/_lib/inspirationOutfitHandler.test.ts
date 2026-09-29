@@ -2,12 +2,11 @@ import { Readable } from 'node:stream'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InspirationOutfitRequest } from '../../src/domain/todayOutfitProduction/inspirationContract.js'
-import { GARMENT_TYPES } from '../../src/domain/wardrobe/taxonomy.js'
 import { BASIC_WARDROBE_COLORS } from '../../src/domain/wardrobe/colors.js'
 
 vi.mock('./inspirationOutfitProvider', () => ({ runInspirationOutfitProvider: vi.fn() }))
 
-const body: InspirationOutfitRequest = { version: 1, subtype: null, occasion: 'casual', allowedGarmentTypes: GARMENT_TYPES, canonicalColorIds: [], genericColorIds: BASIC_WARDROBE_COLORS.map((color) => color.id), luckyPreferences: [] }
+const body: InspirationOutfitRequest = { version: 1, subtype: null, occasion: 'casual', gender: null, canonicalColorIds: [], genericColorIds: BASIC_WARDROBE_COLORS.map((color) => color.id), luckyPreferences: [] }
 const result = { outfit: { kind: 'separates' as const, top: { garmentType: 't-shirt' as const, color: { kind: 'generic' as const, colorId: 'beige' as const } }, bottom: { garmentType: 'jeans' as const, color: { kind: 'generic' as const, colorId: 'navy' as const } }, outerwear: null, shoes: { garmentType: 'sneakers' as const, color: { kind: 'generic' as const, colorId: 'white' as const } } } }
 
 function request(value: unknown): IncomingMessage {

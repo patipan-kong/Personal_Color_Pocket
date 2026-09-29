@@ -3,8 +3,10 @@ import type { LuckyColorFamily } from '../luckyColor/types.js'
 import { getCanonicalWardrobeColor } from '../wardrobe/wardrobe.js'
 import type { BasicWardrobeColorId } from '../wardrobe/colors.js'
 import type { GarmentType } from '../wardrobe/taxonomy.js'
-import type { InspirationColor, InspirationOutfit, InspirationOutfitRecommendation, InspirationOutfitRequest } from './inspirationContract.js'
+import { getWardrobeSlot } from '../wardrobe/taxonomy.js'
+import type { InspirationColor, InspirationOutfit, InspirationOutfitRecommendation, InspirationOutfitRequest, InspirationPiece } from './inspirationContract.js'
 import { validateInspirationOutfitRecommendation, validateInspirationOutfitRequest } from './inspirationContract.js'
+import { createInspirationOutfitSignature, isOutfitSignatureExcluded } from './signatures.js'
 
 type Template =
   | { kind: 'separates'; top: GarmentType; bottom: GarmentType; outerwear: GarmentType | null; shoes: GarmentType }
@@ -27,13 +29,18 @@ const familyGeneric: Partial<Record<LuckyColorFamily, BasicWardrobeColorId>> = {
   white: 'white', pink: 'pink', red: 'red', green: 'green', blue: 'blue', purple: 'purple', gray: 'gray', black: 'black',
 }
 
-function generic(request: InspirationOutfitRequest, preferred: BasicWardrobeColorId): InspirationColor {
-  const id = request.genericColorIds.includes(preferred) ? preferred : request.genericColorIds[0]
-  return { kind: 'generic', colorId: id }
+function genericCandidates(request: InspirationOutfitRequest, preferred: BasicWardrobeColorId): readonly BasicWardrobeColorId[] {
+  const rest = request.genericColorIds.filter((id) => id !== preferred)
+  return request.genericColorIds.includes(preferred) ? [preferred, ...rest] : [...request.genericColorIds]
 }
 
-function canonicalNearFace(request: InspirationOutfitRequest): InspirationColor | null {
-  const id = request.canonicalColorIds[0]
+function generic(request: InspirationOutfitRequest, preferred: BasicWardrobeColorId, offset = 0): InspirationColor {
+  const candidates = genericCandidates(request, preferred)
+  return { kind: 'generic', colorId: candidates[offset % candidates.length] }
+}
+
+function canonicalNearFace(request: InspirationOutfitRequest, offset = 0): InspirationColor | null {
+  const id = request.canonicalColorIds[offset % request.canonicalColorIds.length]
   return id ? { kind: 'canonical', canonicalColorId: id } : null
 }
 
@@ -49,32 +56,40 @@ function luckyColor(request: InspirationOutfitRequest): InspirationColor | null 
   }
   return null
 }
-
-export function recommendInspirationOutfitFallback(input: InspirationOutfitRequest): InspirationOutfitRecommendation | null {
-  if (!validateInspirationOutfitRequest(input).ok) return null
-  const template = templates[input.occasion]
-  const nearFace = canonicalNearFace(input) ?? generic(input, genericDefaults.nearFace)
-  const lucky = luckyColor(input)
-  const bottom = lucky ?? generic(input, genericDefaults.bottom)
-  const shoes = template.kind === 'one-piece' ? lucky ?? generic(input, genericDefaults.shoes) : generic(input, genericDefaults.shoes)
-  const outerwearColor = generic(input, genericDefaults.outerwear)
-  let outfit: InspirationOutfit
+function buildVariant(request: InspirationOutfitRequest, template: Template, offset: number): InspirationOutfit {
+  const nearFace = canonicalNearFace(request, offset) ?? generic(request, genericDefaults.nearFace, offset)
+  const lucky = offset === 0 ? luckyColor(request) : null
+  const bottom = lucky ?? generic(request, genericDefaults.bottom, offset + 1)
+  const shoes = template.kind === 'one-piece'
+    ? lucky ?? generic(request, genericDefaults.shoes, offset + 2)
+    : generic(request, genericDefaults.shoes, offset + 2)
+  const outerwearColor = generic(request, genericDefaults.outerwear, offset + 3)
   if (template.kind === 'separates') {
-    outfit = {
+    return {
       kind: 'separates',
       top: { garmentType: template.top, color: nearFace },
       bottom: { garmentType: template.bottom, color: bottom },
-      outerwear: template.outerwear ? { garmentType: template.outerwear, color: nearFace } : null,
-      shoes: { garmentType: template.shoes, color: shoes },
-    }
-  } else {
-    outfit = {
-      kind: 'one-piece',
-      onePiece: { garmentType: template.onePiece, color: nearFace },
       outerwear: template.outerwear ? { garmentType: template.outerwear, color: outerwearColor } : null,
       shoes: { garmentType: template.shoes, color: shoes },
     }
   }
-  const recommendation = { outfit }
-  return validateInspirationOutfitRecommendation(recommendation, input).ok ? recommendation : null
+  return {
+    kind: 'one-piece',
+    onePiece: { garmentType: template.onePiece, color: nearFace },
+    outerwear: template.outerwear ? { garmentType: template.outerwear, color: outerwearColor } : null,
+    shoes: { garmentType: template.shoes, color: shoes },
+  }
+}
+
+export function recommendInspirationOutfitFallback(input: InspirationOutfitRequest): InspirationOutfitRecommendation | null {
+  if (!validateInspirationOutfitRequest(input).ok) return null
+  const template = templates[input.occasion]
+  // BASIC_WARDROBE_COLORS currently offers twelve identities; the cap keeps the
+  // fallback bounded while covering every ordinary alternate in V1.
+  const maxVariants = Math.min(12, Math.max(input.genericColorIds.length, input.canonicalColorIds.length, 1))
+  for (let offset = 0; offset < maxVariants; offset += 1) {
+    const recommendation = { outfit: buildVariant(input, template, offset) }
+    if (validateInspirationOutfitRecommendation(recommendation, input).ok && !isOutfitSignatureExcluded(createInspirationOutfitSignature(recommendation), input.exclusions)) return recommendation
+  }
+  return null
 }

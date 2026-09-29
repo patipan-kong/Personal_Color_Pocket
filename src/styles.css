@@ -105,7 +105,20 @@ h1, h2, h3, p { text-wrap: pretty; }
 .today-build-action .primary-button { width: 100%; justify-content: center; }
 .today-build-action .primary-button:disabled { cursor: not-allowed; box-shadow: none; filter: saturate(.35); opacity: .56; }
 
+.today-look-collection { display: grid; gap: 18px; margin-top: 4px; }
 .owned-outfit-result { margin-top: 4px; padding: clamp(22px, 4vw, 36px); border-radius: 28px; background: #fffdf9; box-shadow: 0 18px 55px rgba(64,33,45,.11), inset 0 0 0 1px rgba(64,33,45,.07); }
+.today-look-card { margin-top: 0; }
+.today-look-save { display: grid; justify-items: start; gap: 8px; margin-top: 14px; }
+.today-look-save p { margin: 0; color: var(--danger, #8a3a3a); font-size: .9rem; }
+.today-saved-outfits { margin-left: 12px; }
+.saved-outfits-page { width: min(980px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 64px; }
+.saved-outfits-header { margin-bottom: 20px; }
+.saved-outfits-header > .text-button { margin-bottom: 18px; }
+.saved-outfit-list { display: grid; gap: 18px; }
+.saved-outfit-card { margin-top: 0; }
+.saved-outfit-preview img { display: block; width: 100%; max-height: 620px; object-fit: contain; border-radius: 18px; background: #f4f0eb; }
+.saved-outfit-preview p, .saved-outfit-occasion { color: var(--muted, #665f5a); }
+.saved-outfit-delete { margin-top: 10px; color: var(--danger, #8a3a3a); }
 .owned-outfit-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 10px 18px; margin-bottom: 18px; }
 .owned-outfit-heading .eyebrow { margin: 0 0 4px; color: var(--accent-ink); }
 .owned-outfit-heading h2 { margin: 0; font-size: clamp(1.65rem, 5vw, 2.45rem); line-height: 1.15; letter-spacing: -.035em; }
@@ -125,6 +138,21 @@ h1, h2, h3, p { text-wrap: pretty; }
 .owned-outfit-reasons { display: grid; gap: 10px; margin-top: 19px; padding-top: 17px; border-top: 1px solid var(--line); }
 .owned-outfit-reasons p { display: grid; gap: 2px; margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.55; }
 .owned-outfit-reasons strong { color: var(--ink); font-size: .75rem; }
+.today-preview { display: grid; justify-items: start; gap: 13px; margin-top: 20px; padding-top: 19px; border-top: 1px solid var(--line); }
+.today-preview-action { min-height: 44px; padding: 10px 16px; border: 1px solid color-mix(in srgb, var(--accent) 46%, var(--line)); border-radius: 999px; background: color-mix(in srgb, var(--accent-soft) 55%, white); color: var(--accent-ink); font: inherit; font-size: .86rem; font-weight: 820; cursor: pointer; }
+.today-preview-action:hover { background: color-mix(in srgb, var(--accent-soft) 82%, white); }
+.today-preview-action:focus-visible { outline: 3px solid #197a78; outline-offset: 3px; }
+.today-preview-status { min-height: 44px; display: inline-flex; align-items: center; color: var(--muted); font-size: .86rem; font-weight: 750; }
+.today-preview-status .today-preview-action { display: inline-flex; align-items: center; gap: 10px; cursor: wait; opacity: .72; }
+.today-preview-spinner { width: 18px; height: 18px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: preview-spin .8s linear infinite; }
+.today-preview-result { width: min(100%, 550px); display: grid; gap: 9px; }
+.today-preview-result img { display: block; width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 22px; background: var(--cream); box-shadow: 0 12px 35px rgba(64,33,45,.12); }
+.today-preview-helper, .today-preview-expectation { margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.5; }
+.today-preview-expectation { color: var(--ink); }
+.today-preview-result .today-preview-action { justify-self: start; margin-top: 4px; }
+.today-preview-failure { display: grid; justify-items: start; gap: 10px; }
+.today-preview-failure p { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.5; }
+@keyframes preview-spin { to { transform: rotate(360deg); } }
 .daily-lucky-support { max-width: 520px; margin-top: 24px; padding-top: 4px; }
 .daily-lucky-support .daily-result { margin-top: 0; padding: 19px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,253,250,.5); }
 .owned-outfit-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 22px; padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,253,250,.68); }
@@ -986,6 +1014,7 @@ h1, h2, h3, p { text-wrap: pretty; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .today-preview-spinner { animation: none; }
   /* The Daily board appears in place: no settle movement when goals change. */
   .daily-board { animation: none; }
 }

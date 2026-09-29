@@ -1,6 +1,7 @@
 import type { AiErrorKind } from '../../src/domain/ai/providerCatalog.js'
 import type { OwnedOutfitRecommendation, OwnedOutfitRequest } from '../../src/domain/todayOutfitProduction/contract.js'
 import { validateOwnedOutfitRecommendation } from '../../src/domain/todayOutfitProduction/contract.js'
+import { createOwnedOutfitSignature, isOutfitSignatureExcluded } from '../../src/domain/todayOutfitProduction/signatures.js'
 import { getKey } from './env.js'
 import { OWNED_OUTFIT_PROVIDER } from './ownedOutfitConfig.js'
 import { buildOwnedOutfitPrompt } from './ownedOutfitPrompt.js'
@@ -56,5 +57,6 @@ export async function runOwnedOutfitProvider(input: OwnedOutfitRequest, signal: 
   if (typeof text !== 'string') return failure('malformed-response')
   const validated = validateOwnedOutfitRecommendation(parseJsonObject(text), input)
   if (!validated.ok || !validated.value) return failure('malformed-response', null, validated.issues)
+  if (isOutfitSignatureExcluded(createOwnedOutfitSignature(validated.value), input.exclusions)) return failure('malformed-response', null, ['provider returned an excluded outfit'])
   return { ok: true, result: validated.value }
 }

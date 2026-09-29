@@ -230,9 +230,13 @@ export interface LocaleCopy {
     sourceWardrobeIncomplete: string
     sourceWardrobeMissingShoes: string
     manageWardrobe: string
+    viewSavedOutfits: string
     buildHeading: string
     buildLook: string
+    addLook: string
     buildingLook: string
+    addingLook: string
+    maxLooksGuidance: string
     readyToBuild: string
     buildMissingShoes: string
     buildIncomplete: string
@@ -255,7 +259,25 @@ export interface LocaleCopy {
     personalColorExplanations: Record<import('../domain/todayOutfitProduction/presentation').OwnedPersonalColorEmphasis, (subtype: string) => string>
     luckyColorExplanation: (families: readonly string[], includedInOutfit: boolean) => string
     totalFailure: string
+    noAlternative: string
     retryRecommendation: string
+    lookLabel: (number: number) => string
+    previewCta: string
+    previewLoading: string
+    previewRetry: string
+    previewHelper: string
+    previewOwnedExpectation: string
+    previewInspirationExpectation: string
+    previewFailure: string
+    previewUnknownColor: string
+    previewAlt: (pieces: readonly string[]) => string
+    saveLook: string
+    savingLook: string
+    lookSaved: string
+    attachPreview: string
+    previewStored: string
+    saveFailure: string
+    imageSaveFailure: string
     emptyLuckyTitle: string
     emptyLuckyBody: string
     // Singular for one lucky colour, plural for two.
@@ -287,6 +309,20 @@ export interface LocaleCopy {
     dateError: string
     retry: string
     resultError: string
+  }
+  savedOutfits: {
+    eyebrow: string
+    title: string
+    intro: string
+    back: string
+    emptyTitle: string
+    emptyBody: string
+    savedLabel: string
+    outfitHeading: string
+    piecesLabel: string
+    delete: string
+    loadFailure: string
+    deleteFailure: string
   }
   wardrobe: {
     eyebrow: string

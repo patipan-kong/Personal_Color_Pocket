@@ -422,7 +422,7 @@ The experimental deterministic baseline is not production-ready unchanged: it la
 - No garment photos are stored in V1.
 - Future local color-sampling photos are ephemeral and should be discarded after confirmation.
 - Future AI photo analysis requires an explicit action and clear disclosure that an image leaves the device; it must not be implied by local Photo Checker behavior.
-- Generated previews stay session-only unless a separate save/export feature is explicitly designed later.
+- Today Previews stay session-only unless the user explicitly saves a Look. The separate Saved Outfits feature may copy an existing successful Preview into its IndexedDB Blob repository; wardrobe metadata and localStorage never contain image bytes.
 - Text AI receives only minimum structured wardrobe facts required for recommendation. Do not send custom names, raw storage envelopes, profile answers, or unrelated metadata.
 - Image AI receives only the selected outfit facts, never the whole wardrobe or user photos by default.
 - API keys remain server-only; normalized errors remain safe for the browser.
