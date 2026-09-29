@@ -1,4 +1,4 @@
-import { Profiler } from 'react'
+import { Profiler, type ComponentProps } from 'react'
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getLuckyColorForDate, getLuckyColorRule } from '../domain/luckyColor/luckyColor'
@@ -9,9 +9,9 @@ import type { PersonalColorResult, Subtype } from '../domain/personalColor/types
 import { LUCKY_GOALS, LUCKY_WEEKDAYS } from '../domain/luckyColor/types'
 import type { LuckyGoal, LuckyWeekday } from '../domain/luckyColor/types'
 import { getCopy } from '../i18n'
-import { DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY } from '../services/dailyLuckyColorGoal'
+import { DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, saveDailyLuckyColorGoals } from '../services/dailyLuckyColorGoal'
 import css from '../styles.css?raw'
-import { DailyView } from './DailyView'
+import { DailyView as ProductionDailyView } from './DailyView'
 
 // V1.3 Slice 6: edge cases, lifecycle and accessibility of the Daily view. The recommendation is the
 // real domain output except in the one test that proves an inconsistent recommendation is refused.
@@ -22,6 +22,7 @@ vi.mock('../domain/luckyColor/outfit', async (importOriginal) => {
 
 const dateFor = (weekday: LuckyWeekday, hour = 10) => new Date(2026, 8, 20 + LUCKY_WEEKDAYS.indexOf(weekday), hour, 0, 0)
 const monday = dateFor('mon')
+const DailyView = (props: ComponentProps<typeof ProductionDailyView>) => <ProductionDailyView {...props} showLegacyLuckyContent />
 const profile = (subtype: Subtype): PersonalColorResult => ({ season: subtype.split('-')[1] as PersonalColorResult['season'], subtype, dimensions: { temperature: 0, value: 0, chroma: 0, contrast: 0 }, confidence: .8, confidenceLabel: 'Likely match', reasons: [], alternatives: [] })
 const en = getCopy('en')
 const th = getCopy('th')
@@ -80,15 +81,24 @@ describe('V1.3 Slice 6 Daily copy', () => {
 })
 
 describe('V1.3 Slice 6 Daily robustness', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => { localStorage.clear(); saveDailyLuckyColorGoals(['work']) })
   afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.useRealTimers() })
 
   it('stays usable when reading the saved goals throws', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new DOMException('blocked', 'SecurityError') })
     const { container } = render(<DailyView copy={en} result={null} onQuiz={vi.fn()} clock={() => monday} />)
-    expect(pressed(container)).toEqual(['work'])
-    expect(container.querySelector('.daily-board')).toBeTruthy()
+    expect(pressed(container)).toEqual([])
+    expect(container.querySelector('.daily-board')).toBeNull()
     expect(container.textContent).not.toMatch(/SecurityError|blocked/)
+  })
+
+  it('does not invoke the Lucky recommendation engine when no focus is selected', () => {
+    localStorage.clear()
+    vi.mocked(recommendLuckyGoalsOutfit).mockClear()
+    const { container } = render(<DailyView copy={en} result={profile('warm-spring')} onQuiz={vi.fn()} clock={() => monday} />)
+    expect(vi.mocked(recommendLuckyGoalsOutfit)).not.toHaveBeenCalled()
+    expect(container.querySelector('.daily-empty-result')).toBeTruthy()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('keeps the in-memory selection when saving fails, without reverting or a blocking message', () => {
@@ -99,13 +109,13 @@ describe('V1.3 Slice 6 Daily robustness', () => {
     expect(pressed(container)).toEqual(['work', 'money'])
     expect(boardFamilies(container)).toEqual(expectedFamilies(monday, ['work', 'money']))
     fireEvent.click(screen.getByRole('button', { name: 'Mentor support' }))
-    expect(pressed(container)).toEqual(['money', 'mentor-support'])
+    expect(pressed(container)).toEqual(['work', 'money'])
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     expect(container.textContent).not.toMatch(/QuotaExceeded|full/)
   })
 
   it('sanitizes malformed and legacy saved goals before rendering', () => {
-    const cases: [string, LuckyGoal[]][] = [['{not json', ['work']], ['luck', ['luck']], ['"money"', ['money']], ['42', ['work']], ['null', ['work']], ['{"goal":"luck"}', ['work']], ['["love","luck","luck"]', ['luck']], ['[]', ['work']]]
+    const cases: [string, LuckyGoal[]][] = [['{not json', []], ['luck', []], ['"money"', []], ['42', []], ['null', []], ['{"goal":"luck"}', []], ['["love","luck","luck"]', []], ['[]', []], [JSON.stringify({ version: 2, goals: ['love', 'luck', 'luck'] }), ['luck']]]
     for (const [raw, goals] of cases) {
       localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, raw)
       const { container, unmount } = render(<DailyView copy={en} result={null} onQuiz={vi.fn()} clock={() => monday} />)
@@ -178,7 +188,7 @@ describe('V1.3 Slice 6 Daily date lifecycle', () => {
 
   it('rolls over at local midnight with both goals, the profile and the language kept, and one timer throughout', () => {
     vi.setSystemTime(new Date(2026, 8, 21, 23, 59, 30))
-    localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, JSON.stringify(['work', 'money']))
+    saveDailyLuckyColorGoals(['work', 'money'])
     const { container, unmount } = render(<DailyView copy={th} result={profile('soft-autumn')} onQuiz={vi.fn()} />)
     expect(container.querySelector('.daily-weekday')).toHaveTextContent(th.daily.weekdays.mon)
     expect(clockTimers.size).toBe(1)
@@ -227,13 +237,14 @@ describe('V1.3 Slice 6 Daily interaction and accessibility', () => {
 
   it('keeps summary, board and notes on one recommendation through rapid goal and language changes', () => {
     const rendered = render(<DailyView copy={en} result={profile('soft-summer')} onQuiz={vi.fn()} clock={() => monday} />)
-    const history: LuckyGoal[] = ['work']
+    const history: LuckyGoal[] = []
     const sequence: LuckyGoal[] = ['money', 'luck', 'mentor-support', 'work', 'luck', 'money', 'mentor-support', 'luck', 'work', 'money']
     sequence.forEach((goal, index) => {
       const copy = index % 3 === 0 ? th : en
       rendered.rerender(<DailyView copy={copy} result={profile('soft-summer')} onQuiz={vi.fn()} clock={() => monday} />)
       fireEvent.click(rendered.container.querySelector(`[data-daily-goal="${goal}"]`)!)
-      if (history.includes(goal)) { if (history.length === 2) history.splice(history.indexOf(goal), 1) } else { history.push(goal); if (history.length > 2) history.shift() }
+      if (history.includes(goal)) history.splice(history.indexOf(goal), 1)
+      else if (history.length < 2) history.push(goal)
       const { container } = rendered
       expect(pressed(container).sort()).toEqual([...history].sort())
       expect(summaryFamilies(container)).toEqual(expectedFamilies(monday, history))
@@ -244,7 +255,7 @@ describe('V1.3 Slice 6 Daily interaction and accessibility', () => {
   })
 
   it('renders the same recommendation in both languages', () => {
-    localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, JSON.stringify(['luck', 'money']))
+    saveDailyLuckyColorGoals(['luck', 'money'])
     const shape = (container: HTMLElement) => [...container.querySelectorAll<HTMLElement>('.daily-piece')].map((piece) => `${piece.dataset.pieceKey}:${piece.dataset.luckyFamily ?? '-'}:${piece.querySelector('svg path')!.getAttribute('fill')}`)
     const rendered = render(<DailyView copy={en} result={profile('soft-autumn')} onQuiz={vi.fn()} clock={() => monday} />)
     const english = shape(rendered.container)
@@ -254,7 +265,7 @@ describe('V1.3 Slice 6 Daily interaction and accessibility', () => {
 
   it('reads each dual lucky piece with its own goal, and never announces a supporting piece as lucky', () => {
     for (const subtype of [undefined, ...subtypeOrder]) {
-      localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, JSON.stringify(['work', 'money']))
+      saveDailyLuckyColorGoals(['work', 'money'])
       const { container, unmount } = render(<DailyView copy={en} result={subtype ? profile(subtype) : null} onQuiz={vi.fn()} clock={() => dateFor('sun')} />)
       const board = container.querySelector('.daily-board')!
       expect(board).toHaveAttribute('aria-label', en.daily.boardLabel)
@@ -276,7 +287,7 @@ describe('V1.3 Slice 6 Daily interaction and accessibility', () => {
   it('keeps visible and accessible Daily text free of raw identifiers and HEX, in both languages and error states', () => {
     const raw = /#[0-9a-f]{3,6}\b|\b(?:work|money|luck|mentor-support|near-face|main-piece|below-face|light-neutral|lucky-family|supporting-personal-color|palette|semantic|exact|family-token|neutral-token)\b|undefined|null|NaN|\[object/
     for (const copy of [en, th]) for (const weekday of LUCKY_WEEKDAYS) {
-      localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, JSON.stringify(['luck', 'mentor-support']))
+      saveDailyLuckyColorGoals(['luck', 'mentor-support'])
       const { container, unmount } = render(<DailyView copy={copy} result={profile('soft-autumn')} onQuiz={vi.fn()} clock={() => dateFor(weekday)} />)
       const labels = [...container.querySelectorAll('[aria-label], [title], [alt]')].map((node) => `${node.getAttribute('aria-label') ?? ''} ${node.getAttribute('title') ?? ''} ${node.getAttribute('alt') ?? ''}`)
       expect(`${container.textContent} ${labels.join(' ')}`.replace(copy.daily.goals.work, '').replace(copy.daily.goals.money, '')).not.toMatch(raw)
@@ -286,7 +297,7 @@ describe('V1.3 Slice 6 Daily interaction and accessibility', () => {
     expect(container.textContent).not.toMatch(/Invalid Date|RangeError|NaN/)
   })
 
-  it('moves arrow focus through the 2 × 2 goal grid without changing selection, and keeps focus on a replaced goal', () => {
+  it('moves arrow focus through the 2 × 2 goal grid without changing selection, and keeps focus when the third choice is blocked', () => {
     const { container } = render(<DailyView copy={en} result={null} onQuiz={vi.fn()} clock={() => monday} />)
     const button = (goal: LuckyGoal) => container.querySelector<HTMLButtonElement>(`[data-daily-goal="${goal}"]`)!
     button('work').focus()
@@ -297,7 +308,7 @@ describe('V1.3 Slice 6 Daily interaction and accessibility', () => {
     fireEvent.keyDown(button('mentor-support'), { key: 'ArrowUp' })
     expect(button('money')).toHaveFocus()
     fireEvent.keyDown(button('money'), { key: 'Tab' })
-    expect(pressed(container)).toEqual(['work'])
+    expect(pressed(container)).toEqual([])
     fireEvent.click(button('money'))
     button('luck').focus()
     fireEvent.click(button('luck'))

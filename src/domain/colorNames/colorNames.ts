@@ -1,4 +1,4 @@
-import { hexToOklab, hueDifference, normalizeHex, oklabChroma, oklabHue } from '../personalColor/colorUtils'
+import { hexToOklab, hueDifference, normalizeHex, oklabChroma, oklabHue } from '../personalColor/colorUtils.js'
 
 // V1.2 Slice 7: a HEX colour → a short, stable, human-readable name in English and Thai.
 // The HEX stays the measurement; the name is the everyday description of it ("Light Gray",

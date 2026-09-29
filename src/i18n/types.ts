@@ -8,6 +8,7 @@ import type { PhotoMatchCategory, PhotoMatchDescriptors, PhotoMatchDirection, Po
 import type { PhotoImageErrorCode } from '../services/photoImage'
 import type { LuckyGoal, LuckyWeekday, LuckyColorFamily } from '../domain/luckyColor/types'
 import type { LuckyOutfitPlacement, LuckyOutfitRole } from '../domain/luckyColor/outfit'
+import type { WardrobeFormality, WardrobeSlot } from '../domain/wardrobe'
 
 export type Language = 'en' | 'th'
 
@@ -219,6 +220,66 @@ export interface LocaleCopy {
     goalLimit: string
     goalSeparator: string
     goals: Record<LuckyGoal, string>
+    occasionPrompt: string
+    occasions: Record<import('../domain/todayOutfitProduction/todayInputs').TodayOccasion, string>
+    sourcePrompt: string
+    sourceLabels: Record<import('../domain/todayOutfitProduction/todayInputs').OutfitSource, string>
+    sourceInspirationBody: string
+    sourceWardrobeCount: (count: number) => string
+    sourceWardrobeEmpty: string
+    sourceWardrobeIncomplete: string
+    sourceWardrobeMissingShoes: string
+    manageWardrobe: string
+    viewSavedOutfits: string
+    buildHeading: string
+    buildLook: string
+    addLook: string
+    buildingLook: string
+    addingLook: string
+    maxLooksGuidance: string
+    readyToBuild: string
+    buildMissingShoes: string
+    buildIncomplete: string
+    inspirationReady: string
+    inspirationEyebrow: string
+    inspirationHeading: string
+    inspirationOwnershipNote: string
+    inspirationFallbackNote: string
+    inspirationPieces: string
+    recommendationEyebrow: string
+    recommendationHeading: string
+    recommendationSourceAi: string
+    recommendationSourceFallback: string
+    fallbackNote: string
+    recommendationPieces: string
+    occasionReason: string
+    personalColorReason: string
+    luckyReason: string
+    occasionExplanations: Record<import('../domain/todayOutfitProduction/todayInputs').TodayOccasion, string>
+    personalColorExplanations: Record<import('../domain/todayOutfitProduction/presentation').OwnedPersonalColorEmphasis, (subtype: string) => string>
+    luckyColorExplanation: (families: readonly string[], includedInOutfit: boolean) => string
+    totalFailure: string
+    noAlternative: string
+    retryRecommendation: string
+    lookLabel: (number: number) => string
+    previewCta: string
+    previewLoading: string
+    previewRetry: string
+    previewHelper: string
+    previewOwnedExpectation: string
+    previewInspirationExpectation: string
+    previewFailure: string
+    previewUnknownColor: string
+    previewAlt: (pieces: readonly string[]) => string
+    saveLook: string
+    savingLook: string
+    lookSaved: string
+    attachPreview: string
+    previewStored: string
+    saveFailure: string
+    imageSaveFailure: string
+    emptyLuckyTitle: string
+    emptyLuckyBody: string
     // Singular for one lucky colour, plural for two.
     resultEyebrow: (count: number) => string
     familyLabel: string
@@ -248,6 +309,80 @@ export interface LocaleCopy {
     dateError: string
     retry: string
     resultError: string
+  }
+  savedOutfits: {
+    eyebrow: string
+    title: string
+    intro: string
+    back: string
+    emptyTitle: string
+    emptyBody: string
+    savedLabel: string
+    outfitHeading: string
+    piecesLabel: string
+    delete: string
+    loadFailure: string
+    deleteFailure: string
+  }
+  wardrobe: {
+    eyebrow: string
+    title: string
+    back: string
+    itemCount: (count: number) => string
+    add: string
+    emptyTitle: string
+    emptyBody: string
+    coverageHeading: string
+    coverageSeparates: string
+    coverageOr: string
+    coverageOnePiece: string
+    coverageOuterwear: string
+    filterLabel: string
+    all: string
+    slots: Record<WardrobeSlot, string>
+    filterEmpty: string
+    addEyebrow: string
+    editEyebrow: string
+    addTitle: string
+    editTitle: string
+    closeEditor: string
+    typeHeading: string
+    slotGroupLabel: string
+    colorHeading: string
+    colorSourceLabel: string
+    colorSources: { basic: string; palette: string; exact: string }
+    noPalette: string
+    selectColor: (color: string) => string
+    colorPickerLabel: string
+    hexLabel: string
+    hexError: string
+    namePreview: string
+    moreDetails: string
+    customName: string
+    customNamePlaceholder: string
+    formality: string
+    formalities: Record<WardrobeFormality, string>
+    useDefault: (formality: string) => string
+    cancel: string
+    save: string
+    saveAnother: string
+    edit: string
+    delete: string
+    editName: (name: string) => string
+    deleteName: (name: string) => string
+    deleteTitle: string
+    deleteBody: (name: string) => string
+    confirmDelete: string
+    storage: {
+      title: string
+      corrupt: string
+      unavailable: string
+      unsupported: string
+      retry: string
+      notSavedTitle: string
+      notSavedBody: string
+      retrySave: string
+    }
   }
   dialog: { title: string; body: string; cancel: string; confirm: string }
   confidence: Record<ConfidenceLabel, string>

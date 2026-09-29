@@ -1,4 +1,4 @@
-import type { AiProviderId } from '../../src/domain/aiColorLab/contract.js'
+import type { AiProviderId } from '../../src/domain/ai/providerCatalog.js'
 
 // Server-only. Reads secret keys from process.env and NEVER returns them to a caller that
 // might log or forward the value -- only hasKey()/getKey() exist, and getKey() is for adapters

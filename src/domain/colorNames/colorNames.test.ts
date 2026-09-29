@@ -377,7 +377,7 @@ describe('purity: HEX in, name out', () => {
   const code = namesSource.replace(/\/\/.*$/gm, '')
 
   it('imports only the shared colour maths', () => {
-    expect(namesSource.match(/^import .*$/gm)).toEqual(["import { hexToOklab, hueDifference, normalizeHex, oklabChroma, oklabHue } from '../personalColor/colorUtils'"])
+    expect(namesSource.match(/^import .*$/gm)).toEqual(["import { hexToOklab, hueDifference, normalizeHex, oklabChroma, oklabHue } from '../personalColor/colorUtils.js'"])
   })
 
   it('knows nothing about sources, subtypes, matchers, the DOM, storage or the network', () => {

@@ -1,4 +1,5 @@
 import { cleanup, render, within } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { adaptLuckyColorToSubtype } from '../domain/luckyColor/adaptation'
 import { getLuckyColorRule } from '../domain/luckyColor/luckyColor'
@@ -8,17 +9,18 @@ import type { PersonalColorResult, Subtype } from '../domain/personalColor/types
 import { LUCKY_GOALS, LUCKY_WEEKDAYS } from '../domain/luckyColor/types'
 import type { LuckyGoal, LuckyWeekday } from '../domain/luckyColor/types'
 import { getCopy } from '../i18n'
-import { DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY } from '../services/dailyLuckyColorGoal'
-import { DailyView } from './DailyView'
+import { saveDailyLuckyColorGoals } from '../services/dailyLuckyColorGoal'
+import { DailyView as ProductionDailyView } from './DailyView'
 import { LUCKY_FAMILY_DISPLAY_SWATCHES } from './presentation'
 
 // Sunday 20 Sep 2026 plus the weekday index gives a local date on that weekday.
 const dateFor = (weekday: LuckyWeekday) => new Date(2026, 8, 20 + LUCKY_WEEKDAYS.indexOf(weekday), 10, 0, 0)
+const DailyView = (props: ComponentProps<typeof ProductionDailyView>) => <ProductionDailyView {...props} showLegacyLuckyContent />
 const profile = (subtype: Subtype): PersonalColorResult => ({ season: subtype.split('-')[1] as PersonalColorResult['season'], subtype, dimensions: { temperature: 0, value: 0, chroma: 0, contrast: 0 }, confidence: .8, confidenceLabel: 'Likely match', reasons: [], alternatives: [] })
 const pairs = <T,>(items: readonly T[]) => items.flatMap((item, index) => items.slice(index + 1).map((other) => [item, other] as const))
 
 function show(weekday: LuckyWeekday, goals: readonly LuckyGoal[], subtype?: Subtype, language: 'en' | 'th' = 'en') {
-  localStorage.setItem(DAILY_LUCKY_COLOR_GOAL_STORAGE_KEY, JSON.stringify(goals))
+  saveDailyLuckyColorGoals(goals)
   const rendered = render(<DailyView copy={getCopy(language)} result={subtype ? profile(subtype) : null} onQuiz={vi.fn()} clock={() => dateFor(weekday)} />)
   const board = rendered.container.querySelector<HTMLElement>('.daily-board')!
   const items = [...board.querySelectorAll<HTMLElement>(':scope > li')]
